@@ -143,12 +143,16 @@ Small hotfix batch from user playtest feedback on v0.2.0:
 - **Linux / Steam Deck: an intermittent SIGSEGV remains, with a reliable
   repro found this release** — Facility's computer terminals, the ones you
   activate to open a door for level progression, consistently crash the
-  game on activation (D255; not Deck-hardware-specific, seen on Linux
-  generally). Combat-related crashes reported earlier on Bunker/Frigate may
-  be the same underlying bug (an object record whose model reference goes
-  NULL while the record is still active for one more tick) via a different
-  trigger. We're tracking down the exact cause using the terminal repro;
-  please report any other Deck/Linux-specific faults.
+  game when destroyed (D255; not Deck-hardware-specific, seen on Linux
+  generally). Confirmed on real Steam Deck hardware across multiple levels:
+  every terminal on Facility, terminals near the radio objective on
+  Caverns, and a similar crash on Archives when a guard's grenade
+  detonates — all point at the same underlying bug (an object record whose
+  model reference goes NULL while the record is still active for one more
+  tick), triggered by an object exploding/being destroyed rather than by
+  simple interaction. Not (yet) reproduced by shooting a room of terminals
+  on Frigate, so the trigger isn't purely "destroy any terminal" — still
+  under investigation. Please report any other Deck/Linux-specific faults.
 - **Steam Deck / gamepad: the right analog stick currently navigates the
   main menu, file select, and mission-select map** — not the left stick.
   This matches the N64 default but is unintuitive on a modern controller;

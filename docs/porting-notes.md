@@ -1225,3 +1225,30 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
   path (`cd C:\Users\...`) is unreliable in this same shell and can silently
   mis-parse to a mangled path on a later command in the same tool call —
   prefer `cd /c/Users/...` (forward slashes) for the build working directory.
+- **A crash fault address of `0xffffffffffffffff` on x86-64 usually means a
+  non-canonical #GP from a garbage-high-bits pointer (bits 63:48 not a sign
+  extension of bit 47), not a computed `-1` sentinel** (cross-validated
+  against the sibling GEVR VR port, same decomp lineage — see
+  `scratchpad/GEVR-TRIAGE.md` item C; we independently hit the same register
+  shape in D191). Two companion habits worth keeping: re-read map anchors
+  from the freshly rebuilt map after every rebuild (a stale map silently
+  resolves the wrong symbol), and confirm the fault PC actually disassembles
+  on an instruction boundary before trusting a resolved symbol.
+- **Frame-rate assumptions — read before proposing any non-60 Hz mode**
+  (cross-validated against GEVR, `scratchpad/GEVR-TRIAGE.md` item B). GE's
+  logic is delta-scaled through `g_GlobalTimerDelta` (~216 call sites); the
+  PAL build (×1.2) is a shipping proof that delta-scaled code tolerates
+  other rates. But: **Bond's walk is frame-rate dependent by construction**
+  — `MoveBond` (`bondview2.c`) is an exponential approach toward a target,
+  advanced once per frame with no timestep, so convergence is measured in
+  frames, not seconds (GEVR measured ~1.487× walk speed at 90 Hz vs 60 Hz,
+  ≈90/60 exactly). Turn/aim *is* delta-scaled; walk is not. High-refresh or
+  uncapped presentation modes are therefore out of scope without a
+  game-logic change, which is forbidden — we tick at fixed 60 Hz (D52
+  pacing) by design, not as a limitation to fix. Also: `g_ClockTimer` must
+  stay integer (24 iteration sites depend on it); of 44
+  `/g_GlobalTimerDelta` divide sites, 40 are guarded (three different
+  spellings) and 4 are not (front-end cast camera `front.c:8271-8273`,
+  `propobj.c:~2393`) — those 4 rely on div-by-zero yielding NaN/inf without
+  trapping on both MIPS and x86-64 SSE, matching retail behavior; do not
+  "fix" them.

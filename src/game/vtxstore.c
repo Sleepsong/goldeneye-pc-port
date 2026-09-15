@@ -4,6 +4,10 @@
 #include "vtxstore.h"
 #include "propobj.h"
 #include "model.h"
+#ifdef PORT
+#include <stdio.h>
+#include <stdlib.h>
+#endif
 
 // unsure if these structs are defined as something else, elsewhere
 struct unk_09B7A0_struct_parent {
@@ -154,6 +158,43 @@ void sub_GAME_7F09BAC4(s32 find, s32 replacement) {
     while (var_s1 != NULL) {
         if (var_s1->type == 1) {
             var_v0 = var_s1->chr;
+#ifdef PORT
+            /* TEMP D255 (M-140): live-repro diagnostic for the Facility
+             * terminal SIGSEGV. An active PROP_TYPE_OBJ record's model
+             * pointer (aliased here through ChrRecord.chrflags at the same
+             * byte offset as ObjectRecord.model) has been observed NULL --
+             * ObjectRecord.model is never explicitly nulled anywhere in
+             * game code, so this is either a destroy-path ordering race or
+             * an activation race on a record whose model hasn't been set
+             * yet. Env-gated: GE_D255 skips the dereference and logs the
+             * record's identity instead of crashing, so a live repro
+             * session can keep running and a full trace can be captured.
+             * Default (unset) behaviour is bit-identical to before this
+             * probe -- do not remove until the mechanism is understood and
+             * a real fix lands. */
+            {
+                static int ge_d255 = -1;
+                if (ge_d255 < 0) ge_d255 = getenv("GE_D255") != NULL;
+                if (ge_d255) {
+                    ObjectRecord* d255obj = var_s1->obj;
+                    if (d255obj->model == NULL) {
+                        static int d255budget = 64;
+                        if (d255budget > 0) {
+                            d255budget--;
+                            osSyncPrintf(
+                                "D255 vtxstore_fix_refs: NULL model on active OBJ record"
+                                " prop=%p obj->obj=%d obj->type=%d obj->state=0x%02x"
+                                " prop->flags=0x%x prop->rooms=%d,%d\n",
+                                (void*)var_s1, (int)d255obj->obj, (int)d255obj->type,
+                                (unsigned)d255obj->state, (unsigned)var_s1->flags,
+                                (int)var_s1->rooms[0], (int)var_s1->rooms[1]);
+                        }
+                        var_s1 = var_s1->prev;
+                        continue;
+                    }
+                }
+            }
+#endif
             var_v1 = ((Model*)var_v0->chrflags)->obj;
             var_a1 = var_v1->RootNode;
             while (var_a1 != NULL) {

@@ -344,6 +344,19 @@ void sndHandleEvent(ALSndPlayer *sndp, ALSndpEvent *event) {
                         // Not a looped or retriggered sound, and all retries have been exhausted.
                         if (limitReached) {
                             // Check if we can preempt a lower-priority sound.
+                            /* D285: this scan reads/walks D_800243E4 without the
+                             * osSetIntMask lock sndSetupSound (above) already takes
+                             * around every mutation of the same list -- an
+                             * asymmetric-locking gap (writer locked, reader not) in
+                             * the D4/D152 class ("N64's interrupt-disable trick is a
+                             * no-op on a real PC thread"). Locking here changes
+                             * nothing observable on N64 (this function's own caller,
+                             * AL_SNDP_PLAY_EVT, already runs with interrupts masked
+                             * on real hardware per the audio ISR's normal execution
+                             * context); it closes the PC race where a burst of
+                             * sndPlaySfx calls (explosions) from the main thread can
+                             * mutate this list while the audio thread is mid-walk. */
+                            OSIntMask d285Mask = osSetIntMask(OS_IM_NONE);
                             ALSoundState *iterState = (ALSoundState *) D_800243E4.node.prev;
 
                             do {
@@ -381,6 +394,7 @@ void sndHandleEvent(ALSndPlayer *sndp, ALSndpEvent *event) {
                                 }
                                 iterState = (ALSoundState *) iterState->link.prev;
                             } while (limitReached && iterState != NULL);
+                            osSetIntMask(d285Mask);
 
                             if (!limitReached) {
                                 // Retry the sound that was preempted.

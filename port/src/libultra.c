@@ -222,7 +222,7 @@ static void portHeartbeatCheck(void)
         g_lastHeartbeatUs = now;
         sysLogPrintf(LOG_ERROR,
             "kernel heartbeat: no frame rendered for %llu ms (frames=%d); state:",
-            (unsigned long long)(now - g_lastFrameUs), g_framesRendered);
+            (unsigned long long)(now - g_lastFrameUs) / 1000, g_framesRendered);
         for (int i = 0; i < PORT_MAX_THREADS; ++i) {
             PortThread *t = &g_pt[i];
             if (!t->os) continue;

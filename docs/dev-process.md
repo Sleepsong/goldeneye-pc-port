@@ -63,6 +63,18 @@ The classes it currently tracks:
 - whole serialized formats are converted by an **offline sidecar** rather than
   patched at runtime.
 
+**Two process lessons from the sibling GEVR VR port** (same decomp lineage,
+reference-only survey in `scratchpad/GEVR-TRIAGE.md` item D — their corpus
+hit both repeatedly enough to name them): (1) **a grep standing in for a
+read** — a site list built by grepping one helper name or spelling misses
+siblings spelled differently or living in an adjacent file (their own
+missed-smoke-scissor-site example); treat a grep-built site list as a draft,
+not a census, until it's been read against. (2) **write the falsifier before
+the run** — state up front what result would kill the hypothesis ("if X
+survives, hypothesis Y is dead"), not just what would confirm it; this fits
+the existing budget/findings discipline directly and costs one sentence per
+brief.
+
 ## 3. Parallelise by file, consolidate often
 
 Lewis ran multiple git worktrees and found the real cost was

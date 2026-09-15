@@ -125,6 +125,43 @@ From the `pd_port` checkout (N64 PD had no widescreen; the port added it):
   ("Decide Phase 1" below) — correcting an earlier note here that overstated
   this as settled.
 
+### 6. GEVR portal-scissor findings — read before Phase 2/3 game-code work
+
+The sibling GEVR VR port (same n64decomp/007 lineage, reference-only survey
+in `scratchpad/GEVR-TRIAGE.md` item A) independently measured, on the same
+decomp, that widescreen "missing wall / see-through slab" artifacts come
+from the **per-room portal `SETSCISSOR` rects**, not the room-visibility
+pass (their cull census was byte-identical between arms) — giving every room
+the full view removed the artifacts (one level, one viewpoint; treat as a
+hypothesis, not settled). Re-derived in **our** tree (2026-07):
+
+| Class | Our sites | Notes |
+|---|---|---|
+| SCISSOR — room passes | `bg.c:685`, `bg.c:747` (`bgScissorCurrentPlayerViewF`) | primary + secondary/xlu |
+| SCISSOR — default variants | `bg.c:723`, `bg.c:1306`, `chrprop.c:598` (via `bgScissorCurrentPlayerViewDefault`, `bg.c:1332`) | |
+| SCISSOR — characters | `chr.c:3070/3074` (`chrRender`) | |
+| SCISSOR — explosions | `explosion.c:876/880` **and `explosion.c:1488/1492` (smoke)** | the smoke site is the one GEVR missed on their first pass |
+| CULL (removes props, not pixels) | `propobj.c:13584` `posIsOnScreen` (used at `:5881`) | a too-tight rect *deletes* a prop — GEVR's black-wall candidate |
+| **AI / SPAWN logic** | `chraction.c:10628` `chrIsPosOffScreen` → `bgGet2dBboxByRoomId` (`bg.c:573`) | reads the rect for character AI/spawn decisions |
+
+**Design trap (their hardest-won lesson):** do NOT put a clip/widescreen
+knob inside `bgGet2dBboxByRoomId` — it's the chokepoint that also feeds
+`chrIsPosOffScreen`, so a "clip-only" change there would silently alter what
+characters do. Scissor sites can be widened directly; the cull box and the
+AI/spawn consumer must be reasoned about separately.
+
+**Caveats:** (1) removing all per-room scissoring has an unknown
+overdraw/perf cost — measure before shipping; (2) their fix evidence is one
+level + one viewpoint; (3) the "two notions of view width" trap (their doc
+278): a port knob that redefines native content width from the *window*
+aspect while the game's scissor-tracked canvas stays 4:3 leaves ~29% of
+columns undrawn → stale-buffer slabs. Whatever this plan's implementation
+does, the game's canvas notion and the window notion must be reconciled
+explicitly at one named place — re-verify the line numbers above (cheap
+greps: `bgScissorCurrentPlayerView`, `bgGet2dBboxByRoomId`, `posIsOnScreen`,
+`chrIsPosOffScreen`) before acting on them, since this table predates any
+Phase 2/3 work actually landing.
+
 ## Option B — the standard (native 16:9, PD-parity)
 
 ### Architecture

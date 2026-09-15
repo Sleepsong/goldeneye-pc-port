@@ -510,11 +510,27 @@ static struct ShaderProgram* gfx_opengl_create_and_load_new_shader(uint64_t shad
         }
     }
 
+    /* D266: CVG_X_ALPHA ("texedge") modelled on the RDP's actual semantics,
+     * keyed on the alphacompare field. The inherited line quantized to
+     * opaque/discard at a hardcoded 0.19: it kept texels the N64 discards and
+     * forced survivors fully opaque, defeating the ALPHA_CVG_SEL blend.
+     * GE's Surface 1 IA4 tree strip (D236/D265) rendered as a wall because of
+     * it. Now: AC_DITHER -> dithered discard; AC_THRESHOLD -> discard only
+     * fully-transparent; AC_NONE -> discard below 0x80 and let survivors keep
+     * their alpha for blending. (AC_DECAL never sets SHADER_OPT_TEXTURE_EDGE,
+     * see gfx_pc.cpp.) */
     if (cc_features.opt_texture_edge && cc_features.opt_alpha) {
-        append_line(fs_buf, &fs_len, "    if (texel.a > 0.19) texel.a = 1.0; else discard;");
+        if (cc_features.opt_noise) {
+            append_line(fs_buf, &fs_len,
+                        "    if (texel.a < ((random(vec3(floor(gl_FragCoord.xy * noise_scale), float(frame_count))) + 1.0) / 2.0)) discard;");
+        } else if (cc_features.opt_alpha_threshold) {
+            append_line(fs_buf, &fs_len, "    if (texel.a < 1.0 / 256.0) discard;");
+        } else {
+            append_line(fs_buf, &fs_len, "    if (texel.a < 0.5) discard;");
+        }
     }
 
-    if (cc_features.opt_alpha && cc_features.opt_noise) {
+    if (cc_features.opt_alpha && cc_features.opt_noise && !cc_features.opt_texture_edge) {
         append_line(fs_buf, &fs_len,
                     "    texel.a *= floor(clamp(random(vec3(floor(gl_FragCoord.xy * noise_scale), float(frame_count))) + "
                     "texel.a, 0.0, 1.0));");

@@ -1722,16 +1722,25 @@ s32 sub_GAME_7F0B5864(s32 portalnum, bbox2d *bbox)
     {
         s32 degenerate = (bounds.max.x <= bounds.min.x) || (bounds.max.y <= bounds.min.y);
 #ifdef PORT
-        /* D106: a portal straddling the camera near-plane feeds z==0 clip
-         * points into transform3Dto2DWithZScaling, whose inv_z = -1e20 sends
-         * them to +/-1e20-scale screen coords. On N64 those bracket the view
-         * symmetrically so the box just clamps to full screen downstream;
-         * on PC the exact garbage can come back min>max on only one axis, or
-         * non-finite, slipping past the check above and culling the room the
-         * player is walking toward. Any wildly out-of-range / non-finite
-         * bound means "portal fills the view" -> full screensize. */
+        /* D106 (revised by D271): a portal straddling the camera near-plane
+         * feeds z==0 clip points into transform3Dto2DWithZScaling, whose
+         * inv_z = -1e20 sends them to +/-1e20-scale screen coords. On N64
+         * those huge FINITE values flow straight into bgRectIntersect (pure
+         * comparisons), which either clamps them to the parent/screen box
+         * (portal covers the view -> room kept) or yields an empty box
+         * (the portal's visible projection falls off-screen -> room CULLED).
+         * The original D106 guard mapped ANY out-of-range bound to full
+         * screen, which over-included the second case: at Surface 1's boot
+         * view, 9 of 11 near-plane-straddling portals produce garbage that
+         * clamps to an empty box (N64 culls the room) but was forced
+         * full-screen here, drawing whole rooms N64 never submits. Only
+         * NON-FINITE bounds are unsafe to let through (NaN poisons the
+         * comparisons downstream); this projection can reach ~1e26 at most,
+         * so lim=1e38 catches NaN/inf and nothing finite. Finite min>max is
+         * already caught by the `degenerate` check above, which is the N64
+         * code path itself. */
         {
-            const f32 lim = 100000.0f;
+            const f32 lim = 1e38f;
             if (!(bounds.min.x > -lim && bounds.min.x < lim) ||
                 !(bounds.min.y > -lim && bounds.min.y < lim) ||
                 !(bounds.max.x > -lim && bounds.max.x < lim) ||

@@ -689,6 +689,32 @@ static void import_texture_rgba16(int tile, const LoadedTexture& loaded_texture,
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes / 2;
     const uint32_t height = size_bytes / rdp.texture_tile[tile].line_size_bytes;
 
+#ifdef PORT
+    /* D252 diag (temporary): compare the line_size_bytes-derived width/height
+     * against the SETTILESIZE-derived rdp.texture_tile[tile].width/height, and
+     * dump the raw texel data once per distinct (addr,size) pair so a fire
+     * tile can be checked against the source bytes by hand. Remove once
+     * D252 is resolved. */
+    static int s_d252 = -1;
+    if (s_d252 < 0) s_d252 = getenv("GE_D252") != NULL;
+    if (s_d252) {
+        static std::set<std::pair<const void*, uint32_t>> s_d252_seen;
+        if (s_d252_seen.emplace((const void*)addr, size_bytes).second) {
+            const auto& t = rdp.texture_tile[tile];
+            fprintf(stderr,
+                "[D252] tile=%d addr=%p size_bytes=%u line_size_bytes=%u "
+                "computed(w=%u h=%u) settilesize(w=%u h=%u) uls=%u ult=%u lrs=%u lrt=%u "
+                "masks=%u maskt=%u tmem=%u\n",
+                tile, (const void*)addr, size_bytes, line_size_bytes, width, height,
+                t.width, t.height, t.uls, t.ult, t.lrs, t.lrt, t.masks, t.maskt, t.tmem);
+            char rawpath[256];
+            snprintf(rawpath, sizeof(rawpath), "scratch/d252_raw_%p_%u.bin", (const void*)addr, size_bytes);
+            FILE* rf = fopen(rawpath, "wb");
+            if (rf) { fwrite(addr, 1, size_bytes, rf); fclose(rf); }
+        }
+    }
+#endif
+
 	gfx_rapi->upload_texture(tex_upload_buffer, width, height, gen_mipmaps);
     // DumpTexture(loaded_texture.otr_path, rgba32_buf, width, height);
 }

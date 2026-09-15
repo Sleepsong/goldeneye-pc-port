@@ -140,15 +140,16 @@ Small hotfix batch from user playtest feedback on v0.2.0:
   behavior even after the D259 fix above. We recommend leaving it off unless
   you specifically want the unlock goodies and are willing to accept an
   experimental feature (D259/D257).
-- **Linux / Steam Deck: an intermittent SIGSEGV remains, with a reliable
-  repro found this release** — Facility's computer terminals, the ones you
-  activate to open a door for level progression, consistently crash the
-  game on activation (D255; not Deck-hardware-specific, seen on Linux
-  generally). Combat-related crashes reported earlier on Bunker/Frigate may
-  be the same underlying bug (an object record whose model reference goes
-  NULL while the record is still active for one more tick) via a different
-  trigger. We're tracking down the exact cause using the terminal repro;
-  please report any other Deck/Linux-specific faults.
+- ~~Linux / Steam Deck: an intermittent SIGSEGV, reproducible by destroying
+  Facility's computer terminals or other exploding objects~~ **FIXED
+  (D255).** Root cause: a 32-bit pointer read through a mistyped field
+  (`ChrRecord.chrflags`, a 4-byte enum aliased onto a real 8-bit pointer
+  field) silently truncated the pointer on 64-bit builds — harmless on the
+  original 32-bit N64, broken on PC. Verified live on real Steam Deck
+  hardware: held through the entire Facility level (including repeated
+  terminal destruction) and through Caverns' radio-objective terminals
+  with zero crashes. Please still report any other Deck/Linux-specific
+  faults.
 - **Steam Deck / gamepad: the right analog stick currently navigates the
   main menu, file select, and mission-select map** — not the left stick.
   This matches the N64 default but is unintuitive on a modern controller;

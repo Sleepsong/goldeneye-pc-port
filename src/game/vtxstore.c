@@ -143,7 +143,33 @@ void sub_GAME_7F09B820(void)
 */
 void sub_GAME_7F09BAC4(s32 find, s32 replacement) {
     PropRecord* var_s1;
+#ifdef PORT
+    /* D255 (M-140): the original decomp read this record's Model* through
+     * `((Model*)((ChrRecord*)prop->chr)->chrflags)` -- a union pun onto
+     * ChrRecord.chrflags, which is typed `CHRFLAG` (a 4-byte enum). On
+     * 32-bit N64 that's bit-exact: both the enum and a pointer are 4
+     * bytes, so casting the enum's VALUE to Model* reproduces the real
+     * bytes stored there. On 64-bit PC, Model* is 8 bytes but the enum
+     * read is still only 4 -- the cast reads just the pointer's low 32
+     * bits as an int and zero-extends it back out to a 64-bit address,
+     * discarding the real high bits entirely. The result is either a wild
+     * pointer or (as observed live on a Steam Deck, 2026-09-15: FAULT ADDR
+     * 0x10, PC in this function's `var_v1->RootNode` dereference) exactly
+     * NULL, whenever the true pointer's low 32 bits happen to be zero.
+     * Root-caused by comparing this truncated read against
+     * `var_s1->obj->model` (ObjectRecord.model, correctly typed as
+     * `Model*`) on the same live capture: the ObjectRecord-typed read was
+     * always a valid, non-NULL pointer -- confirming the record's model
+     * was never actually missing, only misread. Fix: read the pointer
+     * through its real 64-bit-wide field (`ObjectRecord.model`, the same
+     * union memory, just correctly typed) instead of through the
+     * mistyped `ChrRecord.chrflags` alias. Semantics-preserving on N64
+     * (identical bytes, identical result) and the D3x pointer-width ABI
+     * class documented in AGENTS.md / docs/dev/findings.md. */
+    ObjectRecord* var_v0;
+#else
     ChrRecord* var_v0;
+#endif
     Model* temp_a0;
     s32* temp_v0_2;
     ModelNode* var_a1;
@@ -153,13 +179,22 @@ void sub_GAME_7F09BAC4(s32 find, s32 replacement) {
     var_s1 = chrpropGetActiveTail();
     while (var_s1 != NULL) {
         if (var_s1->type == 1) {
+#ifdef PORT
+            var_v0 = var_s1->obj;
+            var_v1 = ((Model*)var_v0->model)->obj;
+#else
             var_v0 = var_s1->chr;
             var_v1 = ((Model*)var_v0->chrflags)->obj;
+#endif
             var_a1 = var_v1->RootNode;
             while (var_a1 != NULL) {
                 val = var_a1->Opcode & 0xFF;
                 if (val == 0x18) {
+#ifdef PORT
+                    temp_v0_2 = modelGetNodeRwData((Model*)var_v0->model, var_a1);
+#else
                     temp_v0_2 = modelGetNodeRwData((Model*)var_v0->chrflags, var_a1);
+#endif
                     if (find == *temp_v0_2) {
                         *temp_v0_2 = replacement;
                     }

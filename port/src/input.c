@@ -1094,7 +1094,25 @@ unsigned inputComputePad(int idx, signed char *stick_x, signed char *stick_y)
         int rx = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTX);
         int ry = SDL_GameControllerGetAxis(pad, SDL_CONTROLLER_AXIS_RIGHTY);
 
-        if (naturalPitchMode) {
+        /* D282: front-end menus (main menu, file select, mission-select map)
+         * share this same stick_x/stick_y channel with in-game look/movement.
+         * naturalPitchMode (SOLITARE, default-on) routes that channel to the
+         * RIGHT stick for continuous look -- fine in a level, unintuitive in
+         * a menu, where the left stick is the expected primary-navigation
+         * input on a modern pad/Deck (matches the F10 overlay's own
+         * left-stick nav, optionsoverlay.c). Outside a running stage, always
+         * source stick_x/stick_y from the left stick, regardless of
+         * naturalPitchMode -- a menu-context input remap only, no game-logic
+         * change and no effect on in-level control feel. */
+        int padMenuMode = (current_menu != GE_MENU_RUN_STAGE &&
+                           current_menu != GE_MENU_INVALID);
+
+        if (padMenuMode) {
+            int px = scaleAxis(lx);
+            int py = -scaleAxis(ly);       /* SDL up = negative -> N64 up = positive */
+            if (px) sx = px;
+            if (py) sy = py;
+        } else if (naturalPitchMode) {
             /* D194/D238: SOLITARE swaps stick roles -- left stick becomes
              * digital-step movement (same analog-for-movement tradeoff as
              * the keyboard remap above), right stick becomes continuous
@@ -1142,8 +1160,6 @@ unsigned inputComputePad(int idx, signed char *stick_x, signed char *stick_y)
         if (SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_B) ||
             SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_Y))
             button |= GE_CONT_B;
-        int padMenuMode = (current_menu != GE_MENU_RUN_STAGE &&
-                           current_menu != GE_MENU_INVALID);
         {
             int lbNow = SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
             int rbNow = SDL_GameControllerGetButton(pad, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);

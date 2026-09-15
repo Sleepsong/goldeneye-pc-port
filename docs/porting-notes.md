@@ -1203,3 +1203,25 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
   one silently drifts from the other; when investigating a decode bug, diff
   the suspect path against its sibling path for the same format before
   re-deriving the bit layout from scratch. §F **D228**.
+- **A Claude Code session's default `Bash` tool is NOT the MSYS2 MINGW64
+  shell the build needs, even when `uname -a`/`$MSYSTEM` claim it is (M-140).**
+  On this box the tool's shell is Git-for-Windows Bash (root mounted from
+  `C:/Program Files/Git`), which sets `MSYSTEM=MINGW64` and reports
+  `MINGW64_NT-...` from `uname` for compatibility — both of AGENTS.md's own
+  “are you in the right shell” checks pass while `cmake`/`ninja`/`gcc` are
+  still missing from `PATH` (they resolve at `/c/msys64/mingw64/bin` and
+  `/c/msys64/usr/bin`, not `/mingw64/bin` — that path exists but is a
+  Git-Bash stub, not the project's real MSYS2 install). Symptom if you build
+  anyway with only Git-Bash's own `gcc`/toolchain state: `cmake: command not
+  found`, or (if some `gcc.exe` further down PATH resolves) every compile
+  fails with `Cannot create temporary file in C:\Windows\: Permission
+  denied` — a native Windows exe's `GetTempPath` falling back to `C:\Windows`
+  because the child process doesn't actually see a usable `TMP`/`TEMP` the
+  way it does when launched from a real MSYS2 shell window. Fix: explicitly
+  `export PATH="/c/msys64/mingw64/bin:/c/msys64/usr/bin:$PATH"` (adjust if
+  MSYS2 is installed elsewhere) before `./build-pc.sh`/`ninja`/`cmake` in any
+  Claude Code Bash-tool session; do this once per session, first thing, not
+  reactively after a mystery failure. Also: `cd` with a *backslash* Windows
+  path (`cd C:\Users\...`) is unreliable in this same shell and can silently
+  mis-parse to a mangled path on a later command in the same tool call —
+  prefer `cd /c/Users/...` (forward slashes) for the build working directory.

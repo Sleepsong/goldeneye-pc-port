@@ -44,6 +44,9 @@ uintptr_t gfxFramebuffer;
 #define SCALE_4_8(VAL_) ((VAL_)*0x11)
 #define SCALE_8_4(VAL_) ((VAL_) / 0x11)
 #define SCALE_3_8(VAL_) ((VAL_)*0x24)
+/* D266: RDP IA4 is I2:A2 (2-bit intensity, 2-bit alpha), not the I3:A1 the
+ * PD-derived importer assumed. */
+#define SCALE_2_8(VAL_) ((VAL_)*0x55)
 #define SCALE_8_3(VAL_) ((VAL_) / 0x24)
 
 // SCREEN_WIDTH and SCREEN_HEIGHT are defined in the headerfile
@@ -724,13 +727,16 @@ static void import_texture_ia4(int tile, const LoadedTexture& loaded_texture, bo
     for (uint32_t i = 0; i < size_bytes * 2; i++, dest += 4) {
         const uint8_t byte = addr[i / 2];
         const uint8_t part = (byte >> (4 - (i % 2) * 4)) & 0xf;
-        const uint8_t intensity = part >> 1;
-        const uint8_t alpha = part & 1;
-        const uint8_t c = SCALE_3_8(intensity);
+        /* D266: I2:A2 -- the hardware IA4 layout. The old I3:A1 read made the
+         * A2=1 canopy pixels fully opaque and the A2=2 edge dither invisible
+         * (D236/D265 tree "wall"). */
+        const uint8_t intensity = part >> 2;
+        const uint8_t alpha = part & 3;
+        const uint8_t c = SCALE_2_8(intensity);
         dest[0] = c;
         dest[1] = c;
         dest[2] = c;
-        dest[3] = alpha ? 255 : 0;
+        dest[3] = SCALE_2_8(alpha);
     }
 
     const uint32_t width = rdp.texture_tile[tile].line_size_bytes * 2;
@@ -1650,7 +1656,11 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
     bool use_alpha =
         (rdp.other_mode_l & (3 << 20)) == (G_BL_CLR_MEM << 20) && (rdp.other_mode_l & (3 << 16)) == (G_BL_1MA << 16);
     const bool use_fog = ((rdp.other_mode_l >> 30) == G_BL_CLR_FOG) || ((rdp.other_mode_l >> 26) == G_BL_A_FOG);
-    const bool texture_edge = (rdp.other_mode_l & CVG_X_ALPHA) == CVG_X_ALPHA;
+    /* D266: G_AC_DECAL (alphacompare == 2) never discards, so it must not
+     * take the texedge path at all; NONE/THRESHOLD/DITHER are distinguished
+     * in gfx_opengl.cpp via the existing options. */
+    const bool ac_decal = (rdp.other_mode_l & (3U << G_MDSFT_ALPHACOMPARE)) == (2U << G_MDSFT_ALPHACOMPARE);
+    const bool texture_edge = (rdp.other_mode_l & CVG_X_ALPHA) == CVG_X_ALPHA && !ac_decal;
     const bool use_noise = (rdp.other_mode_l & (3U << G_MDSFT_ALPHACOMPARE)) == G_AC_DITHER;
     const bool use_2cyc = (rdp.other_mode_h & (3U << G_MDSFT_CYCLETYPE)) == G_CYC_2CYCLE;
     const bool alpha_threshold = (rdp.other_mode_l & (3U << G_MDSFT_ALPHACOMPARE)) == G_AC_THRESHOLD;
@@ -1659,7 +1669,7 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
     const bool use_modulate = use_alpha && (rsp.extra_geometry_mode & G_MODULATE_EXT) != 0;
     const bool use_blur = (rdp.other_mode_h & (3U << G_MDSFT_TEXTFILT)) == G_TF_BLUR_EXT;
 
-    if (texture_edge) {
+    if ((rdp.other_mode_l & CVG_X_ALPHA) == CVG_X_ALPHA) {
         use_alpha = true;
     }
 

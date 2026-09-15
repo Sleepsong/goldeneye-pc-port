@@ -150,7 +150,7 @@ D251,FIXED,F10 options overlay QoL pass:,"FIXED (port-only, port/src/optionsover
 D252,?,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).",
 D253,FIXED,Facility (and any level with a FORCECROUCH/LADDER linked special tile) SIGSEGV on Linux/Steam Deck —,FIXED — Deck-verified:
 D254,FIXED,Linux crash handler destroyed its own logs:,FIXED — field-verified.
-D255,OPEN,"Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle, D253 fix confirmed working —","OPEN — case identified (NULL model on an active OBJ record; destroy-path ordering); confirmed trigger is destruction-via-explosion (Facility terminals, Caverns terminals, Archives grenade —"
+D255,?,"Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle, D253 fix confirmed working —",
 D256,FIXED,Saves (and config) silently failed to persist on Linux whenever the game was not launched from the directory containing data/ —,FIXED (path half) — save-flow detail still owed from the user.
 D257,FIXED,New Game.AllUnlocked option (F10; default flipped OFF for v0.2.0 —,FIXED — verified by user playtest (PR #79 merged); default flipped OFF for v0.2.0 (D259).
 D259,FIXED,Game.AllUnlocked (D257) breaks audio on a fresh save:,FIXED in v0.2.1 — the deferred fix was applied:

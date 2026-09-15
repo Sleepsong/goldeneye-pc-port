@@ -161,3 +161,4 @@ D264,FIXED,"D262's root cause (ABI/layout class, cf.","FIXED — build green, pr
 D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —"
 D265,?,"D236 investigation (port-layer, port/fast3d/gfx_pc.cpp):",PARKED — reverted to baseline; evidence + suspect list above.
 D258,OPEN,PAL/JP asset conversion is broken at the source-data level —,"OPEN — repair path verified, not applied (out of v0.2.0 scope)."
+D284,FIXED,"port/src/random.c's MIPS64 dsll32/dsrl32 shift helpers were backwards (modelled as 32-bit shifts, not ""shift by n+32 on the full 64-bit register""), desyncing t…","FIXED, 21-level sweep clean, no crashes —"

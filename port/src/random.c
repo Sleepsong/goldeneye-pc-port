@@ -10,10 +10,25 @@
  * Also ports src/game/chrObjRandom.s: the character-AI PRNG (chroid.c),
  * which runs the identical transform on its own seed variable.
  *
- * The assembly operates on the low 32 bits of the seed (the high 32 bits are
- * never read), but the seed is stored as a full u64. We mirror each
- * instruction with explicit masks to guarantee bit-exactness. The initial
- * seed is the two .words in random.s: 0xAB8D9F77 (hi) / 0x81280783 (lo).
+ * The seed is stored as a full u64 and the transform genuinely operates on
+ * all 64 bits of the register (see the dsll32/dsrl32 note below) — the
+ * stored seed is NOT truncated to 32 bits between calls, matching what the
+ * real `sd $a0, g_randomSeed` in random.s stores. The initial seed is the
+ * two .words in random.s: 0xAB8D9F77 (hi) / 0x81280783 (lo). Only the low
+ * 32 bits are ever returned to callers (`dsll32 $v0,$a0,0; dsra32
+ * $v0,$v0,0` sign-extends the low half into $v0, of which callers only use
+ * the u32 truncation).
+ *
+ * D284 (M-140): the original port of this file had dsll32/dsrl32 backwards
+ * — it shifted by the literal immediate `n` and masked to 32 bits, i.e. it
+ * modelled them as 32-bit shift instructions. Real MIPS64 dsll32/dsrl32 are
+ * "shift by n+32", operating on the FULL 64-bit register with no masking:
+ * they exist specifically to encode a 32..63 shift amount in a 5-bit field.
+ * The bug was bit-exact-but-wrong: every generated value differed from the
+ * real N64 stream from the very first draw, silently desyncing loot RNG, AI
+ * variance, and replay determinism in every release to date. Verified two
+ * independent ways (a forked review agent's numeric trace, and a hand trace
+ * of random.s against this file, both in the M-138 review session).
  */
 
 #include <ultra64.h>
@@ -23,12 +38,13 @@ u64 g_randomSeed = 0xAB8D9F7781280783ULL;
 
 /*
  * MIPS64 shift helpers, matching the .s instructions exactly:
- *   dsll32 rd,rs,n  ->  (rs << n) & 0xFFFFFFFF   (low 32 bits kept, hi zeroed)
- *   dsrl32 rd,rs,n  ->  (rs >> n) & 0xFFFFFFFF   (low 32 bits kept, hi zeroed)
- * Plain `<<`/`>>` on u64 match dsll/dsrl (full 64-bit shifts).
+ *   dsll32 rd,rs,n  ->  (rs << (n+32))   (full 64-bit register, no masking)
+ *   dsrl32 rd,rs,n  ->  (rs >> (n+32))   (full 64-bit register, unsigned)
+ * Plain `<<`/`>>` on u64 match dsll/dsrl (full 64-bit shifts, shift amount
+ * used as-is, 0-31).
  */
-static inline u64 dsll32(u64 x, int n) { return (x << n) & 0xFFFFFFFFULL; }
-static inline u64 dsrl32(u64 x, int n) { return (x >> n) & 0xFFFFFFFFULL; }
+static inline u64 dsll32(u64 x, int n) { return x << (n + 32); }
+static inline u64 dsrl32(u64 x, int n) { return x >> (n + 32); }
 
 /*
  * Advance the global seed and return the new low 32 bits.

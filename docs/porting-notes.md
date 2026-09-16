@@ -1129,6 +1129,22 @@ made mutually acceptable (dual validation / one-time migration).
   fixed-tick mode was assessed not-narrow (redesigns retrace/tick
   semantics); design is in §F D117 if someone picks it up, after which
   `framediff.py --exact` becomes usable.
+- **A "deterministic boot" flag (`-level_XX`) pins the level and starting
+  state, but NOT the camera's later path through it — don't assume two
+  captures from the same boot flag are comparing the same view.** D236
+  pass 10 (M-155) found a render-mode-class triangle count that looked
+  "run-to-run dependent" across separate captures using the same
+  `-level_36` boot; three independent re-launches (including one with a
+  full `GE_INPUTSCRIPT` sustained-rotation sweep) actually produced
+  byte-identical, fully deterministic per-frame counts — the real
+  variance was the boot's own scripted intro camera walking from an
+  outdoor room into an indoor one at a fixed frame, and the two captures
+  being compared had sampled before vs. after that walk (or against an
+  unrelated live/free-play session entirely). **Before concluding a
+  count/state is nondeterministic across runs of the same boot flag,
+  correlate against a room/position probe (`GE_D104`-style) in the SAME
+  run** to rule out "the camera simply isn't where you assumed it was
+  yet" before chasing an instantiation or streaming bug.
 - **Anything blocking on the scheduler thread throttles the whole sim**
   (D186, cf. D134). The gfx task runs synchronously on `src/sched.c`'s
   thread, and that same thread delivers VI-retrace events; any `sysSleep` /

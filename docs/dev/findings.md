@@ -539,7 +539,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D233 | **All levels (intermittent): indoor level geometry invisible near doors — you can see through walls/floors into rooms you can't see into, while world objects…** — full `## D233` entry at file tail | **FIXED + VISUALLY VERIFIED (M-107 fix, M-108 verify).** See the other D233 row for full detail. |
 | D234 | **Dam: guard towers along the dam structure invisible except the first one (M-106, user QA report).** — full `## D234` entry at file tail | **VISUALLY VERIFIED FIXED (M-108), mechanism unexplained.** See the other D234 row for detail. |
 | D235 | **Wrong textures load after dying/restarting a level — not Facility-specific, seen on multiple levels (M-106, user QA report; clarified same session).** — full `## D235` entry at file tail | OPEN — needs: does it repro on a *fresh* level boot (rules out reload-state) vs only after death/restart (confirms it); which surfaces; a screenshot.… |
-| D236 | **Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).** — full `## D236` entry at file tail | OPEN — ninth pass closed with no fix; see D276/D280 |
+| D236 | **Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).** — full `## D236` entry at file tail | OPEN — tenth pass refuted the "instantiation is nondeterministic" theory (ordinary room-based occlusion, not a bug); original wall-vs-sprites symptom still unresolved; see D276/D280/M-155 |
 | D237 | **QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash…** — full `## D237` entry at file tail | OPEN — not designed; port-only |
 | D238 | **QoL ask (M-106, user QA): mouse sensitivity rework toward normal PC-shooter feel.** — full `## D238` entry at file tail | OPEN — not designed; port-only (`port/src/input.c` + `config.c`) |
 | D239 | **QoL ask (M-106, user QA): click-to-lock vs always-grab parity.** — full `## D239` entry at file tail | CLOSED — executed in the v0.2.0 prep pass (port-only)… |
@@ -10660,9 +10660,9 @@ crash class C2 (Facility `-level_34`, Runway `-level_35`): `import_texture_i8` A
 
 ## D236 — Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).
 
-**Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).** Eight passes so far (D265, D266–D270, D271, D272, D273, D274, D275–D276). Ruled out: IA4/IA8 decode (as originally scoped), the blend pipeline, fog combine (as originally scoped), portal-culling over-draw (D271, real bug, fixed, not the cause), converter/UV-conversion bugs (D272, code-read clean), the CI palette bit-layout (D273/D274, tested twice against real content), "mips absent" (D274, confirmed present/enabled), "identical UV window" *for the CI8 classes* (D272). **Current leading picture (D276, M-134): the actual visible weave at confirmed weave pixels is painted by a different, previously-dismissed class — an IA8 blocky-noise texture (`oml=0xc81049d8`/`fmt=3`) sampled with a fixed, byte-identical 2×-wrapped UV window and low fog, reproducing D265's original "same window" observation exactly (D269's CI8-classes framing had reframed away from that lead prematurely).** A third, unattributed CI8 class (`0x0c184b50`) may be the reference's actual discrete-tree layer and shows an erratic z/w suggesting its own occlusion/billboard bug — D236 may split into two root causes. **Ninth pass (D280, M-135): fog math verified N64-faithful (±2 truncation over 2505 verts), the IA8 noise class visually confirmed as the weave's painter (HF 14.8→2.9 when collapsed), `0xc8102078` ruled out (terrain, 1.4M tris), and the depth-race read inverted — `0x0c184b50` tree cards are IN FRONT of the noise quad (z/w smaller=closer) yet still don't visibly win; under deterministic `-level_36` boot they barely instantiate at all (~4 tris vs 720 in a free run). No quick win: remaining work is CPU-side instantiation/room-streaming, not a port fix.** Distinct from D176(b)'s painted tree-line backdrop. Logged in `GRAPHICS-BACKLOG.md`.
+**Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).** Eight passes so far (D265, D266–D270, D271, D272, D273, D274, D275–D276). Ruled out: IA4/IA8 decode (as originally scoped), the blend pipeline, fog combine (as originally scoped), portal-culling over-draw (D271, real bug, fixed, not the cause), converter/UV-conversion bugs (D272, code-read clean), the CI palette bit-layout (D273/D274, tested twice against real content), "mips absent" (D274, confirmed present/enabled), "identical UV window" *for the CI8 classes* (D272). **Current leading picture (D276, M-134): the actual visible weave at confirmed weave pixels is painted by a different, previously-dismissed class — an IA8 blocky-noise texture (`oml=0xc81049d8`/`fmt=3`) sampled with a fixed, byte-identical 2×-wrapped UV window and low fog, reproducing D265's original "same window" observation exactly (D269's CI8-classes framing had reframed away from that lead prematurely).** A third, unattributed CI8 class (`0x0c184b50`) may be the reference's actual discrete-tree layer and shows an erratic z/w suggesting its own occlusion/billboard bug — D236 may split into two root causes. **Ninth pass (D280, M-135): fog math verified N64-faithful (±2 truncation over 2505 verts), the IA8 noise class visually confirmed as the weave's painter (HF 14.8→2.9 when collapsed), `0xc8102078` ruled out (terrain, 1.4M tris), and the depth-race read inverted — `0x0c184b50` tree cards are IN FRONT of the noise quad (z/w smaller=closer) yet still don't visibly win; under deterministic `-level_36` boot they barely instantiate at all (~4 tris vs 720 in a free run). No quick win: remaining work is CPU-side instantiation/room-streaming, not a port fix.** **Tenth pass (M-155): that CPU-side-instantiation framing itself is REFUTED — three independent deterministic re-runs of the same `-level_36` boot (one with sustained camera rotation) proved the class's per-frame count is byte-identical, not run-to-run dependent; the earlier "~4 vs 720" comparison was an outdoor-vs-indoor room mismatch (the boot's scripted intro walks the camera out of the tree-bearing room at a fixed frame), not nondeterminism. No fix; the original wall-vs-discrete-sprites symptom is unresolved and untouched by this pass.** Distinct from D176(b)'s painted tree-line backdrop. Logged in `GRAPHICS-BACKLOG.md`.
 
-**Status (from §F table):** OPEN — ninth pass closed with no fix; see D276/D280
+**Status (from §F table):** OPEN — tenth pass refuted the "instantiation is nondeterministic" theory (ordinary room-based occlusion, not a bug); original wall-vs-sprites symptom still unresolved; see D276/D280/M-155
 
 **Next pass framing (post rule-2-clarification):**
 
@@ -10717,6 +10717,75 @@ REPORT: (a) the exact struct/field/counter gating instantiation, file:line,
         Append any generalisable quirk to docs/porting-notes.md — extend
         §A1 if this turns out to be another instance of the pattern.
 ```
+
+**Pass 10 result (M-155, 2026-09-16): D280's "instantiation is run-to-run
+dependent" premise is REFUTED — it's ordinary room-based occlusion, not a
+CPU-side gating bug. No fix; this closes the specific mystery the pass-10
+brief posed, D236 itself stays OPEN on the original "wall not discrete
+sprites" symptom.**
+
+Added a small env-gated diagnostic (`GE_D236RM`, `port/fast3d/gfx_pc.cpp`
+`gfx_sp_tri1`, see `GE-ENV-PROBES.md`) that counts triangles per frame
+(`num_dls`) whose `other_mode_l == 0x0c184b50` (the discrete-tree-card
+render-mode signature from D280), heartbeat-logging every 300 frames even
+at zero so a class going silent is visible, not just absent.
+
+Ran the deterministic `-level_36` boot **three times independently**
+(two static, one with `GE_INPUTSCRIPT="1:SRIGHT"` sustained rotation) —
+**all three produced byte-identical per-frame counts**: 4 tris/frame for
+frames 1-536, 2 tris/frame for frames 537-747, then **zero for the rest
+of a 55-60s run** (verified to frame 3299, well past D280's tick-1500
+sample point). This alone falsifies "not pinned by the boot flag" as
+stated — the boot IS fully deterministic frame-by-frame; D280's
+comparison must have been against session state, not process determinism.
+
+Cross-referencing with the already-in-tree `GE_D104` room-census probe
+(`bg.c:654`, unrelated finding, still live) in the same run pinpoints the
+mechanism exactly: **the class's count drops to zero at the same tick
+(~9601 controller-reads ≈ frame ~740-748) that `curRoom` transitions from
+12 to 18, and `roomsDrawn` collapses from 17-20 rooms to 1-5.** Room 12's
+neighbour set (17-20 rooms, several with small portal-window bboxes —
+consistent with a big outdoor vista) is where the tree-card class draws;
+room 18 (near-fullscreen bbox, 1-5 rooms visible — consistent with an
+enclosed indoor space) is where it permanently stops, and stays at zero
+through the rest of the capture regardless of continuous `SRIGHT`
+rotation. This is the deterministic `-level_36` boot's own scripted
+intro camera walking from an outdoor establishing shot into the player's
+actual indoor start point — the class legitimately has nothing to draw
+once indoors, the same way any outdoor-only geometry would correctly stop
+rendering behind walls on real N64. D280's "~4 tris on deterministic
+boot vs ~720 in a free run" was comparing this boot's post-intro *indoor*
+sample against a live session's *outdoor* one — an apples-to-oranges
+comparison, not evidence of nondeterministic instantiation.
+
+**Bucket classification: none of (a)/(b)/(c) — the room-transition
+explanation accounts for the entire observed variance without invoking
+an ABI misread, a port-layer timing bug, or a genuine N64 divergence.**
+No `src/game` or `port/` edit made or warranted by this pass.
+
+**What this does NOT resolve:** whether, from *inside* room 12 looking
+directly at the tree line, the discrete tree cards draw enough
+individual, correctly-placed triangles to look like trees rather than
+merging into D276's IA8 noise "wall" — this pass never got the camera
+into that outdoor room's tree-facing view (the scripted intro's own path
+through room 12 stays at low counts, 4→2, never approaching D280's 720
+figure). **Next pass, concrete:** find (or script) a camera path that
+stays in room 12 and faces the tree line directly — e.g. `GE_D104` to
+locate room 12's screen-space bbox windows facing the trees, then a
+`GE_INPUTSCRIPT` sequence that moves (not just rotates) the player
+toward one — and re-run `GE_D236RM` there; a healthy count scaling up
+toward the ~720 range as the camera closes on the tree line would confirm
+the CPU-side instantiation is fine and the remaining D236 mystery is
+purely a rendering/blend-order question (D276's territory); a count that
+stays anomalously low even facing the trees head-on from inside room 12
+would be the first real evidence of a genuine instantiation bug and
+should restart the bucket-(a)/(b)/(c) check from there.
+
+Probe left in tree (`GE_D236RM`, env-gated, zero cost unset, cataloged in
+`GE-ENV-PROBES.md`). Confidence: HIGH on the room-transition mechanism
+(three independent deterministic reproductions, direct room-index
+correlation); LOW-to-none on the original "wall vs discrete sprites"
+symptom, which this pass didn't reach.
 
 ## D237 — QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash…
 

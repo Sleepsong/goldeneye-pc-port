@@ -1637,6 +1637,30 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
         }
     }
 
+    /* D236 pass 10 (M-155, TEMP): does the 0x0c184b50 render-mode class's
+     * per-frame triangle count actually vary frame-to-frame WITHIN one
+     * deterministic -level_36 boot, or is D280's "run-to-run dependent"
+     * observation only visible ACROSS separate process launches (which
+     * would point at room-streaming state that isn't reset/seeded the
+     * same way twice, not at true per-frame nondeterminism)? Log the
+     * count once per display list (frame) while it's nonzero. Remove
+     * once D236 pass 10 concludes. */
+    if (getenv("GE_D236RM")) {
+        static uint32_t d236rm_last_dl = 0xFFFFFFFFu;
+        static uint32_t d236rm_count = 0;
+        extern uint32_t num_dls;
+        if (num_dls != d236rm_last_dl) {
+            if (d236rm_count != 0 || (num_dls % 300) == 0) {
+                fprintf(stderr, "D236RM dl=%u count=%u\n", d236rm_last_dl, d236rm_count);
+            }
+            d236rm_last_dl = num_dls;
+            d236rm_count = 0;
+        }
+        if (rdp.other_mode_l == 0x0c184b50u) {
+            d236rm_count++;
+        }
+    }
+
     if ((rsp.geometry_mode & G_CULL_BOTH) != 0) {
         float dx1 = v1->x / (v1->w) - v2->x / (v2->w);
         float dy1 = v1->y / (v1->w) - v2->y / (v2->w);

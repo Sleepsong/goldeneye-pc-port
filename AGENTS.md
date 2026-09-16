@@ -21,7 +21,7 @@
 | File | Role |
 |---|---|
 | `docs/internals.md` | Architecture + RSP deltas + phased plan (§1–§10). Reference, not a linear read. |
-| `docs/dev/findings.md` | The `Dxx` finding log (§F/§H, indexed at top of §F). |
+| `docs/dev/findings.md` | The `Dxx` finding log (§F/§H); lookups via `docs/dev/findings-index.csv`. |
 | `CMakeLists.txt` | PC build (parallel to the N64 Makefile). Source list + `REGION_DEFS` live here. |
 | `port/src/` | Shims: `libultra.c` (OS API), `gesched.c` (scheduler), `n64stubs.c` (boot/TLB/FPU/rmon), `random.c` (PRNG ported verbatim from `random.s`), `ucode.c` (microcode segment markers), `main.c`, `video.c`, … |
 | `port/fast3d/` | Software RSP (adapted from the PD port). The main Phase 2 work. |

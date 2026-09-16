@@ -702,6 +702,19 @@ through a converter or a runtime bswap fixup reads scrambled.
   Confirm the `src/game/` side is clean first (item ID, resource-table
   entry, model header, generic equip/gate pipeline) before spending time
   in fast3d — but once it is, look there, not back at the decomp logic.
+- **`portHeartbeatCheck` (`port/src/libultra.c:218`) hard-caps at 3
+  reports total per process lifetime, by design** ("stop after a few
+  reports"). When chasing a long-idle hang (D287), "the heartbeat stopped
+  logging" is that cap firing, not evidence the hang resolved, worsened,
+  or changed mechanism — don't read silence from this diagnostic as a
+  signal. Gate a raised/unlimited report count behind its own env var for
+  these investigations instead of trusting the default cap's silence.
+- **Before citing a `scratch/*.log`/`.txt` capture as "evidence" in a
+  finding, grep it for the specific numbers/strings the write-up claims**
+  (D287): a file with the right name on disk is not proof it holds the
+  claimed capture — this one turned out to be an unrelated normal-exit
+  run, not the freeze it was cited for, and the mistake propagated
+  through the entry unnoticed until a later static pass checked.
 - **D74 wrap-block is DEAD CODE** (`gfx_pc.cpp:1546/1551`): guard is
   `cms & G_TX_WRAP` but `G_TX_WRAP == 0`, so always false (line 1887 does
   it right with `cms == G_TX_WRAP`). And if it did run it indexes

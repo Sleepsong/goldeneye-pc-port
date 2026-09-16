@@ -88,10 +88,17 @@ void alEvtqPostEvent(ALEventQueue *evtq, ALEvent *evt, ALMicroTime delta)
     if (!item) {
 #ifdef PORT
         /* D202/M-71 diag: silent drop is the prime suspect for missing
-         * [VOICE+]; log every exhausted-queue post. Remove with probe set. */
-        geTracePrintf("audiotrace.log", "[EVTQ-DROP] evtq=%p type=%d state=%p delta=%d\n",
-                (void *)evtq, (int)evt->type,
-                (void *)((u8 *)evt + 2), (int)delta);
+         * [VOICE+]. Gated on GE_AUDIOTRACE (same switch as the sibling
+         * probes in synthesizer.c/csplayer.c/load.c) -- this was left
+         * unconditional, so shipped builds wrote an unbounded log on every
+         * exhausted-queue post; found via GitHub #87's session logs, which
+         * showed sustained pool exhaustion (a real pool-sizing question,
+         * tracked separately) but should never write to disk by default. */
+        if (getenv("GE_AUDIOTRACE")) {
+            geTracePrintf("audiotrace.log", "[EVTQ-DROP] evtq=%p type=%d state=%p delta=%d\n",
+                    (void *)evtq, (int)evt->type,
+                    (void *)((u8 *)evt + 2), (int)delta);
+        }
 #endif
         osSetIntMask(mask);
 #ifdef _DEBUG

@@ -335,6 +335,38 @@ f32 g_MpSwirlDistance;
 
 #define ALIGN64_V3(val) (((val) | 0x3f) ^ 0x3f)
 
+#ifdef PORT
+/* D243 (M-145): model-lifecycle probe for the Dam-abseil "two Bonds + camera
+ * shake" (M-143/M-145: the gBondViewCutscene POSEND look-at reads
+ * field_3C4/8/C, a leaky-integrator filter of Bond's real position that is
+ * never reset when a cutscene warps him; M-145 ties both symptoms to a
+ * suspected model-remove/recreate window around the CHR_BOND_CINEMA pad
+ * teleports). GE_D243M=1 logs:
+ *   D243M: CREATE/REMOVE -- every bodyModel assignment/removal (the only two
+ *     sites in this file), with camera mode at the moment it happened;
+ *   D243M: tick -- once per playerTick() call while the third-person model
+ *     exists OR a cutscene camera mode (POSEND/INTRO) is active: index, model
+ *     pointer, g_CameraMode, dword_CODE_bss_80079A18, prop->pos,
+ *     field_488.pos, and the filter fields field_3B8 + field_3C4/8/C;
+ *   D243M: draw -- once per on-screen render_pos submission, so a second
+ *     Bond instance shows up as two draw lines (different idx or model
+ *     pointer) at the same frame number.
+ * The frame counter increments once per playerTick() call (solo play: once
+ * per frame); it is NOT necessarily numerically identical to port's internal
+ * g_framesRendered -- cross-reference by elapsed offset, same convention as
+ * front.c's GE_D243 trace. D250: getenv cached. Diagnosis only; zero
+ * behaviour change when unset.
+ */
+static int d243mEnabled(void)
+{
+    static int s = -1;
+    if (s < 0) { s = getenv("GE_D243M") != NULL; }
+    return s;
+}
+
+static int g_d243mFrameCounter = 0;
+#endif
+
 void solo_char_load(void)
 {
     f32                         yaw;
@@ -570,6 +602,18 @@ void solo_char_load(void)
         self->chrflags |= CHRFLAG_INIT;
         setsuboffset((*pp)->bodyModel, &(*pp)->prop->pos);
         setsubroty(g_CurrentPlayer->bodyModel, yaw);
+#ifdef PORT
+        if (d243mEnabled()) {
+            osSyncPrintf("D243M: CREATE frame=%d model=%p prop=%p pos=%.1f,%.1f,%.1f cam=%d subcam=%d\n",
+                         g_d243mFrameCounter,
+                         (void *) g_CurrentPlayer->bodyModel,
+                         (void *) g_CurrentPlayer->prop,
+                         (double) g_CurrentPlayer->prop->pos.f[0],
+                         (double) g_CurrentPlayer->prop->pos.f[1],
+                         (double) g_CurrentPlayer->prop->pos.f[2],
+                         (int) g_CameraMode, (int) dword_CODE_bss_80079A18);
+        }
+#endif
 #ifndef VERSION_US
         self->headnum = head;
         self->bodynum = body;
@@ -622,6 +666,15 @@ void solo_char_load(void)
  */
 void bondviewRemovePlayerBody(void)
 {
+#ifdef PORT
+    if (d243mEnabled()) {
+        osSyncPrintf("D243M: REMOVE frame=%d had_model=%d chr=%p cam=%d subcam=%d\n",
+                     g_d243mFrameCounter,
+                     (int)(g_CurrentPlayer->bodyModel != 0),
+                     (void *) g_CurrentPlayer->prop->chr,
+                     (int) g_CameraMode, (int) dword_CODE_bss_80079A18);
+    }
+#endif
     if ((g_CurrentPlayer->prop->chr) && (getPlayerCount() == 1))
     {
         chrpropCleanupForRemoval(g_CurrentPlayer->prop);
@@ -10334,6 +10387,34 @@ s32 playerTick(PropRecord *prop)
  
     index = getPlayerPointerIndex(prop);
     chr = prop->chr;
+
+#ifdef PORT
+    if (d243mEnabled()) {
+        struct player *pp = g_playerPointers[index];
+        int cutsceneCam = ((g_CameraMode == CAMERAMODE_POSEND) || (g_CameraMode == CAMERAMODE_INTRO));
+        g_d243mFrameCounter++;
+        if (cutsceneCam || (pp->bodyModel != NULL)) {
+            osSyncPrintf("D243M: tick frame=%d idx=%d model=%p cam=%d subcam=%d "
+                         "prop=%.1f,%.1f,%.1f f488pos=%.1f,%.1f,%.1f "
+                         "f3B8=%.1f,%.1f,%.1f f3C4=%.1f,%.1f,%.1f\n",
+                         g_d243mFrameCounter, index,
+                         (void *) pp->bodyModel,
+                         (int) g_CameraMode, (int) dword_CODE_bss_80079A18,
+                         (double) pp->prop->pos.f[0],
+                         (double) pp->prop->pos.f[1],
+                         (double) pp->prop->pos.f[2],
+                         (double) pp->field_488.pos.f[0],
+                         (double) pp->field_488.pos.f[1],
+                         (double) pp->field_488.pos.f[2],
+                         (double) pp->field_3B8.f[0],
+                         (double) pp->field_3B8.f[1],
+                         (double) pp->field_3B8.f[2],
+                         (double) pp->field_3C4,
+                         (double) pp->field_3C8,
+                         (double) pp->field_3CC);
+        }
+    }
+#endif
  
     if (chr != NULL)
     {
@@ -10359,6 +10440,13 @@ s32 playerTick(PropRecord *prop)
  
             if (prop->flags & PROPFLAG_ONSCREEN)
             {
+#ifdef PORT
+                if (d243mEnabled()) {
+                    osSyncPrintf("D243M: draw frame=%d idx=%d model=%p\n",
+                                 g_d243mFrameCounter, index,
+                                 (void *) g_playerPointers[index]->bodyModel);
+                }
+#endif
                 RenderPosView *rp = g_playerPointers[index]->bodyModel->render_pos;
                 matrix_4x4_multiply_homogeneous(currentPlayerGetViewToWorldMtxf(), (Mtxf *) rp, (Mtxf *) mtx);
                 g_playerPointers[index]->field_488.pos.x = mtx[12] + (mtx[4] * 7.0f);

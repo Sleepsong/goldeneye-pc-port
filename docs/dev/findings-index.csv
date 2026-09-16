@@ -76,9 +76,9 @@ D217,FIXED,1P weapon viewmodel + third-person Bond model textures render garbled
 D218,PROPOSED,Wide FOV exposes the per-level draw-distance / fog boundary —,"Logged (M-84), fix proposed + parked."
 D219,RESOLVED,"PPK explosions render purple on Dam (M-87, user QA, ""not 3D but noting"").","RESOLVED (M-115, 2026-09-12) —…"
 D220,PARTIAL,"1P muzzle flash position shifts upward at higher Video.FovScale (M-87, user QA, Jungle/M16).","ANALYZED (M-91) — the suspected unscaled-viewmodel root does NOT hold; this is correct perspective behavior, likely cosmetic/QoL."
-D85,OPEN,room primary/secondary DL → texLoadFromGdl garbage,"OPEN (safety-netted; widen/pool fixes landed, geometry now renders)"
-D86 · D87,RESOLVED,modelInitRwData truncated ptr · attract-demo BE ramromfilestructure,resolved
-D88.4,RESOLVED,propDefs polymorphic record stream not byteswapped → setupDoor crash,resolved (d88_propdefs.py); layout audit M-20 → D132
+D85,OPEN,Room primary/secondary DL → texLoadFromGdl garbage.,"OPEN (safety-netted; widen/pool fixes landed, geometry now renders)"
+D86 · D87,RESOLVED,modelInitRwData truncated ptr · attract-demo BE ramromfilestructure.,resolved
+D88.4,RESOLVED,propDefs polymorphic record stream not byteswapped → setupDoor crash.,resolved (d88_propdefs.py); layout audit M-20 → D132
 D132,PROPOSED,D88 propDefs layout audit (M-20):,proposed fix (not applied) —
 D157,FIXED,"Campaign never unlocks the next level (M-30, user bug —","FIXED (src/bondtypes.h, #ifdef PORT —…"
 D160,PARTIAL,Dam level-end cutscene (Bond off the dam / bungee) never plays —,"DIAGNOSTIC SHIPPED, not root-caused (c95713f5, #ifdef PORT + GE_D160=1)…"
@@ -87,8 +87,8 @@ D93-D102,RESOLVED,struct-pun / hardcoded-size pass:,resolved (D95 pool bump part
 D103-D107,RESOLVED,"BUNKER1 viewport height, depth-buffer clear (G_CLEAR_DEPTH_EXT), portal near-plane, LOD mip tile",resolved
 D108-D112,RESOLVED,skeletal models: d43_emit.py put_f32 byte-reversal bug,resolved
 D113-D116,FIXED,portal BFS ok · matrix chain ok · player raw-offset audit + gunfire.c THROW* · HUD text X-mirror,"D114/D116 CLOSED — NOT A BUG (M-33, see D168):"
-D117,OPEN,frame nondeterminism root-caused; GE_DETERM deferred; framediff.py structural.,"OPEN (mode attempted, not achieved)"
-D118,RESOLVED,SDL input layer (port/src/input.c); M-24 mouse-look rework:,resolved (D118a residual)
+D117,OPEN,"Frame nondeterminism root-caused; GE_DETERM attempted, not achieved.","OPEN (mode attempted, not achieved)"
+D118,RESOLVED,"SDL input layer; M-24 mouse-look rework (mode-aware map, real INI); D118b/c FIXED.",resolved (D118a residual)
 D150,FIXED,watch OBJECTIVES / BRIEF page crash:,FIXED (src/str.c #ifdef PORT); interactive re-verify pending
 D260-D265,PARTIAL,"v0.2.1 hotfix batch: D260 wheel direction swap (fixed) · D261 watch-menu nav auto-repeat (fixed, feel-check owed) · D262 watch item-preview model missing → roo…",partial — see rows
 D266-D269,OPEN,"D236/D265 wall, second pass:","OPEN — probes live in tree (GE_D266/GE_D266W/GE_D267/GE_D268_FORCEA), fixes uncommitted"
@@ -107,7 +107,7 @@ D272,OPEN,"D236 wall, fourth pass —","OPEN — probe GE_D272 added to port/fas
 D137,FIXED,right-mouse (aim-sight) crash:,FIXED (src/game/gunfire.c #ifdef PORT —
 D119 · D120,FIXED,guard-attack weapons_held[]->chr pun crash · blood-stain PointUsage[] chain hang,D119 fixed · D120 FIXED (M-30)
 D120,FIXED,Blood-decal PointUsage[] chain —,FIXED (tools_pc/d43_emit.py).
-D121,RESOLVED,WS1 frictionless per-level boot:,resolved
+D121,RESOLVED,WS1 frictionless per-level boot (bare -level_XX injects its -m* row).,resolved
 D122,FIXED,per-level prop/item model-load crash (Dam/Facility/Runway modelLoad/modelInitRwData):,converter fixed; residual chr/fast3d crashes on those levels are separate
 D123,FIXED,crash class C1: chrIsNotDeadOrShot NULL deref on 6 levels (Dam/Runway/Frigate/Statue/Streets/Cradle).,"converter fixed (OBJ_ID_WORDS); C1 cleared on all 6, residual crashes are fast3d (C2)"
 D125,RESOLVED,crash classes C3+C6 (Aztec/Bunker2/Surface2):,resolved (M-16b) — line 374 → 8 NULs; all 21 sidecars regen'd; Aztec -level_28 now PASSES (was C3 CRASH).

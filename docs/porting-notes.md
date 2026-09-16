@@ -1145,6 +1145,22 @@ made mutually acceptable (dual validation / one-time migration).
   correlate against a room/position probe (`GE_D104`-style) in the SAME
   run** to rule out "the camera simply isn't where you assumed it was
   yet" before chasing an instantiation or streaming bug.
+- **A level's opening cutscene is not necessarily input-inert, and
+  `GE_INPUTSCRIPT` stick holds during it are not necessarily useful.**
+  D236 pass 11 (M-155): holding `SUP`/`SDOWN` from frame 0 of the
+  `-level_36` deterministic boot changed which room the player occupied
+  at the very first probe sample (`curRoom` 12/7/13 depending on the held
+  direction) — the pre-transition window is NOT purely camera-scripted
+  with input discarded, as pass 10 might suggest. But none of forward,
+  backward, or a `START`-skip attempt could keep the camera in the
+  outdoor room past the scripted indoor transition, which fired at
+  roughly the same real time regardless of held direction and *earlier*
+  when `START` was pressed to skip faster — i.e. the transition looks
+  timer/event-driven, not distance-to-a-trigger-driven. **Don't assume a
+  scripted sequence's transition point is walkable-around just because
+  input has *some* visible effect during it** — test whether the specific
+  transition you care about is time-gated vs. position-gated before
+  investing in a nav script to avoid it.
 - **Anything blocking on the scheduler thread throttles the whole sim**
   (D186, cf. D134). The gfx task runs synchronously on `src/sched.c`'s
   thread, and that same thread delivers VI-retrace events; any `sysSleep` /

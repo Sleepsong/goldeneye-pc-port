@@ -10787,6 +10787,66 @@ Probe left in tree (`GE_D236RM`, env-gated, zero cost unset, cataloged in
 correlation); LOW-to-none on the original "wall vs discrete sprites"
 symptom, which this pass didn't reach.
 
+**Pass 11 (same day): partial nav progress via `GE_INPUTSCRIPT`, still
+short of D280's ~720 baseline — no bucket resolved, wrote up as
+directed.** Attempted to keep the camera in the outdoor room and facing
+the tree line using `GE_INPUTSCRIPT` stick holds from frame 0:
+
+- `GE_INPUTSCRIPT="0:SDOWN"` (sustained backward): `curRoom=7` at the
+  first sample (vs pass 10's baseline `curRoom=12`), meaning held stick
+  input during the pre-transition window *does* change which room the
+  player/camera occupies — this is not a fully input-inert cutscene.
+  Tree-card count stayed flat (4 for 535 samples, then 2, then 0) —
+  never exceeded pass 10's baseline.
+- `GE_INPUTSCRIPT="0:SUP"` (sustained forward): `curRoom=13` at the
+  first sample — a third distinct starting room, confirming input
+  changes the pre-transition room but not in an obviously useful
+  direction. Count stayed flat at 2-3, again never scaling up.
+- `GE_INPUTSCRIPT="0:START;60:START;900:SUP"` (skip the intro faster
+  with two `START` presses, then try to walk back out): `curRoom=12`
+  again (pass 10's exact baseline room) and the room-18 transition
+  happened noticeably *earlier* (D104 tick ~1801 vs ~6601 in the other
+  two runs) — `START` does shorten the pre-transition window rather than
+  extending it, the opposite of what's wanted. **But this run's very
+  first `GE_D236RM` samples hit `count=10` then `count=6`** (dl=1, dl=2)
+  before immediately collapsing to 2 by dl=95 and 0 by dl=599 — the
+  highest counts seen in any of the four runs to date (pass 10's three +
+  this one), all occurring in the first couple of rendered frames.
+
+**Interpretation:** all three attempts confirm player stick input *does*
+influence the pre-transition room (curRoom varies 7/12/13 depending on
+direction), refuting a fully-scripted-camera-only model — but none found
+a way to *hold* the camera in the outdoor room past the transition, and
+the transition itself appears to be timer/event-driven (not
+distance-to-a-trigger), since `START`-skipping made it fire sooner, not
+later. The one genuinely new data point — a brief `count=10` at the very
+first sampled frame of the `START`-skip run — shows the discrete
+tree-card class CAN render more than pass 10's flat 4, but still nowhere
+near D280's ~720 figure, and only for 1-2 frames before dropping back
+down. **This is the strongest evidence yet that D280's ~720-triangle
+sample was taken from a materially different vantage (later in the level,
+in a genuine free-roam session, likely much closer to the tree line or
+facing a wider arc of it) than anything reachable from this deterministic
+`-level_36` boot's opening seconds** — not evidence of a CPU-side
+instantiation bug at this vantage. No src/game or port/ file touched;
+`GE_D236RM` unmodified from pass 10. Confidence: MEDIUM that the
+transition is timer-driven rather than position-driven (3 consistent
+data points); LOW-to-none on why D280's original ~720 figure was so much
+higher — that needs either a `GE_INPUTSCRIPT` script that survives well
+past the mission-start hand-off into free movement (not attempted this
+pass — budget spent), or a live human session with `GE_D236RM` set,
+walking toward the tree line and comparing against this deterministic
+boot's numbers directly.
+
+**Next pass, concrete:** don't fight the scripted intro further — instead
+run `-level_36` with `GE_D236RM=1` interactively (human input, no
+`GE_INPUTSCRIPT`) *or* extend the script well past the mission hand-off
+(needs `GE_INPUTLOG` calibration of the frame-vs-real-time ratio first,
+not done this pass) and walk toward the tree line from inside the level
+proper, not during the opening establishing shot. Correlate against
+D280's own capture conditions (what level state/position produced 720)
+if that's recorded anywhere in the D280 write-up above.
+
 ## D237 — QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash…
 
 **QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash `Game.NoHitFlash`, and other easily-exposed config keys), and organise rows by category (mouse settings together, video together, etc.).** The overlay (`port/src/optionsoverlay.c`) already renders over the registered `config.c` option list; what's missing is wheel-scroll nav, a broader row set, and grouping headers. Cross-ref `OPTIONS-MENU-PLAN.md` §3 (v1 minimum set) + QOL-INVENTORY "PD has, GE lacks".

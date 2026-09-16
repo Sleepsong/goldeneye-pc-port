@@ -10414,7 +10414,15 @@ s32 playerTick(PropRecord *prop)
              * view-matrix cycling in f488pos). */
             RenderPosView *d243mrp = (pp->bodyModel != NULL) ? pp->bodyModel->render_pos : NULL;
             double d243mrx = 0.0, d243mry = 0.0, d243mrz = 0.0;
-            if (d243mrp != NULL) {
+            /* M-154 fix (crash on first abseil run): render_pos is assigned
+             * by instcalcmatrices() during the draw pass (model.c:2453), i.e.
+             * AFTER this probe point -- on the first tick after CREATE it
+             * still holds the reused AnimModelSlot's stale value, observed as
+             * the 0xFF tombstone (-1) at the Dam abseil. The game only ever
+             * dereferences it post-chrTick, so it is legitimately unset here.
+             * Log the pointer itself (the -1 -> real transition frame is
+             * diagnostic) but never dereference NULL or the -1 tombstone. */
+            if (d243mrp != NULL && d243mrp != (RenderPosView *) -1) {
                 Mtxf *d243mraw = (Mtxf *) d243mrp;
                 d243mrx = d243mraw->m[3][0];
                 d243mry = d243mraw->m[3][1];

@@ -1,8 +1,19 @@
 # PC port — finding log
 
 The raw, chronological engineering record for the port: every runtime bug,
-its root cause, and the fix. Kept unedited for transparency. Recurring
-patterns are distilled in [../porting-notes.md](../porting-notes.md).
+its root cause, and the fix. Kept unedited for transparency — with one
+documented exception: on 2026-09-15 (ctx-opt) ~122 fat §F table cells were
+moved verbatim into `## Dxx` sections at the end of this file (nothing
+deleted; three rows, D250/D252/D255, gained a status derived from their own
+verdict text — flagged in-section). Recurring patterns are distilled in
+[../porting-notes.md](../porting-notes.md).
+
+**Lookup:** use `docs/dev/findings-index.csv` (label, one-liner, status;
+regenerate with `tools_pc/gen_findings_index.py`), then read only the specific
+`## Dxx` entry — never linear-read this file. Known index gaps: four rows whose
+label format the CSV generator's `LABEL_RE` can't parse (`D69 · D78–D84`,
+`RC3 · D167`, `D88.1–D88.3 · D88.5–D88.6`, `D118d`) — grep this file directly
+for those.
 
 ---
 ## 11. Scaffolding review: findings & resolutions

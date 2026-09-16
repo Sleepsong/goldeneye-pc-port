@@ -10409,25 +10409,25 @@ s32 playerTick(PropRecord *prop)
         if (cutsceneCam || (pp->bodyModel != NULL)) {
             /* M-154: rp = the render_pos pointer itself (a change between
              * phases would mean the Model's matrix buffer is being
-             * reassigned/aliased); raw = render_pos[0]'s translation BEFORE
-             * the view transform (distinguishes model-matrix cycling from
-             * view-matrix cycling in f488pos). */
+             * reassigned/aliased). The raw pre-view translation used to be
+             * logged here too, but see M-154 fix 2 below -- it is captured
+             * by the chrdraw census at draw time instead. */
             RenderPosView *d243mrp = (pp->bodyModel != NULL) ? pp->bodyModel->render_pos : NULL;
-            double d243mrx = 0.0, d243mry = 0.0, d243mrz = 0.0;
-            /* M-154 fix (crash on first abseil run): render_pos is assigned
-             * by instcalcmatrices() during the draw pass (model.c:2453), i.e.
-             * AFTER this probe point -- on the first tick after CREATE it
-             * still holds the reused AnimModelSlot's stale value, observed as
-             * the 0xFF tombstone (-1) at the Dam abseil. The game only ever
-             * dereferences it post-chrTick, so it is legitimately unset here.
-             * Log the pointer itself (the -1 -> real transition frame is
-             * diagnostic) but never dereference NULL or the -1 tombstone. */
-            if (d243mrp != NULL && d243mrp != (RenderPosView *) -1) {
-                Mtxf *d243mraw = (Mtxf *) d243mrp;
-                d243mrx = d243mraw->m[3][0];
-                d243mry = d243mraw->m[3][1];
-                d243mrz = d243mraw->m[3][2];
-            }
+            /* M-154 fix 2 (second abseil crash, same PC/fault addr): the
+             * NULL/-1 guard was NOT sufficient -- render_pos is assigned by
+             * instcalcmatrices() during the draw pass (model.c:2453), i.e.
+             * AFTER this probe point, so between CREATE and the first draw
+             * it holds whatever the reused AnimModelSlot last had: observed
+             * as the 0xFF tombstone (-1) on run 1, and a different bad
+             * value that passed the sentinel guard on run 2 (fault addr was
+             * still exactly -1). Sentinel-whack-a-mole is the wrong shape
+             for a probe: NEVER dereference render_pos at tick time. The raw
+             * root translation is captured by the D243M chrdraw census in
+             * drawjointlist instead, where the game itself dereferences
+             * render_pos moments later (gSPSegment), so validity is
+             * guaranteed there -- and draw-time is the more accurate sample
+             * anyway (tick-time would read the previous frame's buffer).
+             * rp=%p stays: logging the pointer value costs no deref. */
             /* M-154b: propptr/chrptr -- the phase-3 A,A,B,C position cycle
              * with smoothly falling y could mean pp->prop itself rotates
              * among three PropRecords per frame; a changing pointer proves
@@ -10437,7 +10437,7 @@ s32 playerTick(PropRecord *prop)
                          "cam=%d subcam=%d "
                          "prop=%.1f,%.1f,%.1f f488pos=%.1f,%.1f,%.1f "
                          "f3B8=%.1f,%.1f,%.1f f3C4=%.1f,%.1f,%.1f "
-                         "rp=%p raw=%.1f,%.1f,%.1f\n",
+                         "rp=%p\n",
                          g_d243mFrameCounter, index,
                          (void *) pp->bodyModel,
                          (void *) pp->prop, (void *) pp->prop->chr,
@@ -10454,8 +10454,7 @@ s32 playerTick(PropRecord *prop)
                          (double) pp->field_3C4,
                          (double) pp->field_3C8,
                          (double) pp->field_3CC,
-                         (void *) d243mrp,
-                         d243mrx, d243mry, d243mrz);
+                         (void *) d243mrp);
         }
     }
 #endif

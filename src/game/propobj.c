@@ -929,28 +929,6 @@ void objFree(ObjectRecord* obj, s32 freeprop, s32 canregen)
 {
     PropRecord *child;
 
-#ifdef PORT
-    /* TEMP D255 (M-140): correlate objFree calls against the vtxstore.c
-     * D255 probe's "NULL model on active OBJ record" log by prop/obj
-     * pointer identity. See vtxstore.c for the full note; remove both
-     * together once the mechanism is understood. */
-    {
-        static int ge_d255 = -1;
-        if (ge_d255 < 0) ge_d255 = getenv("GE_D255") != NULL;
-        if (ge_d255) {
-            static int d255fbudget = 64;
-            if (d255fbudget > 0) {
-                d255fbudget--;
-                osSyncPrintf(
-                    "D255 objFree: obj=%p prop=%p obj->obj=%d obj->type=%d"
-                    " freeprop=%d canregen=%d model=%p\n",
-                    (void*)obj, (void*)obj->prop, (int)obj->obj, (int)obj->type,
-                    (int)freeprop, (int)canregen, (void*)obj->model);
-            }
-        }
-    }
-#endif
-
     if (obj->type == PROPDEF_AUTOGUN)
     {
         AutogunRecord* record = (AutogunRecord*)obj;

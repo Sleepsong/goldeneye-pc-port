@@ -1,7 +1,7 @@
 ## GoldenEye 007 PC Port <version>
 
 <p align="center">
-  <img src="https://github.com/jkdansereau/goldeneye-pc-port/raw/v0.2.1/docs/media/goldeneye-gh-preview.gif" width="480"
+  <img src="https://github.com/jkdansereau/goldeneye-pc-port/raw/v0.2.2/docs/media/goldeneye-gh-preview.gif" width="480"
        alt="~32 s gameplay montage from live play sessions (no audio track)">
 </p>
 
@@ -14,6 +14,34 @@
 > product** — expect rough edges and missing features until v1.0; see the
 > [README's Roadmap section](https://github.com/jkdansereau/goldeneye-pc-port#roadmap)
 > for where this is headed.
+
+### What's new since v0.2.1
+
+Hotfix batch from Steam Deck/Linux user playtest feedback on v0.2.1 — two
+crash fixes plus two QoL asks:
+
+- **Fixed: intermittent SIGSEGV on Steam Deck/Linux when destroying objects**
+  (terminals, exploding grenades) (D255). Root cause: `vtxstore_fix_refs`
+  read a live object's model pointer through a mistyped 4-byte-enum field
+  instead of the real pointer field, truncating it to garbage on 64-bit
+  builds — harmless on the original 32-bit N64, fatal on PC. Verified live
+  on real Steam Deck hardware, held through Facility (repeated terminal
+  destruction) and Caverns' radio-objective terminals with zero crashes.
+- **Fixed: a second, separate Steam Deck/Linux crash during explosion-heavy
+  combat** (D285) — the audio thread's pool-exhaustion scan read the active-
+  sound list without the lock its writer (`sndSetupSound`) already takes,
+  so a burst of near-simultaneous SFX (an explosion, plus debris/metal)
+  could race a concurrent list mutation. Locked to match the existing
+  write-side guard. Live-tested on real Steam Deck hardware with dense,
+  sustained overlapping-explosion combat (dual grenade launchers plus
+  rocket-launcher-cheat guards) — no crash.
+- **Front-end menu navigation (main menu, file select, mission-select map)
+  now uses the LEFT analog stick**, matching the F10 options overlay and
+  modern controller conventions, instead of requiring the right stick
+  (D282).
+- **Added a "Quit to desktop" row to the F10 options overlay** — previously
+  the only way to exit was Alt+F4 / closing the window, a real gap on
+  Steam Deck / controller-only / fullscreen setups (D293).
 
 ### What's new since v0.2.0
 
@@ -150,12 +178,6 @@ Small hotfix batch from user playtest feedback on v0.2.0:
   terminal destruction) and through Caverns' radio-objective terminals
   with zero crashes. Please still report any other Deck/Linux-specific
   faults.
-- **Steam Deck / gamepad: the right analog stick currently navigates the
-  main menu, file select, and mission-select map** — not the left stick.
-  This matches the N64 default but is unintuitive on a modern controller;
-  moving front-end menu navigation to the left stick is a planned QoL fix,
-  not done in this release.
-
 ### Downloads
 
 | File | Platform |

@@ -1616,6 +1616,27 @@ void bondviewFrozenCameraTick(u16 buttons, u16 oldbuttons, struct coord3d *pos, 
         pos->f[1] = setupPad->pos.f[1] + flt_CODE_bss_80079A10 + flt_CODE_bss_80079A0C;
         pos->f[2] = setupPad->pos.f[2] + (cosf(flt_CODE_bss_80079A00) * flt_CODE_bss_80079A08) + sinf(flt_CODE_bss_80079A00) * 0.0f;
 
+#ifdef PORT
+        /* D243 (M-142): the abseil/end-of-Dam cutscene's camera is this
+         * orbit -- a fixed look-at (pos2, above setupPad) with the eye (pos)
+         * circling it at radius flt_CODE_bss_80079A08, angle accumulated by
+         * flt_CODE_bss_80079A04 * g_GlobalTimerDelta each tick. User-confirmed
+         * live (M-142): the visible "violent shake" reproduces even on a run
+         * where the separate D146 stale-memory burst never fires at all --
+         * decouples the two symptoms M-107 had been treating as related.
+         * This dumps the angle delta and computed eye position every call so
+         * a live capture can show whether g_GlobalTimerDelta (the D155/D193
+         * wall-clock sim-tick count, normally clamped to <=6 but not
+         * necessarily steady at 1) is jittering frame-to-frame in a way that
+         * would show up as this exact judder. */
+        if (getenv("GE_D243CAM")) {
+            osSyncPrintf("D243CAM: dt=%.4f angle=%.4f pos=%.2f,%.2f,%.2f pad=%d\n",
+                         (double) g_GlobalTimerDelta, (double) flt_CODE_bss_80079A00,
+                         (double) pos->f[0], (double) pos->f[1], (double) pos->f[2],
+                         (int) dword_CODE_bss_80079A14);
+        }
+#endif
+
         flt_CODE_bss_80079A00 += flt_CODE_bss_80079A04 * g_GlobalTimerDelta;
 
         while (flt_CODE_bss_80079A00 >= M_TAU_F)

@@ -1225,6 +1225,8 @@ typedef char ge_save_slot_size_check[(sizeof(ge_save_slot) == 96) ? 1 : -1];
  * re-checks after the block read. */
 extern void fileGenerateCRC(u8 *addressA, u8 *addressB, void *retval);
 
+extern int geLegacyCrcMaybeMigrateSlots(u8 *slots5); /* port/src/legacycrc.c (D297) */
+
 extern s32 portAllUnlocked;   /* port/src/video.c */
 
 /* Bit math mirrors fileGetSaveStageDifficultyTime / fileSetDifficultyStageTime
@@ -1337,6 +1339,23 @@ static s32 geEepromRW(u8 block, u8 *buf, int nbytes, int write)
         geEepromStore();
     } else {
         memcpy(buf, s_eeprom + off, nbytes);
+        /* D297: one-time migration of pre-D284 slot CRCs (port/src/legacycrc.c).
+         * This IS the read fileValidateSaves performs (block 4, five slots), so
+         * the re-stamped checksums are exactly what the game validates — no
+         * ordering hazard. Runs BEFORE geEepromPatchAllCheats so that only
+         * pristine+migrated bytes are ever persisted; AllUnlocked patches stay
+         * read-time-only as before. Block-0 smallSave is deliberately untouched
+         * (factory seal, see D297). */
+        if (block == 4 && nbytes == (int)(sizeof(ge_save_slot) * 5)) {
+            int migrated = geLegacyCrcMaybeMigrateSlots(buf);
+            if (migrated) {
+                memcpy(s_eeprom + off, buf, nbytes);
+                geEepromStore();
+                sysLogPrintf(LOG_INFO,
+                             "eeprom: D297-migrated %d pre-D284 save slot(s) to current CRC",
+                             migrated);
+            }
+        }
         /* fileValidateSaves' block read: five save slots from block 4. */
         if (portAllUnlocked && block == 4 &&
             nbytes == (int)(sizeof(ge_save_slot) * 5)) {

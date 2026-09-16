@@ -1552,6 +1552,19 @@ void bondviewFrozenCameraTick(u16 buttons, u16 oldbuttons, struct coord3d *pos, 
             arg6->f[1] = g_CameraLookAtBondPad->pos.f[1];
             arg6->f[2] = g_CameraLookAtBondPad->pos.f[2];
 
+#ifdef PORT
+            /* D243 (M-142): sibling probe to GE_D243CAM below, for the
+             * look-at-pad branch of CAMERAMODE_POSEND (untested as of
+             * M-141/M-142 -- the pad-orbit branch below was ruled out with
+             * zero hits, so the Dam cutscene must be reaching this branch
+             * or the gBondViewCutscene branch further down instead). */
+            if (getenv("GE_D243CAM")) {
+                osSyncPrintf("D243CAM lookatpad: pos=%.2f,%.2f,%.2f pos2=%.2f,%.2f,%.2f\n",
+                             (double) pos->f[0], (double) pos->f[1], (double) pos->f[2],
+                             (double) pos2->f[0], (double) pos2->f[1], (double) pos2->f[2]);
+            }
+#endif
+
             return;
         }
 
@@ -1589,6 +1602,22 @@ void bondviewFrozenCameraTick(u16 buttons, u16 oldbuttons, struct coord3d *pos, 
                 pos2->f[1] = pos->f[1] + sinf(gBondViewCutscene->verta);
                 pos2->f[2] = pos->f[2] - (cosf(gBondViewCutscene->verta) * cosf(gBondViewCutscene->theta));
             }
+
+#ifdef PORT
+            /* D243 (M-142): sibling probe to GE_D243CAM below, for the
+             * gBondViewCutscene spherical-angle branch of CAMERAMODE_POSEND
+             * -- the other untested candidate for the Dam abseil cutscene's
+             * camera path (the pad-orbit branch below was ruled out with
+             * zero hits in M-141/M-142). theta/verta are the spherical
+             * angles driving pos2's look-at offset from pos; a jump/jitter
+             * in either between calls would show up as the reported shake. */
+            if (getenv("GE_D243CAM")) {
+                osSyncPrintf("D243CAM cutscene: pos=%.2f,%.2f,%.2f pos2=%.2f,%.2f,%.2f theta=%.4f verta=%.4f\n",
+                             (double) pos->f[0], (double) pos->f[1], (double) pos->f[2],
+                             (double) pos2->f[0], (double) pos2->f[1], (double) pos2->f[2],
+                             (double) gBondViewCutscene->theta, (double) gBondViewCutscene->verta);
+            }
+#endif
 
             return;
         }

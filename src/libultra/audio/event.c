@@ -93,8 +93,13 @@ void alEvtqPostEvent(ALEventQueue *evtq, ALEvent *evt, ALMicroTime delta)
          * unconditional, so shipped builds wrote an unbounded log on every
          * exhausted-queue post; found via GitHub #87's session logs, which
          * showed sustained pool exhaustion (a real pool-sizing question,
-         * tracked separately) but should never write to disk by default. */
-        if (getenv("GE_AUDIOTRACE")) {
+         * tracked separately) but should never write to disk by default.
+         * getenv() is cached (D250, M-120): this runs on every dropped
+         * event post, a real per-item hot path, unlike the sibling probes'
+         * one-shot init/load call sites. */
+        static int s_audiotrace = -1;
+        if (s_audiotrace < 0) s_audiotrace = getenv("GE_AUDIOTRACE") != NULL;
+        if (s_audiotrace) {
             geTracePrintf("audiotrace.log", "[EVTQ-DROP] evtq=%p type=%d state=%p delta=%d\n",
                     (void *)evtq, (int)evt->type,
                     (void *)((u8 *)evt + 2), (int)delta);

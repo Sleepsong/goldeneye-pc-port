@@ -4,7 +4,7 @@
 
 - `n64decomp/007`: WIP decompilation of GoldenEye 007 (N64), byte-matches US/EU/JP ROMs.
 - Active work: **PC port** modelled on the Perfect Dark PC port (same Rare "Indy" engine family).
-- **Reference docs:** `docs/internals.md` — architecture, GE-specific RSP deltas, phased plan (§1–§10). `docs/dev/findings.md` — the `Dxx` finding log (§F + §H, indexed at the top of §F); read the entry you need, don't linear-read. `docs/porting-notes.md` — the recurring N64→PC bug classes (dense; skim the headers, read what's relevant).
+- **Reference docs:** `docs/internals.md` — architecture, GE-specific RSP deltas, phased plan (§1–§10). `docs/dev/findings.md` — the `Dxx` finding log (§F + §H). **Look up findings via `docs/dev/findings-index.csv` (label, one-liner, status; regenerate with `tools_pc/gen_findings_index.py`), then read only the specific `## Dxx` entry (multi-pass labels like D202/D176(a) have large sections — grep within the section or read with offset/limit, don't slurp it whole). Never linear-read.** `docs/porting-notes.md` — the recurring N64→PC bug classes (dense; skim the headers, read what's relevant).
 - **Current status:** the README "Status" section, and `docs/dev/LEVEL-STATUS.md` for the per-level sweep. Current task + environment: `docs/HANDOFF.md` (a rolling local working file — may be absent in a fresh clone; fall back to the README "Status" section).
 - **Dispatching subagents?** `docs/dev-process.md` — task budgets/deadlines, file partitioning, pre-flight, the standard brief template. Every investigation subagent reads `docs/porting-notes.md` first and appends to it.
 

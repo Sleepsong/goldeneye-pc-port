@@ -887,6 +887,24 @@ void drawjointlist(ModelRenderData *data, ModelHitEntry *entry)
     Gfx *gdl;
     s32 opcode;
 
+#ifdef PORT
+    /* D243 M-154: per-frame model-draw census. One line per drawjointlist
+     * call (i.e. per CHR render submission) while a scripted camera mode is
+     * active, logging the Model* pointer and render_pos[0]'s raw translation
+     * BEFORE the view transform. A second Bond instance shows up as extra
+     * lines with distinct model pointers at the same frame; a shared/aliased
+     * matrix buffer shows up as one pointer whose raw position cycles.
+     * Diagnosis only; silent when GE_D243M is unset or during FPS play. */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    if (d243mProbeActive() && (entry != NULL) && (entry->model != NULL) && (entry->model->render_pos != NULL)) {
+        Mtxf *d243mraw = (Mtxf *) entry->model->render_pos;
+        osSyncPrintf("D243M: chrdraw frame=%d model=%p raw=%.1f,%.1f,%.1f\n",
+                     d243mGetFrameCounter(), (void *) entry->model,
+                     (double) d243mraw->m[3][0], (double) d243mraw->m[3][1], (double) d243mraw->m[3][2]);
+    }
+#endif
+
     if (data->gdl == NULL)
     {
         osSyncPrintf("drawjointlist: no gfxlist!\n");
@@ -1013,6 +1031,19 @@ void drawjointlist(ModelRenderData *data, ModelHitEntry *entry)
     s32 descend;
     Gfx *gdl;
     s32 opcode;
+
+#ifdef PORT
+    /* D243 M-154: per-frame model-draw census (EU variant) -- see the US/JP
+     * copy above for the full rationale. */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    if (d243mProbeActive() && (entry != NULL) && (entry->model != NULL) && (entry->model->render_pos != NULL)) {
+        Mtxf *d243mraw = (Mtxf *) entry->model->render_pos;
+        osSyncPrintf("D243M: chrdraw frame=%d model=%p raw=%.1f,%.1f,%.1f\n",
+                     d243mGetFrameCounter(), (void *) entry->model,
+                     (double) d243mraw->m[3][0], (double) d243mraw->m[3][1], (double) d243mraw->m[3][2]);
+    }
+#endif
 
     while (entry != NULL)
     {

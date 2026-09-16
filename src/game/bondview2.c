@@ -365,6 +365,19 @@ static int d243mEnabled(void)
 }
 
 static int g_d243mFrameCounter = 0;
+
+/* M-154: accessors for the D243M: chrdraw census probe in objecthandler.c's
+ * drawjointlist (which does not include bondview.h). ProbeActive() folds in
+ * the scripted-camera gate (POSEND/INTRO/SWIRL/FADESWIRL) so callers need no
+ * camera-mode knowledge; silent during FPS play. */
+int d243mProbeActive(void)
+{
+    return d243mEnabled() &&
+           ((g_CameraMode == CAMERAMODE_POSEND) || (g_CameraMode == CAMERAMODE_INTRO) ||
+            (g_CameraMode == CAMERAMODE_SWIRL) || (g_CameraMode == CAMERAMODE_FADESWIRL));
+}
+
+int d243mGetFrameCounter(void) { return g_d243mFrameCounter; }
 #endif
 
 void solo_char_load(void)
@@ -10394,11 +10407,32 @@ s32 playerTick(PropRecord *prop)
         int cutsceneCam = ((g_CameraMode == CAMERAMODE_POSEND) || (g_CameraMode == CAMERAMODE_INTRO));
         g_d243mFrameCounter++;
         if (cutsceneCam || (pp->bodyModel != NULL)) {
-            osSyncPrintf("D243M: tick frame=%d idx=%d model=%p cam=%d subcam=%d "
+            /* M-154: rp = the render_pos pointer itself (a change between
+             * phases would mean the Model's matrix buffer is being
+             * reassigned/aliased); raw = render_pos[0]'s translation BEFORE
+             * the view transform (distinguishes model-matrix cycling from
+             * view-matrix cycling in f488pos). */
+            RenderPosView *d243mrp = (pp->bodyModel != NULL) ? pp->bodyModel->render_pos : NULL;
+            double d243mrx = 0.0, d243mry = 0.0, d243mrz = 0.0;
+            if (d243mrp != NULL) {
+                Mtxf *d243mraw = (Mtxf *) d243mrp;
+                d243mrx = d243mraw->m[3][0];
+                d243mry = d243mraw->m[3][1];
+                d243mrz = d243mraw->m[3][2];
+            }
+            /* M-154b: propptr/chrptr -- the phase-3 A,A,B,C position cycle
+             * with smoothly falling y could mean pp->prop itself rotates
+             * among three PropRecords per frame; a changing pointer proves
+             * it, a constant one points at a cycling x/z source (script /
+             * anim table). */
+            osSyncPrintf("D243M: tick frame=%d idx=%d model=%p propptr=%p chrptr=%p "
+                         "cam=%d subcam=%d "
                          "prop=%.1f,%.1f,%.1f f488pos=%.1f,%.1f,%.1f "
-                         "f3B8=%.1f,%.1f,%.1f f3C4=%.1f,%.1f,%.1f\n",
+                         "f3B8=%.1f,%.1f,%.1f f3C4=%.1f,%.1f,%.1f "
+                         "rp=%p raw=%.1f,%.1f,%.1f\n",
                          g_d243mFrameCounter, index,
                          (void *) pp->bodyModel,
+                         (void *) pp->prop, (void *) pp->prop->chr,
                          (int) g_CameraMode, (int) dword_CODE_bss_80079A18,
                          (double) pp->prop->pos.f[0],
                          (double) pp->prop->pos.f[1],
@@ -10411,7 +10445,9 @@ s32 playerTick(PropRecord *prop)
                          (double) pp->field_3B8.f[2],
                          (double) pp->field_3C4,
                          (double) pp->field_3C8,
-                         (double) pp->field_3CC);
+                         (double) pp->field_3CC,
+                         (void *) d243mrp,
+                         d243mrx, d243mry, d243mrz);
         }
     }
 #endif

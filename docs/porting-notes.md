@@ -689,6 +689,19 @@ through a converter or a runtime bswap fixup reads scrambled.
   stray triangle), not yet confirmed against a live repro (M-152). Unlike
   D233's fix, this one hasn't been shown to actually fire yet; it's a
   code-review lead, not a confirmed mechanism.
+- **When chasing a missing UI element, split "game logic decides to draw
+  it" from "fast3d actually rasterizes it."** This codebase's decomp side
+  for menu/watch item rendering is consistently byte-matched and rarely
+  at fault; the recurring bug class is a combiner/blend-mode or
+  texture-format edge case in `port/fast3d/gfx_pc.cpp` for a one-off
+  translucent/`PROP_TYPE_PLAYER` draw that doesn't share a code path with
+  the common in-level rendering (D172 particle color, D217/D228 CI/IA16
+  palette, D229 water blend, D233 invisible-through-doors, and D290's
+  leading hypothesis — the watch controller graphic's fade-in uses a
+  low-alpha `PROP_TYPE_PLAYER` combiner state nothing else exercises).
+  Confirm the `src/game/` side is clean first (item ID, resource-table
+  entry, model header, generic equip/gate pipeline) before spending time
+  in fast3d — but once it is, look there, not back at the decomp logic.
 - **D74 wrap-block is DEAD CODE** (`gfx_pc.cpp:1546/1551`): guard is
   `cms & G_TX_WRAP` but `G_TX_WRAP == 0`, so always false (line 1887 does
   it right with `cms == G_TX_WRAP`). And if it did run it indexes

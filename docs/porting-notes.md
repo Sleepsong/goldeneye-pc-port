@@ -1382,6 +1382,16 @@ made mutually acceptable (dual validation / one-time migration).
   TMP=... TEMP=...` to a real writable per-session directory (the Claude
   Code scratchpad path works well) before `ninja`/`build-pc.sh`, not just any
   Windows-looking path string.
+- **A backgrounded `ge007.x86_64.exe` launch from this Bash tool does not
+  reliably die to `pkill -f ge007.x86_64.exe`** (M-155, D288 session): the
+  process appears in `ps aux` as bare `ge007.x86_64`, no `.exe` suffix, so
+  the `-f` pattern match on the full name silently fails and the game
+  window (and its log-writing) keeps running well past the intended
+  `sleep N` capture window — one session let a stray instance run ~90s
+  longer than intended before it was caught. Use `taskkill //F //IM
+  ge007.x86_64.exe` instead to reliably terminate it from this shell, and
+  `ps aux | grep -i ge007` to confirm before moving on — don't trust a
+  `kill`/`pkill` exit code alone.
 - **A crash fault address of `0xffffffffffffffff` on x86-64 usually means a
   non-canonical #GP from a garbage-high-bits pointer (bits 63:48 not a sign
   extension of bit 47), not a computed `-1` sentinel** (cross-validated

@@ -8,11 +8,11 @@ D51-D58,RESOLVED,"font pixeldata, osGetCount tick rate, model RW pools, cseq BE 
 D59-D68,RESOLVED,"intro render: blood-RLE clobber, DMA validate, OSMesgQueue, HEADS/BODIES sentinels, romCopy width, image_entry, Globalimagetable BE→LE",resolved
 D70-D74,RESOLVED,"intro-logo pixels: C-array bswap, UV path, sinf/cosf DVAL(), texture-import truncation",resolved
 D75,OPEN,front-end 3D model transforms (D77 audio split out below —,"OPEN (parked). M-32 triage (see §F ""D75 ADDENDUM""):"
-D76 · D164,PROPOSED,disclaimer/legal screen only draws line 1 —,fix proposed (not applied —
+D76 · D164,PROPOSED,Legal screen only draws line 1 —,fix proposed (not applied —
 D159,FIXED,"front-end wallet-Bond photo ""interlaced""/combed (RC1 / D149) —",FIXED (#ifdef PORT no-op the swap in image.c)
 D161,FIXED,Depot (-level_30) ceiling = bright-blue speckle + radial rays (B2).,FIXED (port/fast3d/gfx_pc.cpp)
-D165 · D166,FIXED,"input-layer polish (M-31, port-only, port/src/input.c):",FIXED
-D180 · D181,PARTIAL,"native-PC input pass (QoL run, qol/native-pc-input-menu):","LANDED, config-gated, feel-checks owed"
+D165 · D166,FIXED,"Input-layer polish (M-31, port-only):",FIXED
+D180 · D181,PARTIAL,Native-PC input pass (QoL run):,"LANDED, config-gated, feel-checks owed"
 D186,PARTIAL,"Video.FpsCap throttles the sim, not just presentation (M-39 diag, M-42 clamp).","CLAMP LANDED (port/fast3d/gfx_sdl2.cpp, port/src/video.c); real fix owed"
 D187,FIXED,"HUD ammo-type/weapon icon vanished at -O2 (M-46 root-cause, M-47 fix + verify).","FIXED (src/game/gunfire.c, #ifdef AVOID_UB); PR #19"
 D188,FIXED,Linux -O2 boot crash:,"FIXED (src/libultrare/libc/xprintf.c, src/sprintf.c, #ifdef PORT); PR #22"

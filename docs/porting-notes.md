@@ -1225,6 +1225,15 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
   path (`cd C:\Users\...`) is unreliable in this same shell and can silently
   mis-parse to a mangled path on a later command in the same tool call —
   prefer `cd /c/Users/...` (forward slashes) for the build working directory.
+  **The PATH fix alone can still leave the *link* step broken (M-141):**
+  compiling succeeds but `ld.exe` fails with `cannot find @C:\Windows\Temp\
+  ccXXXX: Invalid argument` if `TMP`/`TEMP` are unset or point at a
+  non-writable/non-real path like a literal `C:\Windows\Temp` string — the
+  response-file `ld` uses for the link command has to land somewhere this
+  shell's child process can actually write and re-read. Fix: `export
+  TMP=... TEMP=...` to a real writable per-session directory (the Claude
+  Code scratchpad path works well) before `ninja`/`build-pc.sh`, not just any
+  Windows-looking path string.
 - **A crash fault address of `0xffffffffffffffff` on x86-64 usually means a
   non-canonical #GP from a garbage-high-bits pointer (bits 63:48 not a sign
   extension of bit 47), not a computed `-1` sentinel** (cross-validated

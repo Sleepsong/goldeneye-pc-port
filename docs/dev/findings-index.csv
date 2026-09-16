@@ -170,5 +170,5 @@ D289,OPEN,"Dam: a crash in the computer room, not reproducible on a second attem
 D290,OPEN,"Watch's in-game ""controller"" section shows no control-pad graphic (M-141, Steam Deck user playtest).","OPEN — observed, not investigated."
 D291,OPEN,"Dam: texture glitches when the truck drives past (M-141, Steam Deck user playtest).","OPEN — observed, not investigated."
 D292,OPEN,Death animations are glitched —,"OPEN — same status as D173 (observed, not root-caused)."
-D293,OPEN,"QoL ask: no discoverable way to quit the game from the UI (M-141, Steam Deck user playtest —","OPEN — not investigated, low complexity.…"
+D293,FIXED,"QoL ask: no discoverable way to quit the game from the UI (M-141, Steam Deck user playtest —","FIXED (M-141) — ""Quit to desktop"" row added to the F10 overlay; build-verified Win+Linux, not yet live-confirmed.…"
 D294,OPEN,"Statue: ground geometry near the large CCCP/hammer-and-sickle monument briefly renders solid black over a wide area, then self-recovers 10-30 seconds later… —",OPEN — not investigated.…

@@ -62,7 +62,7 @@ extern s16   viGetY(void);
 
 /* ------------------------------------------------------------------------ */
 
-enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES };
+enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION };
 
 static const char *const kOnOff[]     = { "OFF", "ON", NULL };
 static const char *const kTexFilter[] = { "NEAREST", "BILINEAR", "3-POINT", NULL };
@@ -141,6 +141,11 @@ static struct Row rows[] = {
     /* D257: everything-unlocked goodie (default ON). Consumed at startup by
      * main.c -- applies from the next launch. */
     { "Game.AllUnlocked",         "All unlocked",     ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
+    /* D293: only quit path used to be the OS window-close / Alt+F4 -- no
+     * discoverable in-game way to exit, a real gap on Deck/controller-only
+     * setups. Not config-backed (like __Resolution); activating it exits
+     * the same way video.c's SDL_QUIT/Alt+F4 handlers already do. */
+    { "__QuitToDesktop",          "Quit to desktop",  ROW_ACTION, 0,    NULL,       0, 0, 0,   0,0,0,0,0 },
 };
 #define NUM_ROWS ((int)(sizeof(rows) / sizeof(rows[0])))
 
@@ -320,8 +325,8 @@ static void overlayInit(void)
     configForEachOption(resolveCb, NULL);
 
     for (int i = 0; i < NUM_ROWS; i++) {
-        if (rows[i].kind == ROW_RES) {
-            rows[i].found = 1;   /* not config-backed; driven via video.c */
+        if (rows[i].kind == ROW_RES || rows[i].kind == ROW_ACTION) {
+            rows[i].found = 1;   /* not config-backed */
             continue;
         }
         if (!rows[i].found) {
@@ -497,6 +502,13 @@ static void rowAdjust(struct Row *r, int dir)
         videoRequestWindowSize(kResList[i][0], kResList[i][1]);
         break;
     }
+    case ROW_ACTION:
+        /* D293: same exit path as SDL_QUIT / Alt+F4 (video.c), just reachable
+         * without OS window chrome or a keyboard. */
+        sysLogPrintf(LOG_INFO, "optionsoverlay: quit to desktop requested");
+        configSave();
+        exit(0);
+        break;
     default: /* ROW_SLIDER */
         rowSet(r, v + dir * r->step);
         break;
@@ -714,6 +726,10 @@ static void valueText(const struct Row *r, char *out, int n)
     if (r->kind == ROW_MSAA) {
         if ((int)lround(v) <= 1) snprintf(out, n, "OFF");
         else                     snprintf(out, n, "%dx", (int)lround(v));
+        return;
+    }
+    if (r->kind == ROW_ACTION) {
+        snprintf(out, n, "[ENTER]");
         return;
     }
     if (r->kind == ROW_SLIDER && r->type == CONFIG_OPT_FLOAT) {

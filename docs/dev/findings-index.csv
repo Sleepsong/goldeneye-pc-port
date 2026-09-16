@@ -55,15 +55,15 @@ D152+,FIXED,D152 addendum (M-31):,"FIXED (src/snd.c, port/src/libultra.c, #ifdef
 D168,FIXED,GE_PCDUMP / F12 PPM captures were vertically flipped —,FIXED (port/fast3d/gfx_opengl.cpp); D114 / D116 reclassified as capture-orientation artifacts (below).
 D169,FIXED,Front-end mouse pointer can't reach the outer cells of the mission/level-select grid —,"FIXED (M-33, port/src/input.c, port-only, no #ifdef PORT)."
 D178,FIXED,Pre-mission briefing screen:,FIXED (M-36) — high confidence
-D175,OPEN,In-game stutter / brief hang during normal play (user QA report):,"OPEN — observed, not investigated"
+D175,OPEN,In-game stutter / brief hang during normal play —,"OPEN — observed, not investigated"
 D176,FIXED,"Surface exterior renders wrong (-level_36), two independent defects.","(a) ""scrolls too fast/tiles too visibly"" ROOT-CAUSED + FIXED (see ""D176(a) —"
 D177,FIXED,Ladders non-functional —,FIXED (M-36) — high confidence; interactive climb test owed
-D172,FIXED,"Bullet-impact / blood / spark particles render magenta or cyan instead of dark red (M-82, ROOT CAUSE FOUND + FIXED).",FIXED (port/fast3d/gfx_pc.cpp gfx_lod_tile_offset):
+D172,FIXED,"Bullet-impact / blood / spark particles render magenta or cyan instead of dark red (M-82, ROOT CAUSE FOUND + FIXED).",FIXED (port/fast3d/gfx_pc.cpp gfx_lod_tile_offset)…
 D174,OPEN,"""No blood effect"" (user QA report).",OPEN — observed; first step = BUNKER1 firefight with regenerated sidecars
 D183,OPEN,"M-36 Family A (""texture line/pitch shear"") is DISPROVEN for the Surface repro (-level_36).",Hypothesis DISPROVEN + diagnostics shipped; D176(b)/D182(2) still OPEN
-D173,OPEN,Third-person Bond model spawns too high (user QA report):,"OPEN — observed, not investigated."
+D173,OPEN,Third-person Bond model spawns too high —,"OPEN — observed, not investigated.…"
 D179,FIXED,Packaged build crashes after the logos —,"Diagnosed, not fixed —"
-D180,PARTIAL,"Native-PC input pass (M-XX QoL run, qol/native-pc-input-menu, port-only).","LANDED, port-only, no #ifdef PORT."
+D180,PARTIAL,"Native-PC input pass (M-XX QoL run, qol/native-pc-input-menu, port-only).","LANDED, port-only, no #ifdef PORT.…"
 D181,?,Game.ScreenShakeIntensity —,"Menu row pulled (v0.2.1, user testing)."
 D184,PARTIAL,F10 port-layer options overlay —,"LANDED, port-only, no #ifdef PORT in src/."
 D211,PARTIAL,"PC FOV slider — Video.FovScale (M-83 QoL wave, port-only, WIDESCREEN-FOV-PLAN.md Phase 4).",PARTIAL — M-84 refix:

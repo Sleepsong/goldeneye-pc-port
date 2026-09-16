@@ -980,6 +980,15 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
   (bail is `if (cat >= 41)`, checked once per outer loop → writes `[40..]`);
   `bondview2.c` `bondviewCalcIntroSwirlCamera` `f32 pointbuf[10]` written
   `[-3 .. 11]`.
+- Instance (D295/M-148): `front.c:2616` `char difficultytext[4]` receives
+  `strcpy("00 Agent")`/`strcat("\n")` — the NUL lands exactly on the adjacent
+  `textpos.p[0]` (y-coord), which is then re-stored; when y ≥ 0x80 the string
+  carries a high-bit byte into `textRender` → JPN-glyph path → NULL deref of
+  `g_JpnCacheCacheItems` (`language.c:320`). Same class, different fatality:
+  no canary involved — the clobbered *neighbour* changes control flow. On N64
+  the identical overflow is cosmetic (the JPN-cache pointer is valid memory in
+  any language); the crash severity is a PC artifact of that global being NULL
+  outside Japanese mode.
 - Fix policy: **`-fno-stack-protector` globally** (`CMakeLists.txt`) so Linux
   matches the N64 and MinGW builds; the code is byte-matched to the ROM and
   cannot be "fixed" per site without diverging. Where a case is cleanly
@@ -992,6 +1001,23 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
 - Distinct from D7 (`va_list` UB) and D6 (missing `return`) but the same
   "works on N64 + MinGW, fatal on hardened Linux" shape.
 
+## D9. Changing a PRNG/CRC implementation invalidates persisted derived state — save checksums are de facto file format
+
+D284 (M-139b) fixed `port/src/random.c`'s `dsll32`/`dsrl32` semantics and the
+entry claimed "savegames unaffected (seed isn't save state)". It was wrong:
+`fileGenerateCRC` (`src/game/crc.c`) — the per-slot validation checksum checked
+by `fileValidateSaves` (`file2.c:544`) — runs `randomGetNextFrom` off its own
+**local constant seed**, so every stored slot CRC is a fingerprint of the PRNG
+implementation that wrote it. Verified against a real v0.2.x save (GitHub #87):
+pre-fix PRNG reproduces all five stored CRCs bit-exact, post-fix matches zero →
+first launch of any post-fix build **silently wipes every existing player's
+entire campaign** (D295 M-148). Generalizable rule for this port: before
+changing anything that feeds persisted derived state (PRNG, CRC/hash routines,
+endian/byte-order helpers used by serializers), audit *all* consumers whose
+output is stored on disk — not just the in-memory streams. A "port-only" fix to
+a checksum primitive is a save-file-format break unless old and new outputs are
+made mutually acceptable (dual validation / one-time migration).
+
 ## E. Process / method notes
 
 - Investigation loop is: reproduce → env-gated capped probe → root-cause
@@ -1003,6 +1029,13 @@ and turns every such overrun into a fatal `*** stack smashing detected ***`
   writing anything new; same Rare engine family.
 - Don't re-investigate a closed §F finding or re-derive a format spec
   that already has a converter.
+- **Every game launch rewrites `data/ge007.eep`** (the eeprom shim stores on
+  every write; validation resets, cheat patches and normal saves all write).
+  When restoring a specific save artifact for a controlled test (e.g. an issue
+  reproduction), restore it *after* any sweep/verify run — or re-hash after
+  each run — not before: `tools_pc/level_sweep.sh` alone boots the game 21
+  times against `data/` and will clobber a pre-run restore (caught live in the
+  D295 M-149 session; "verified" must mean checked at report time).
 - **The port is NOT frame-deterministic** (D117): `osGetCount()` is
   wall-clock on PC, and GE is a variable-timestep sim
   (`frametiming.c waitForNextFrame` → `deltaFrames` = 60 Hz ticks of real

@@ -172,4 +172,6 @@ D291,OPEN,"Dam: texture glitches when the truck drives past (M-141, Steam Deck u
 D292,OPEN,Death animations are glitched —,"OPEN — same status as D173 (observed, not root-caused)."
 D293,FIXED,"QoL ask: no discoverable way to quit the game from the UI (M-141, Steam Deck user playtest —","FIXED (M-141) — ""Quit to desktop"" row added to the F10 overlay; build-verified Win+Linux, not yet live-confirmed.…"
 D294,OPEN,"Statue: ground geometry near the large CCCP/hammer-and-sickle monument briefly renders solid black over a wide area, then self-recovers 10-30 seconds later… —",OPEN — not investigated.…
-D295,OPEN,"Campaign-halting crash at the end of Control Center on 00 Agent difficulty, then a crash on every subsequent relaunch/resume (GitHub #87, user campaign playtes…",OPEN — not investigated.
+D295,FIXED,"Campaign-halting crash at the end of Control Center on 00 Agent difficulty, then a crash on every subsequent relaunch/resume (GitHub #87, user campaign playtes…",FIXED (M-149) — M-148 root-caused + reproduced on HEAD; fix landed:
+D296,OPEN,"Control Center, 00 Agent:","OPEN — single live report, un-triaged; observed only under a gdb-attached debug-harness launch (tools_pc/debug.ps1), not the packaged release artifact —"
+D297,FIXED,v0.3.0 silently wipes ALL pre-fix player saves on first launch (D284 side effect; found during D295/M-148).,FIXED (M-150) — migration shim landed:

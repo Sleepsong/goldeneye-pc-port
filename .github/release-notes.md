@@ -43,90 +43,9 @@ crash fixes plus two QoL asks:
   the only way to exit was Alt+F4 / closing the window, a real gap on
   Steam Deck / controller-only / fullscreen setups (D293).
 
-### What's new since v0.2.0
-
-Small hotfix batch from user playtest feedback on v0.2.0:
-
-- **Partially fixed: `All unlocked` + a completely fresh EEPROM produced
-  silent music/SFX** (D259). A brand-new save slot now seeds max volume the
-  same way the N64 does. **However, user testing after this fix still found
-  audio (and occasionally right-mouse aim) break when `All unlocked` is
-  turned on *before* a save has ever been written** — see the Known Issues
-  note below; do not enable it on a fresh install until you've completed at
-  least one level normally.
-- **Mouse wheel weapon cycling now matches the on-screen wheel-menu order**:
-  scroll up = previous weapon, scroll down = next (D260).
-- **Watch menu: holding a direction now auto-repeats** instead of crawling
-  one item per key press/notch (D261).
-- **Fixed: the watch menu's item-preview 3D model wasn't rendering** —
-  weapons now show their model when selected on the watch inventory page
-  (D264).
-- Investigated the Facility report of Ourumov never executing Trevelyan:
-  confirmed it's proximity/line-of-sight-triggered exactly as on the N64
-  (walk toward the room), not a port bug — the full scripted beat, including
-  the execution shot, fires correctly (D263).
-- **Removed the `Skip intro` F10 toggle** — user testing found it breaks
-  audio. It was already off by default; it's now also pulled from the menu
-  entirely until root-caused (D216).
-- **Removed the `Screen shake` F10 slider** — it only scaled explosion/effect
-  camera shake, not the always-on walking head-bob or any getting-shot
-  reaction, so it read as broken/useless. Pulled from the menu until it
-  covers all screen-shake/view-bob sources (D181).
-
-### What's new since v0.1.0
-
-- **Drop-in ROM, no tooling**: unpack the bundle, drop your NTSC-U (US) ROM
-  in `data/`, launch; the first run generates the derived assets
-  automatically. No Python, no installer, nothing to set up.
-- **Steady 60 fps** in normal play (the software RSP runs off the presentation
-  critical path); `Video.DisplayFPS` in the F10 overlay shows it.
-- **Audio**: in-level music and sound effects throughout (the alpha was
-  silent). A previous wrong-sounding-instrument bug (bad bass synth on
-  Control/Cavern/Runway) is fixed as of v0.2.0.
-- **Mouse**: click-to-lock capture (click to grab, ESC to release) with a
-  proportional GEPD-style aim mode; sensitivity / Y-inversion / aim-turn split
-  tunable in `ge007.ini` or the F10 overlay. The legacy always-grab mode is
-  gone.
-- **Rendering**: outdoor skies render correctly; water no longer renders
-  green/pulsing; reflective surfaces (glass, chrome weapon skins) work.
-- **Crash fixes**: the two v0.1.0-era crashing levels (Bunker ii, Statue) and
-  the AI-pacing bug that broke Cradle are fixed and playtest-verified: all 21
-  solo missions load and run crash-free. Also fixed: the Steam Deck / Linux
-  Facility crash triggered by walking into the crouch-forcing spot at the
-  level's opening (D253); this also revives the auto-crouch and ladder
-  signals, which were dead on PC before.
-- **QoL**: F10 in-game options overlay (fullscreen, resolution, frame cap,
-  MSAA, texture filtering, FOV/draw distance, sensitivity), F12 screenshot.
-- **Sharper defaults out of the box**: draw distance and LOD swap distance now
-  default to 150% of the authored N64 values, so props no longer fade in just
-  before they become visible (Dam's alarms and wall switches being the tell);
-  F10 → *Draw distance* / *LOD distance* set back to 100 restores the
-  console-authentic look. MSAA now defaults to 4× instead of off.
-- **All-unlocked toggle** *(experimental — see Known Issues before using)*:
-  F10 → *All unlocked* makes all 21 solo levels selectable at every
-  difficulty, adds 007 mode, and fully populates the cheat menu. It is off by
-  default (faithful N64
-  progression). No *active* cheats are enabled either way (weapons remain
-  per-mission pickups, as on N64).
-- **Steam Deck first-run preset**: on SteamOS the first launch seeds
-  Deck-friendly defaults (native 1280×800 fullscreen, VSync, MSAA 4, 150%
-  draw/LOD distance); an existing `ge007.ini` always wins. **If you first
-  launch it in Desktop Mode (e.g. to add it via Steam) before ever running
-  it in Game Mode, the preset can be skipped** — an ini gets created before
-  Game Mode's Deck-specific environment is detected, and once an ini exists
-  it always wins over the preset on every later launch. If your resolution
-  isn't 1280×800 on first Game Mode boot, just set it manually: F10 →
-  *Resolution* (D283). One more F10 row: *No hit flash* (suppresses the
-  damage-flash overlay).
-- **Modern dual-stick controller layout** (the scheme used by the console
-  re-releases): left stick move/strafe, right stick look, right trigger fire,
-  left trigger aim, A/X use, B/Y crouch/cancel, **RB/LB cycle weapons**.
-- **Linux / Steam Deck**: the Linux bundle now ships its own SDL2, so it runs
-  as-is on any distro, and sideloads onto a Steam Deck with nothing
-  installed. Saves and F10 settings now persist no matter which directory you
-  launch from (previously Linux wrote them relative to the launch directory
-  only, so they silently failed elsewhere; D256); the options overlay is
-  fully gamepad-driven on the Deck.
+Full changelog history (v0.2.0, v0.1.0, ...) is on each version's own
+[release page](https://github.com/jkdansereau/goldeneye-pc-port/releases);
+this note only covers the delta from the immediately previous release.
 
 ### Known issues
 
@@ -178,6 +97,7 @@ Small hotfix batch from user playtest feedback on v0.2.0:
   terminal destruction) and through Caverns' radio-objective terminals
   with zero crashes. Please still report any other Deck/Linux-specific
   faults.
+
 ### Downloads
 
 | File | Platform |

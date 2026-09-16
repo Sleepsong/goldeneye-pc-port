@@ -161,9 +161,9 @@ D264,FIXED,"D262's root cause (ABI/layout class, cf.","FIXED — build green, pr
 D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —…"
 D265,?,"D236 investigation (port-layer, port/fast3d/gfx_pc.cpp):",PARKED — reverted to baseline; evidence + suspect list above.
 D258,OPEN,PAL/JP asset conversion is broken at the source-data level —,"OPEN — repair path verified, not applied (out of v0.2.0 scope)."
-D284,FIXED,"port/src/random.c's MIPS64 dsll32/dsrl32 shift helpers were backwards (modelled as 32-bit shifts, not ""shift by n+32 on the full 64-bit register""), desyncing t…","FIXED, 21-level sweep clean, no crashes —"
-D285,FIXED,"A real Steam Deck SIGSEGV caught during D255 live-testing (v0.2.1 published binary, symbolized on-device via addr2line against its own debug symbols) is a SEPA…","FIXED (M-141, src/snd.c) —"
-D286,OPEN,"User-confirmed real (not system-side) ~8s frame freeze on Caverns, Steam Deck, caught during the same live session as D255/D285 —","OPEN — one confirmed occurrence, no repro trigger identified, not root-caused; distinct from D255/D285."
+D284,FIXED,port/src/random.c's MIPS64 dsll32/dsrl32 shift helpers were backwards —,"FIXED, 21-level sweep clean, no crashes —"
+D285,FIXED,Steam Deck SIGSEGV during D255 live-testing = SEPARATE bug:,"FIXED (M-141, src/snd.c) —"
+D286,OPEN,"User-confirmed real ~8s frame freeze on Caverns, Steam Deck —","OPEN — one confirmed occurrence, no repro trigger identified, not root-caused; distinct from D255/D285."
 D287,OPEN,"User-confirmed real, non-self-recovering freeze on Windows (M-141, 2026-09-15/16) after ~15-20 minutes with no input, triggered by clicking back into the… —","OPEN — one confirmed occurrence, real (not self-recovering), not root-caused; gfxFrameMsgQ full is a lead, not a confirmed cause."
 D288,OPEN,"Silo intro: a huge, flat-shaded, untextured brown/tan triangle sweeps across the frame during the camera pan down the missile shaft (M-141, user report —… —","OPEN — visually confirmed and precisely bounded (frames ~562-741 of a bare -level_20 boot), root cause not yet identified; promoted from the long-parked GRAP… |"
 D289,OPEN,"Dam: a crash in the computer room, not reproducible on a second attempt (M-141, Steam Deck user playtest).","OPEN — needs a human re-test specifically on a build with the D255 fix (this session's release/v0.3.0, not any earlier build) to see if it still happens.…"

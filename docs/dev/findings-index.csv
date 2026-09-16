@@ -28,23 +28,23 @@ D199,PARTIAL,Phase-3 software audio mixer:,"LANDED (port/src/mixer.c, port/inclu
 D200,FIXED,-level_09 segfault: reverb's ALDelay.input/output are u32 —,FIXED — 5-line cast in reverb.c (this session)
 D196,FIXED,"OS mouse cursor stays visible after closing the F10 options overlay in click-to-lock mode (M-49, user playtest).","FIXED (6e758f1d, merged to main) —…"
 D192,?,Front-end mission/level-select grid pointer still can't reach the outer cells —,"CLOSED — the buggy mode 0 was removed entirely in the v0.2.0 prep pass (see D239); click-to-lock is now the only capture mode, so the unreachable-cells path no longer exists"
-D221,FIXED,SELECT FILE screen: the mouse hit-box for a file slot is vertically offset from its visible box —,FIXED (M-91) — root cause was NOT a coordinate/origin mismatch:
+D221,FIXED,SELECT FILE mouse hit-box offset —,"FIXED (M-91) — explicit {min,max} coord2d pairs under #ifdef PORT; human mouse-playtest confirmed."
 D222,FIXED,High Video.FovScale breaks culling —,"FIXED, awaiting visual verification (M-121)."
 D223,FIXED,QoL ask: mouse-wheel weapon cycling should be directional like a normal PC shooter —,"FIXED (M-105, port/src/input.c) —…"
 D224,?,"QoL gap (M-87, from a PD-PC-port survey):","DEPRIORITIZED (M-87, user call)."
 D225,OPEN,"Dev-tooling QoL (M-87, user ask):","OPEN — root-caused, not implemented."
 D226,OPEN,"QoL ask: player-adjustable HUD scale for the ammo counter, bottom-left pickup/item status text, and top-of-screen dialogue/subtitle text.","OPEN — root cause / call sites identified, not designed or implemented."
 D227,FIXED,Sky renders as two independently-moving halves —,"FIXED (M-100b, PR #43) —"
-D229,FIXED,"Water on IsWater levels renders green and pulses blue<->green on an interval (M-101, user playtest, Frigate -level_26; Surface 2 also an IsWater level).",FIXED (port-layer) — root cause:
+D229,FIXED,"IsWater-level water renders green, pulses blue<->green (M-101; Frigate -level_26).","FIXED (port-layer) — ZLIB+CI8 water image now imports via the CI8 palette path (gfx_pc.cpp); Frigate verified live (""looks better""); sweep + Surface 2 by-eye still owed."
 D230,OPEN,In-level music quality:,"OPEN — static-analysis pass done (M-108), not runtime-confirmed."
 D233,FIXED,All levels (intermittent):,"FIXED (port/fast3d/gfx_pc.cpp, gfx_sp_tri1) —…"
 D234,FIXED,"Dam: guard towers along the dam structure invisible except the first one (M-106, user QA report).",VISUALLY VERIFIED FIXED (M-108) —…
 D244,OPEN,Self-hosted CI runner (corpyvt6agent01) link failure:,"OPEN, not yet fixed. Next…"
-D228,FIXED,AK47 (and other) weapon models still show WHITE missing-texture patches after D217's texpool-alignment fix —,"FIXED (port/fast3d/gfx_pc.cpp, palette_to_rgba32) —"
-D204,FIXED,PC audio ran ~2 % below real time permanently:,"FIXED (port/src/audio.c, port/src/libultra.c, port/include/audio.h) —"
+D228,FIXED,AK47 white missing-texture patches after D217's texpool fix —,"FIXED (port/fast3d/gfx_pc.cpp, palette_to_rgba32) —"
+D204,FIXED,PC audio ran ~2 % below real time permanently (AI feedback loop's 3 ms setpoint vs PC jitter).,"FIXED (port/src/audio.c, port/src/libultra.c, port/include/audio.h) —"
 D203,?,"Steam Deck (SteamOS, x86_64 Linux) v0.1.0 release bundle:",CLOSED — root cause + fix in D253.
 D201,FIXED,"src/libultra/audio/bnkf.c bank/instrument/sound/wavetable relocation offsets were s32, truncating the real 64-bit base pointer.",FIXED (src/libultra/audio/bnkf.c) —
-D202,RESOLVED,"Silenced PPK plays a ""slap"" instead of a gunshot, PLUS user reports broader real-time audio corruption (M-52 → M-59 → REOPENED M-60 → M-61/M-62 closed the data…",ROOT CAUSE ESTABLISHED (M-66); DISPOSITION C IMPLEMENTED + MEASURED (M-66b) —
+D202,?,"Silenced PPK ""slap"" + broader real-time mixer corruption (M-52→M-67).",ROOT CAUSE ESTABLISHED (M-66); Disposition C implemented + measured (M-66b) —
 D206,FIXED,PC played every SFX one bank slot too high —,"FIXED (M-76, src/snd.c:1001, #ifdef PORT → soundArray[soundIndex - 1], N64 line verbatim under #else)."
 D207,PROPOSED,Alarm klaxon starves combat SFX and (per user) doesn't recover after it stops —,MONITORING (M-77c: user reports the alarm is acceptable in play after D206; no fix shipped) —
 D208,FIXED,Player weapon-fire sound goes permanently silent mid-firefight (all other SFX unaffected) —,FIXED + user playtest-verified (M-78d) —

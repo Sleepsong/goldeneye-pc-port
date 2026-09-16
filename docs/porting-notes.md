@@ -680,6 +680,15 @@ through a converter or a runtime bswap fixup reads scrambled.
   backface culling already has, or it'll silently eat near-camera geometry
   exactly where a port is most likely to get scrutinized (doorways,
   tight corridors).
+- `gfx_sp_tri1`'s `G_CULL_BOTH` backface-cull cross-product (`gfx_pc.cpp`,
+  right below the D233 trivial-reject guard) divides raw vertex `w` with
+  no epsilon guard. A vertex at/near `w≈0` during a near-plane crossing
+  can NaN/Inf the cross product, which silently fails both the
+  `cross<=0` and `cross>=0` cull branches and lets a triangle draw that
+  should have been backface-culled — a candidate for D288 (Silo intro
+  stray triangle), not yet confirmed against a live repro (M-152). Unlike
+  D233's fix, this one hasn't been shown to actually fire yet; it's a
+  code-review lead, not a confirmed mechanism.
 - **D74 wrap-block is DEAD CODE** (`gfx_pc.cpp:1546/1551`): guard is
   `cms & G_TX_WRAP` but `G_TX_WRAP == 0`, so always false (line 1887 does
   it right with `cms == G_TX_WRAP`). And if it did run it indexes

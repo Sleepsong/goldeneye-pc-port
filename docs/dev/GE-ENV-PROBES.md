@@ -55,6 +55,7 @@ Two classes:
 | `GE_DTEX` | `port/fast3d/gfx_pc.cpp:1001` | Per-`import_texture` param log (dims / line / size / lod / gen_mipmaps). Used to root-cause RC2 and D159. Kept as an inert diagnostic. | **live** (RC2/RC3 not finished) |
 | `GE_TEXDUMP` | `port/fast3d/gfx_pc.cpp:1020`, `port/fast3d/gfx_opengl.cpp:700` | PPM dump of every uploaded texture + a `fmt/siz/palfmt/palidx/pal[0..3]` line. Root-caused D161 (Depot ceiling). Kept as an inert diagnostic. | **live** (RC3 not finished) |
 | `GE_D116` | `port/fast3d/gfx_pc.cpp:1710,2362`, `src/game/textrelated.c:265,541` (cached `ge_d116`) | HUD/text "X-mirror" (D114/D116) vbo/uv trace. **D114/D116 CLOSED — NOT A BUG (M-33/D168): the captures were upside-down, not mirrored.** Probe is now dead scaffolding — strip on the next cleanup pass. | dead (D114/D116 closed) |
+| `GE_D288` | `port/fast3d/gfx_pc.cpp` (`gfx_sp_tri1`, right after the D233 trivial-reject guard; cached `ge_d288`) | M-152 diag for the Silo intro stray triangle: logs any triangle whose clip-space NDC bbox covers >15% of the screen or goes non-finite, with each vertex's `w` and `any_behind_camera`. **Investigation in progress** — narrowed to two candidates (an unguarded `w`-division NaN leak in the backface-cull test just below, or the D106/D271 portal-BFS family), not yet root-caused; needs a live/headless `-level_20` run to disambiguate. | **live** (D288) |
 
 ## Dxx diagnostic probes — finding closed unless noted
 

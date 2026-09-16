@@ -554,7 +554,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D249 | **LOD/culling breaks down on large open levels (Streets, Egyptian named specifically) at *default* FOV — far-away geometry has visible culling issues (M-119…** — full `## D249` entry at file tail | OPEN — not investigated.… |
 | D250 | **FPS is inconsistent/low on many levels after 60 Hz shipped (M-119, user QA; D248 follow-on).** — full `## D250` entry at file tail | FIXED — per-call `getenv()` cost was the bottleneck; rock-steady 60-61 fps after, user re-tested 1440p/4K clean. |
 | D251 | ****F10 options overlay QoL pass:** — full `## D251` entry at file tail | **FIXED (port-only, `port/src/optionsoverlay.c`).** (a) The panel now computes how many rows fit the *actual* current 2D height (`maxVisibleRows()` from `viGetY()`) and scrolls… |
-| D252 | **Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).** — full `## D252` entry at file tail | OPEN — documented only per user instruction for v0.2.0-pre (known issue); prime suspect = `import_texture_rgba16` width/height derivation, unconfirmed. |
+| D252 | **Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).** — full `## D252` entry at file tail | OPEN — root cause genuinely open as of M-141: both named hypotheses refuted (width/height derivation; byte-group order); unverified new lead = shared TMEM slot 0x188 / GL-cache key reuse across the 15 fire records. Cheap repro: bullet-impact sparks. Documented only for v0.2.0-pre per user instruction. |
 | D253 | **Facility (and any level with a FORCECROUCH/LADDER linked special tile) SIGSEGV on Linux/Steam Deck — `stanCheckLinkedSpecialTile` stores to a garbage…** — full `## D253` entry at file tail | FIXED — Deck-verified: user got past the crouch tile with the re-cut bundle (a *new*, later crash is D255). |
 | D254 | **Linux crash handler destroyed its own logs: `ge007.crash.log` only ever contained the SIGABRT block, never the original SEGV.** — full `## D254` entry at file tail | FIXED — field-verified. |
 | D255 | **Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle; D253 fix confirmed working).** — full `## D255` entry at file tail | OPEN — NULL-model deref in `vtxstore_fix_refs` confirmed; suspected modify-during-iterate; fix needs rule-#2 sign-off; `GE_D255=1` probes in tree. |
@@ -9079,7 +9079,7 @@ that explains every reported symptom, and the user has eyeballed the fixed
 frame. Also worth re-measuring the scroll rate against M-98's ~7 px/tick
 baseline: it should now be ~0.2 px/tick.
 
-**Human play-test (from the §F row, post-M-100b):** confirmed by the user on
+**Human play-test (from the §F row, appended 2026-09-15 ctx-opt; post-M-100b):** confirmed by the user on
 the previously-failing levels — closes the "still owed" above.
 
 ## D227 — M-100: ROOT CAUSE FOUND AND PROVEN — `s16` texture-coordinate overflow. Not a crack, not view-dependence, not a quantization mismatch. Fix not yet implemented (design decision open).
@@ -9897,7 +9897,7 @@ button press on both sides — only the box changed.
 eyeball owed: normal mouse play through file select (hover highlight,
 select/copy/delete options) — the headless test proves the hit-test fires
 where the visible wallet is, but the highlight/selection *feel* is a human
-check. **Human mouse-playtest (M-91 session, from the §F row):** confirmed
+check. **Human mouse-playtest (M-91 session, from the §F row, appended 2026-09-15 ctx-opt):** confirmed
 clicking directly over each visible file wallet selects it immediately, no
 aiming low required; consistent across all slots and the Copy/Erase icons;
 no crash. D192 (mode-0 clamp range) is a separate bug and remains open.

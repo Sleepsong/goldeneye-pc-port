@@ -147,7 +147,7 @@ D248,FIXED,"Port runs a stable 30 FPS instead of 60 FPS game-wide (M-117, user a
 D249,OPEN,"LOD/culling breaks down on large open levels (Streets, Egyptian named specifically) at *default* FOV —",OPEN — not investigated.…
 D250,FIXED,"FPS is inconsistent/low on many levels after 60 Hz shipped (M-119, user QA; D248 follow-on).","FIXED — per-call getenv() cost was the bottleneck; rock-steady 60-61 fps after, user re-tested 1440p/4K clean."
 D251,FIXED,F10 options overlay QoL pass:,"FIXED (port-only, port/src/optionsoverlay.c)."
-D252,OPEN,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).","OPEN — documented only per user instruction for v0.2.0-pre (known issue); prime suspect = import_texture_rgba16 width/height derivation, unconfirmed."
+D252,OPEN,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).",OPEN — root cause genuinely open as of M-141:
 D253,FIXED,Facility (and any level with a FORCECROUCH/LADDER linked special tile) SIGSEGV on Linux/Steam Deck —,FIXED — Deck-verified:
 D254,FIXED,Linux crash handler destroyed its own logs:,FIXED — field-verified.
 D255,OPEN,Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle; D253 fix confirmed working).,OPEN — NULL-model deref in vtxstore_fix_refs confirmed; suspected modify-during-iterate; fix needs rule-#2 sign-off; GE_D255=1 probes in tree.

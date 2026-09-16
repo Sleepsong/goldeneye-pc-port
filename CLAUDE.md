@@ -21,9 +21,10 @@ Context is scarce. Load by tier; do not blind-read whole files.
 - **Tier 2 — on demand only, do NOT read start-to-finish:**
   - `docs/internals.md` — architecture / RSP deltas / phased plan (§1–§10).
     Read the section you need.
-  - `docs/dev/findings.md` — the `Dxx` finding log (§F + §H).
-    **Jump to a specific `Dxx` via the index at the top of §F.** Never
-    linear-read.
+  - Findings: look up via `docs/dev/findings-index.csv` (label, one-liner,
+    status), then read only the specific `## Dxx` entry in
+    `docs/dev/findings.md` (multi-pass labels like D202/D176(a) have large
+    sections — grep within or offset/limit). Never linear-read.
   - `docs/dev/HANDOFF-ARCHIVE.md` — prior-session narrative (M-2…). Only
     when tracing the history of one fix.
   - `docs/dev-process.md` — before dispatching a subagent (also Tier 1

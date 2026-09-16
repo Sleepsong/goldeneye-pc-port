@@ -33,6 +33,7 @@
 #include "mixer.h"
 #include "crash.h"
 #include "thread_config.h"
+#include "game/language.h" /* D295/M-148: JPN glyph-cache types + j_text_trigger */
 
 /* Defined in the game (src/init.c). The port calls into the real game entry. */
 extern void mainproc(void *args);
@@ -204,6 +205,34 @@ int main(int argc, char **argv)
      *    audio threads and never returns in practice. */
     sysLogPrintf(LOG_INFO, "ROM mapped at 0x%08X (%u bytes); starting game",
                 (unsigned)0x10000000, romdataGetRomSize());
+    /* 4a. D295/M-148: non-JP builds never allocate the JPN glyph cache (langInit
+     *     gates it on j_text_trigger), but textRender's high-bit path calls
+     *     langGetJpnCharPixels unconditionally and indexes the NULL global
+     *     (language.c:320). Seed both globals with static port buffers, using the
+     *     exact same construction as langInit's JP path (language.c:247-253), so a
+     *     stray byte >= 0x80 takes the normal cache-miss path (romCopy from the JP
+     *     font segment -> garbage glyph) instead of NULL-deref. Runs before
+     *     osStartThread => no race; langInit (non-JP) never touches these, and if a
+     *     debug -j flag ever flips j_text_trigger, its real allocation supersedes
+     *     this stub harmlessly. */
+    {
+        extern struct jpncharpixels *g_JpnCharCachePixels; /* src/game/language.c:27 */
+        extern struct jpncacheitem  *g_JpnCacheCacheItems; /* src/game/language.c:29 */
+        if (!j_text_trigger) {
+            static struct jpncharpixels jpnPixels[124 * 8]; /* 0x2E80 bytes, langInit's size */
+            static struct jpncacheitem  jpnItems[124];      /* 124 slots; langInit over-allocates 0x100 (128) but only ever uses 0x7C */
+            s32 i;
+            _Static_assert(sizeof(jpnPixels) == 0x2E80,
+                           "JPN pixel stub size must match langInit (language.c:248)");
+            for (i = 0; i < 124; i++) {
+                jpnItems[i].ttl = 0;
+                jpnItems[i].codepoint = -1;
+            }
+            g_JpnCharCachePixels = jpnPixels;
+            g_JpnCacheCacheItems = jpnItems;
+        }
+    }
+
     portKernelInit();
     osCreateThread(&mainThread, MAIN_THREAD_ID, &mainproc, NULL, NULL,
                    MAIN_THREAD_PRIORITY);

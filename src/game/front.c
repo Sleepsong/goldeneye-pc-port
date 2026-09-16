@@ -2613,8 +2613,20 @@ Gfx *constructor_menu05_fileselect(Gfx *DL)
 
     for (foldernum = FOLDER1; foldernum < MAX_FOLDER_COUNT; foldernum++)
     {
+#ifdef PORT
+        // D295/M-148: decomp sizes are too small for what this code writes.
+        // difficultytext[4]: "00 Agent\n" is 9 bytes incl. NUL, "Secret Agent\n"
+        // 14 — the overflow ran into textpos.p[0], and a y>=0x80 re-store injected
+        // a high-bit byte into textRender -> JPN glyph path -> NULL deref (issue #87).
+        // missiontext[18]: verified worst case is ~14 ("Mission 9.iv\n"); widened to
+        // the same size defensively per D8 policy, not from a verified worst-case.
+        // Pure local stack scratch, zero ABI role; N64 build keeps decomp sizes.
+        char difficultytext[32]; // spD0 (decomp: [4])
+        char missiontext[32];    // spBC (decomp: [18]): "Mission <chapter>.<part>\n"
+#else
         char difficultytext[4]; // spD0
         char missiontext[18];   // spBC: "Mission <chapter>.<part>\n"
+#endif
         s32 padding3;
         struct coord3d * folderworldpos;
 

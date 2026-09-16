@@ -13,9 +13,14 @@ rules there are non-negotiable.
 
 ## Scope check
 
-- [ ] No changes under `src/` or `include/` — **or** the only changes are the
-      narrow `#ifdef PORT` ABI exception (CONTRIBUTING.md rule 2), and each is
-      documented in `docs/porting-notes.md` / `docs/dev/findings.md`.
+- [ ] No changes under `src/` or `include/` — **or** the only changes are
+      the narrow `#ifdef PORT` ABI exception (CONTRIBUTING.md rule 2),
+      checked against `docs/porting-notes.md` §A1, and documented in
+      `docs/dev/findings.md` (§F/D3x).
+- [ ] If this PR contains a genuine `src/game` behavior change (not an
+      ABI/layout fix): an explicit rule-2 sign-off was granted
+      (`docs/dev-process.md` §7) and is recorded in a
+      `RULE-2-SIGNOFF`-tagged `docs/dev/findings.md` entry linked here.
 - [ ] `Makefile`, `tools/`, `rsp/`, `ld/` untouched (N64 build).
 - [ ] If `CMakeLists.txt` `REGION_DEFS` changed, it still matches the N64
       `Makefile` per-region macro set exactly.

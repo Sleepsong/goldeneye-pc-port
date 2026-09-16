@@ -203,6 +203,10 @@ byte-identical to today.
 
 ### Rule #2 exception framing (needs explicit sign-off to start Phase 2)
 
+(This project's now-generalized rule-2 sign-off procedure lives in
+`docs/dev-process.md` §7; this section is the original case that
+motivated it, kept for its PD-precedent argument.)
+
 This is a behavior-affecting game-code edit class, outside the ABI-only D3x
 exception. The case for granting it:
 

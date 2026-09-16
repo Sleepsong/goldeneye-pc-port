@@ -55,8 +55,9 @@ state.
   `.act_*.attack_item`; aliased `WeaponObjRecord.weaponnum` at 0x80 on
   N64 via act-union@0x2C+84; act union moves to ~0x38 on PC).
 
-**A1. Raw-byte aliases into a union (`act_ubytes.padding[N]`); the silent
-variant.** The nastiest members of this class do not crash: a literal byte
+**A1. Raw-byte or mistyped aliases into a union/struct whose true field
+shifted because a sibling member widened; the silent variant.** The nastiest
+members of this class do not crash: a literal byte
 index into a union that overlays pointer-bearing structs still *reads*, it
 just reads the wrong byte, so the game runs and merely behaves wrong. Grep
 for hardcoded indices into any `padding[]`/`u8[]` union arm.
@@ -86,13 +87,60 @@ for hardcoded indices into any `padding[]`/`u8[]` union arm.
   named writes of the *same* arm. The rest of the `padding[N]` sweep
   (`chrlvTickAnim`/`chrlvTickDead` → `act_anim`/`act_dead`, both pointer-free)
   is layout-stable.
+- **D255** (a mistyped-field variant, not a raw-offset variant — same
+  mechanism, different syntax): `vtxstore_fix_refs` read a record's
+  `Model*` through `((Model*)((ChrRecord*)prop->chr)->chrflags)` —
+  `ChrRecord.chrflags` is typed `CHRFLAG`, a **4-byte enum**. On 32-bit
+  N64 the cast is bit-exact; on 64-bit PC it reads only the pointer's
+  low 32 bits and zero-extends, discarding the real high bits. The
+  truncated result is `(nil)` whenever the real pointer's low 32 bits
+  happen to be zero — which read exactly like a legitimate NULL-model
+  case, and cost two prior investigation sessions chasing a
+  "destroy-path race" theory before the field itself was the suspect.
+  **Tell that generalizes past D209/D210's `padding[N]` shape:** it
+  doesn't have to be a raw numeric offset — a field that is *correctly
+  named* but *undersized/mistyped relative to a pointer it's secretly
+  meant to hold* (an enum, a `u32`, a `s32` doing double duty as a
+  pointer slot) is the same bug through a different syntax. Fix: read
+  through the correctly-typed sibling field (`ObjectRecord.model`)
+  instead, `#ifdef PORT`, N64 line/cast kept verbatim under `#else`.
+  §F **D255** (M-140).
 
-**Lesson.** When a value reads as a clean constant (0, 1) rather than
-garbage, a pointer byte is a prime suspect; the high bytes of a low-4GB
-heap pointer are all zero, so a misaligned read looks like a legitimate
-"feature off" value. Prefer the named field under `#ifdef PORT`; the alias
-is only correct at 32-bit pointer width. Also: verify that every caller
-reaches the site with the union arm you are naming actually active.
+**Lesson.** When a value reads as a clean constant (0, 1, NULL) rather
+than garbage, a pointer byte is a prime suspect; the high bytes of a
+low-4GB heap pointer are all zero, so a misaligned or truncated read
+looks like a legitimate "feature off" / "not set" value. **Tell-tale
+signs of this pattern, any one of which should trigger an A1-first
+check before assuming a bug is genuine game-logic behavior:**
+- The observed value is **byte-exact-looking but wrong from the very
+  first call/frame** — not intermittent corruption, not "usually right
+  but occasionally wrong."
+- A **raw/literal offset or byte-width read** into a union or struct
+  that has **any pointer member**, anywhere in that union/struct's
+  layout (not just the field being read) — the read doesn't need to
+  touch the pointer itself; any member *after* one that widened is at
+  risk.
+- A field that is **correctly named but too narrow to hold what it's
+  actually storing** (an enum/`u32`/`s32` reused as a truncated pointer
+  slot — the D255 shape, distinct from D209/D210's literal-offset shape
+  but the same underlying cause).
+- The resulting behavior is **deterministic and internally
+  self-consistent, but demonstrably not what the N64 original would
+  produce** — the code isn't crashing or producing garbage, it's
+  confidently doing the wrong (but stable) thing.
+- Prefer the named field (or a correctly-typed sibling field) under
+  `#ifdef PORT`; the alias/pun is only correct at 32-bit pointer width.
+  Verify every caller reaches the site with the union/struct arm you're
+  naming actually active.
+
+**Distinguish from D284** (`port/src/random.c`'s MIPS64
+shift-emulation bug): same *epistemic* shape — deterministic,
+self-consistent, silently not-N64 — but a different *mechanism*
+(instruction semantics, not struct layout/pointer width) and,
+critically, **entirely inside `port/`, no `src/game` touch at all**.
+D284 was never a rule-2 question in the first place; don't fold it
+into this catalogue's "looks like game logic, is really ABI"
+framing — it never looked like game logic to begin with.
 - **Open landmine:** raw hardcoded-offset accessors into `struct player`
   / `struct hand`; see `docs/dev/AUDIT-M6-player-offsets.md`.
 - **D126 corollary; a trailing runtime list pointer in a ROM-serialized

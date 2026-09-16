@@ -11,12 +11,19 @@ keep the port faithful to the original game.
    belong to the N64 build and are never touched for PC work. If PC code seems
    to need a behavioural change in the game, the fix belongs in `port/`.
 
-2. **Narrow ABI exception.** The 32→64-bit transition forces a small class of
-   mechanical, semantics-preserving edits to ROM-serialized structs (storing an
-   embedded 32-bit pointer as `u32` and casting at the use site). These are
-   allowed, must be guarded with `#ifdef PORT`, must change no behaviour, and
-   must be documented. See `docs/porting-notes.md` for the catalogue of
-   patterns.
+2. **Narrow ABI exception; diagnosis is always allowed.** Trace a bug as
+   deep into the decomp's state as the evidence leads — that's never
+   restricted. Only the *fix* is constrained: the 32→64-bit transition
+   forces a small class of mechanical, semantics-preserving edits — any
+   struct-layout or pointer-width-driven misread caused by 32→64-bit
+   widening, in a ROM-serialized record or a live runtime struct/union alike
+   (see `docs/porting-notes.md` §A1 for the pattern and its tells). These
+   are allowed, must be guarded with `#ifdef PORT`, must change no
+   behaviour, and must be documented. A genuine behavioral difference from
+   real N64 behavior is a separate, much rarer case that needs explicit
+   maintainer sign-off first — see `docs/dev-process.md`'s rule-2 sign-off
+   procedure; it is not something a contributor can self-approve or infer
+   from this exception.
 
 3. **Region macros mirror the Makefile.** `CMakeLists.txt` `REGION_DEFS` must
    match the N64 `Makefile`'s per-region macro set exactly.

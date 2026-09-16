@@ -10664,6 +10664,60 @@ crash class C2 (Facility `-level_34`, Runway `-level_35`): `import_texture_i8` A
 
 **Status (from §F table):** OPEN — ninth pass closed with no fix; see D276/D280
 
+**Next pass framing (post rule-2-clarification):**
+
+```
+TASK: D236 pass 10 — determine why the 0x0c184b50 discrete tree-card class
+instantiates inconsistently (~4 tris on deterministic -level_36 boot vs
+~720 in a free run) despite being geometrically in front of the confirmed
+N64-faithful noise-quad "wall" (D280).
+READ FIRST: docs/porting-notes.md §A1 (pattern + tells, now including D255);
+docs/dev-process.md's "Diagnosis is unrestricted" section and §7 sign-off
+procedure; docs/dev/findings.md D236 full entry (D265, D271, D272,
+D273/D274, D276, D280) plus D209/D210/D255 as worked A1 examples.
+FILES YOU MAY TOUCH: none pre-committed — this pass is diagnosis-first.
+Touching src/game requires first clearing buckets (a) and (b) below, with
+evidence, per CONSTRAINTS.
+KNOWN-GOOD / RULED OUT (do not re-investigate): IA4/IA8 decode, blend
+pipeline, fog combine (verified N64-faithful, ±2 truncation over 2505
+verts), portal-culling over-draw (separately fixed, not the cause),
+converter/UV-conversion, CI palette bit-layout, mip presence, "identical UV
+window" for the CI8 classes.
+PRE-FLIGHT ATTACHED: D280's z/w depth-race data (0x0c184b50 confirmed in
+front of the noise quad); the instantiation tri-count delta (4 vs 720)
+between deterministic and free boot.
+BUDGET: <=6 build->run cycles / ~90 min. On expiry: revert probes, write up
+with confidence, no forced fix.
+CONSTRAINTS: Trace the instantiation-count/gating decision into src/game
+(prop-spawn, room-streaming, or distance-cull logic — likely bg.c) as far
+as the evidence leads; name the exact struct/field/counter responsible
+before concluding anything. Specifically, before writing this up as bucket
+(c) (a genuine timing/streaming behavior difference worth a rule-2 sign-off
+request):
+  - Check bucket (a) first: is the count/visibility-gating field read at a
+    struct offset that shifted under 32->64-bit pointer widening? (§A1
+    tells: deterministic-but-wrong output; a raw/literal offset or narrow
+    field read into a struct/union with any pointer member anywhere in its
+    layout.)
+  - Check bucket (b) next: is a port-layer timing/order-of-operations
+    difference (frame pacing, load order, an uninitialized or
+    differently-timed port-owned counter) feeding src/game a different
+    input than N64 would have produced upstream of the gating logic?
+  - Only once both are actively ruled out with cited evidence (not
+    assumption) does this qualify for a rule-2 sign-off write-up under
+    docs/dev-process.md §7. Do not request sign-off preemptively or as a
+    fallback for "didn't find an ABI/port explanation in the time budget."
+VERIFY: the deterministic -level_36 boot repro + tri-count probe already
+used in D280; attach before/after instantiation counts for any change.
+REPORT: (a) the exact struct/field/counter gating instantiation, file:line,
+        and which bucket (a/b/c) it falls in, with the evidence for that
+        classification  (b) fix diff if (a) or (b), or a full rule-2
+        sign-off request per §7 if (c), never a partial/ambiguous one
+        (c) probes left in tree  (d) confidence.
+        Append any generalisable quirk to docs/porting-notes.md — extend
+        §A1 if this turns out to be another instance of the pattern.
+```
+
 ## D237 — QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash…
 
 **QoL ask (M-106, user QA): F10 options overlay — make it scrollable with the mouse wheel, expose more settings into it (e.g. screen-flash / no-hit-flash `Game.NoHitFlash`, and other easily-exposed config keys), and organise rows by category (mouse settings together, video together, etc.).** The overlay (`port/src/optionsoverlay.c`) already renders over the registered `config.c` option list; what's missing is wheel-scroll nav, a broader row set, and grouping headers. Cross-ref `OPTIONS-MENU-PLAN.md` §3 (v1 minimum set) + QOL-INVENTORY "PD has, GE lacks".

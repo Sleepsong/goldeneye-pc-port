@@ -22,6 +22,45 @@ faster than its predecessor. That project bit-matches compiler output;
 this one matches runtime behavior, so the mechanics differ; but the
 project-structure lessons carry over directly.
 
+### Diagnosis is unrestricted; only the fix is constrained
+
+AGENTS.md non-negotiable #2 restricts *changing* `src/game` behavior. It
+has never restricted *investigating* it. An agent that stops short of
+naming the exact `src/game` struct, field, or logic responsible for a bug
+— because touching that file "feels" off-limits — is doing worse
+diagnosis than the rules require, not better compliance with them.
+Several of this port's hardest, highest-impact bugs (D209, D210, D255)
+were exactly this shape: a `src/game` state variable reading wrong,
+root-caused only by tracing fully into the game file that owned it.
+
+Every investigation should end able to say which of three buckets
+applies:
+
+- **(a) ABI/layout-class.** The true cause is a struct-layout or
+  pointer-width misread introduced by the 32→64-bit transition — in a
+  ROM-serialized record or a live runtime struct/union alike. Fixable
+  under the narrow exception, entirely inside the game file under
+  `#ifdef PORT`, no sign-off needed. Check `docs/porting-notes.md` §A1
+  first (the pattern's tells + worked examples) — this is the most
+  common shape a "`src/game` behavior looks wrong" report turns out to
+  have.
+- **(b) Port-layer bug that merely manifests through game state.** The
+  game code is reading state that's correct for what N64 would have
+  produced; something in `port/` (a shim, fast3d, frame timing, an
+  uninitialized or mis-ordered port-owned value) is what actually
+  differs. Fixable entirely in `port/`, no `src/game` touch, no sign-off
+  needed.
+- **(c) Genuine game-logic behavior difference.** The decomp's
+  byte-identical control flow, given verified-correct inputs, provably
+  diverges from real N64 behavior. Rare, and requires the rule-2
+  sign-off procedure (§7 below) before any `src/game` edit.
+
+Bucket (c) is rare by design — most bugs that look like (c) turn out to
+be (a) or (b) in disguise — but ruling it in or out requires actually
+tracing the state to its source, not stopping at the file boundary.
+"This state lives in `src/game`" is a reason to keep tracing, not a
+reason to stop.
+
 ## 1. Every investigation task gets a visible budget
 
 An open-ended tool; for them the permuter, for us "rebuild and run the game
@@ -147,6 +186,68 @@ justifies. Rules:
   is still true as a fresh, small PR against current `main`. Merging stale
   content back over newer information is a regression, not a save.
 
+## 7. The rule-2 sign-off procedure (genuine `src/game` behavior changes)
+
+Use this only for bucket (c) from the diagnosis framing above — never for
+the ABI/layout exception (§A1-class fixes need no sign-off, only
+documentation) and never for anything expressible in `port/`.
+
+**To request sign-off, the write-up must state:**
+
+1. The exact `src/game` file:line and the specific behavior being
+   proposed for change.
+2. **Proof of divergence.** Given verified-correct inputs — i.e. every
+   upstream ABI/layout suspect (§A1) and every port-layer suspect has
+   been checked and ruled out, with the ruling-out cited — the
+   byte-identical decomp code still produces behavior that differs from
+   real N64 reference behavior. Name the reference (a capture, documented
+   prior N64 behavior, a cited external source). "It looks wrong" is not
+   proof; "it disagrees with `<reference>`, verified by `<method>`" is.
+3. Why the fix cannot be expressed in `port/`, and why it does not
+   qualify under the ABI/layout exception — the two questions that must
+   be answered "no" before this procedure applies at all.
+4. The proposed fix, scoped as tightly as possible to the one named
+   behavior, plus a same-engine precedent if one exists — the Perfect
+   Dark port is the standing reference; cite the analogous PD change the
+   way `docs/dev/WIDESCREEN-FOV-PLAN.md`'s "Rule #2 exception framing"
+   section did.
+
+**Granting.** The user reviews the above and replies with an explicit
+go-ahead in-thread. There is no implicit or inferred sign-off: silence,
+"seems reasonable," a prior similar grant, or approval of a *different*
+behavior in the same file do not carry over to a new request.
+
+**Recording.** Every sign-off gets its own `docs/dev/findings.md` entry
+(next `Dxx` label), tagged **`RULE-2-SIGNOFF`** in its status line
+alongside the normal finding classification, and recording: the request
+as stated above, the grant (quoted or summarized, with date), and the
+resulting diff. Add the label to `findings-index.csv` like any other row,
+so `tools_pc/gen_findings_index.py` keeps it discoverable — chat history
+is not the record of approval; the finding entry is.
+
+**Constraints that still apply after approval:**
+
+- Still `#ifdef PORT` — the N64 build is untouched, and the `#else` arm
+  (or the file's un-PORT-guarded default) still matches the original
+  decomp exactly.
+- Still scoped to the one named behavior — a grant is not a standing
+  license; a different behavior difference in the same file needs its own
+  request, even if related.
+- Still fully documented in the `RULE-2-SIGNOFF` finding entry — that
+  entry is the permanent record of *why* this specific exception to
+  non-negotiable #2 exists.
+- If the fix would visibly change behavior at *default*
+  settings/difficulty/region beyond the one bug being fixed, treat that
+  as a signal the scope drifted mid-implementation — stop and go back for
+  a fresh sign-off on the wider scope rather than shipping it under the
+  narrower original grant.
+
+This generalizes the ad hoc precedent in
+`docs/dev/WIDESCREEN-FOV-PLAN.md`'s "Rule #2 exception framing" section (a
+real, already-granted case, kept as historical record) into a reusable
+process; new requests cite this section rather than re-deriving the case
+for a process each time.
+
 ## Investigation-brief template
 
 ```
@@ -156,7 +257,16 @@ FILES YOU MAY TOUCH: <disjoint from any other in-flight work>.
 KNOWN-GOOD / RULED OUT: <list; do not re-investigate>.
 PRE-FLIGHT ATTACHED: <probe output, baseline capture, PD-port pointer>.
 BUDGET: <N build->run cycles / ~M min>. On expiry: revert probes, write up with confidence.
-CONSTRAINTS: no game-logic changes; ABI/layout/format only; #ifdef PORT; documented in the finding log.
+CONSTRAINTS: diagnosis may trace as deep into src/game state as the evidence
+  needs — name the exact struct/field/logic responsible before concluding
+  which bucket applies (see "Diagnosis is unrestricted" above). The FIX is
+  still constrained: no src/game behavior changes unless (a) it's an
+  ABI/layout-class struct-layout or pointer-width misread — check
+  docs/porting-notes.md §A1 first; #ifdef PORT; documented in the finding
+  log under §F/D3x — or (b) it's fixable entirely in port/ (no src/game
+  touch). A genuine game-logic behavior difference (bucket c) is NOT
+  authorized by this brief — stop and write up a rule-2 sign-off request
+  per docs/dev-process.md §7 instead of applying it.
 VERIFY: <the exact tools_pc/verify.sh (or probe) invocation that proves this done; or, if runtime verification is impossible in this environment, say so and name what a human must run>.
 REPORT: (a) root cause + file:line evidence  (b) fix diff, or why not
         (c) probes left in tree  (d) confidence.

@@ -162,3 +162,4 @@ D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 f
 D265,?,"D236 investigation (port-layer, port/fast3d/gfx_pc.cpp):",PARKED — reverted to baseline; evidence + suspect list above.
 D258,OPEN,PAL/JP asset conversion is broken at the source-data level —,"OPEN — repair path verified, not applied (out of v0.2.0 scope)."
 D285,FIXED,"A real Steam Deck SIGSEGV caught during D255 live-testing (v0.2.1 published binary, symbolized on-device via addr2line against its own debug symbols) is a SEPA…","FIXED (M-141, src/snd.c) —"
+D293,FIXED,"QoL ask: no discoverable way to quit the game from the UI (M-141, Steam Deck user playtest —","FIXED (M-141) — ""Quit to desktop"" row added to the F10 overlay; build-verified Win+Linux, not yet live-confirmed.…"

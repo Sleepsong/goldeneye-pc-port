@@ -26,8 +26,16 @@
  * See the comment above skyPortBeginFan()'s definition. */
 static void skyPortBeginFan(SkyRelated38 *v, s32 n, bool allowShift);
 static void skyPortEndFan(void);
+/* D245 (M-142): same reason -- the water call site (further down) needs to
+ * override the adaptive shift picked by skyPortBeginFan() before the
+ * definition itself. */
+static void skyPortForceFanShift(s32 kS, s32 kT);
 /* D227 (M-100): same reason -- the texSelect call sites precede the definition. */
 static void skyPortCaptureTile(Gfx *start, Gfx *end);
+/* D227 (M-100): relocated up here (was just above skyPortPickShift, further
+ * down) so the D245 water call site's GE_D245_FIXEDSHIFT clamp can use it --
+ * same forward-declare reason as the functions above. */
+#define SKY_TC_MAX_SHIFT 5
 #endif
 
 // bss
@@ -930,6 +938,43 @@ Gfx *skyRender(Gfx *gdl)
              * comment above skyPortBeginFan() for why this doesn't flatten
              * the cross-fade. */
             skyPortBeginFan(sp274, s1, TRUE); /* water: see skyPortBeginFan */
+
+            /* D245 (M-142): opt-in A/B candidate -- see skyPortForceFanShift's
+             * comment. Off by default (unset env => identical to the current
+             * allowShift=TRUE behaviour this row is still reopened against). */
+            {
+                const char *fs = getenv("GE_D245_FIXEDSHIFT");
+                if (fs) {
+                    s32 kFixed = atoi(fs);
+                    if (kFixed < 0) kFixed = 0;
+                    if (kFixed > SKY_TC_MAX_SHIFT) kFixed = SKY_TC_MAX_SHIFT;
+                    skyPortForceFanShift(kFixed, kFixed);
+                }
+            }
+
+            /* D245 (M-142, reopened): dumps the water quad's raw S/T span
+             * every call, so a scripted multi-frame capture can show whether
+             * the span crosses skyPortPickShift's ~30719-unit threshold (and
+             * therefore the tc-shift k) as the camera rotates -- the
+             * still-open question after allowShift=TRUE didn't fix the live
+             * symptom. Recomputed locally rather than reading skyPortBeginFan's
+             * statics (defined later in this TU, not forward-declared). */
+            if (getenv("GE_D245V")) {
+                static int callN = 0;
+                f32 minS = sp274[0].unk20, maxS = sp274[0].unk20;
+                f32 minT = sp274[0].unk24, maxT = sp274[0].unk24;
+                s32 vi;
+                for (vi = 1; vi < s1; vi++) {
+                    if (sp274[vi].unk20 < minS) minS = sp274[vi].unk20;
+                    if (sp274[vi].unk20 > maxS) maxS = sp274[vi].unk20;
+                    if (sp274[vi].unk24 < minT) minT = sp274[vi].unk24;
+                    if (sp274[vi].unk24 > maxT) maxT = sp274[vi].unk24;
+                }
+                fprintf(stderr, "D245V call=%d s1=%d minS=%.1f maxS=%.1f minT=%.1f maxT=%.1f "
+                        "spanS=%.1f spanT=%.1f\n", callN++, s1,
+                        (double) minS, (double) maxS, (double) minT, (double) maxT,
+                        (double) (maxS - minS), (double) (maxT - minT));
+            }
 #endif
             if (s1 == 4)
             {
@@ -1626,7 +1671,6 @@ static bool s_skyFanFoldSet = FALSE;
  * Defect-2 tessellation; skyPortPickShift clamps rather than overflowing, so
  * the failure mode stays graceful.
  */
-#define SKY_TC_MAX_SHIFT 5
 
 /* One tile period expressed in unk20/unk24's units: 64 texels * 32 = 2048.
  * The fold must be a whole number of these or the rebase shifts the texture. */
@@ -1793,6 +1837,29 @@ static void skyPortEndFan(void)
     s_skyFanFoldSet = FALSE;
     s_skyFanShiftS = 0;
     s_skyFanShiftT = 0;
+}
+
+/* D245 (M-142): overrides the shift skyPortBeginFan() just picked. A GE_D245V
+ * capture (scripted camera turn, Frigate, headless) proved the water quad's
+ * raw S/T span sits in the ~290k-390k unit range -- roughly 10x sky's typical
+ * span -- and, critically, that skyPortPickShift's adaptive k genuinely
+ * CHANGES during ordinary view rotation (observed kT flipping 4->3 as spanT
+ * crossed skyPortPickShift's per-k breakpoint mid-turn). That contradicts the
+ * "normally k==0, this is a rare safety valve" assumption the mechanism was
+ * verified against (a single static frame, one camera angle) -- every k
+ * transition re-quantizes the shared vertex tc at a different granularity,
+ * which is a plausible mechanism for "glitches, goes back and forth... changes
+ * depending on your view" even with both texunits' relative offset preserved
+ * (D245's already-verified allowShift=TRUE reasoning). Untested candidate,
+ * NOT the default: forcing a single fixed k for the whole water draw removes
+ * the transition, at the cost of coarser (whole-k5-step) tc quantization
+ * always, which could itself look worse -- needs a live A/B, not another
+ * blind ship (see the finding's own "don't repeat the same mistake" note).
+ * GE_D245_FIXEDSHIFT=<k> (0..SKY_TC_MAX_SHIFT) opts in; unset changes nothing. */
+static void skyPortForceFanShift(s32 kS, s32 kT)
+{
+    s_skyFanShiftS = kS;
+    s_skyFanShiftT = kT;
 }
 
 /*

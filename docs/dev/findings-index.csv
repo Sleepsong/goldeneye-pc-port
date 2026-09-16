@@ -36,7 +36,7 @@ D225,OPEN,"Dev-tooling QoL (M-87, user ask):","OPEN — root-caused, not impleme
 D226,OPEN,"QoL ask: player-adjustable HUD scale for the ammo counter, bottom-left pickup/item status text, and top-of-screen dialogue/subtitle text.","OPEN — root cause / call sites identified, not designed or implemented."
 D227,FIXED,Sky renders as two independently-moving halves —,"FIXED (M-100b, PR #43) —"
 D229,FIXED,"IsWater-level water renders green, pulses blue<->green (M-101; Frigate -level_26).","FIXED (port-layer) — ZLIB+CI8 water image now imports via the CI8 palette path (gfx_pc.cpp); Frigate verified live (""looks better""); sweep + Surface 2 by-eye still owed."
-D230,OPEN,In-level music quality:,"OPEN — static-analysis pass done (M-108), not runtime-confirmed."
+D230,FIXED,In-level music quality:,"FIXED (M-121, v0.2.0) —"
 D233,FIXED,All levels (intermittent):,"FIXED (port/fast3d/gfx_pc.cpp, gfx_sp_tri1) —…"
 D234,FIXED,"Dam: guard towers along the dam structure invisible except the first one (M-106, user QA report).",VISUALLY VERIFIED FIXED (M-108) —…
 D244,OPEN,Self-hosted CI runner (corpyvt6agent01) link failure:,"OPEN, not yet fixed. Next…"

@@ -2,7 +2,9 @@
 
 > **Reference only.** Current state lives in the [README](../../README.md)
 > "Status" section and `docs/dev/LEVEL-STATUS.md`; per-finding detail is in
-> [`findings.md`](findings.md) §F/§H (indexed at the top of §F). This file
+> [`findings.md`](findings.md) §F/§H — look up via
+> [`findings-index.csv`](findings-index.csv), then read the specific `## Dxx`
+> entry. This file
 > is the frozen accumulation of
 > prior sessions' handoff briefs (through session M-11), kept so the
 > reasoning behind a fix is recoverable. Everything below is as-written

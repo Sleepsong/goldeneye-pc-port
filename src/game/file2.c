@@ -392,6 +392,23 @@ bool fileGetIsCheatUnlocked(save_data *save, s32 cheat)
 {
     s32 bits;
 
+#ifdef PORT
+    /* D301 (github #87): callers (front.c mode-select cheat rows, file.c
+     * briefing cheat check) pass fileGetSaveForFoldernum(selected_folder_num)
+     * straight through with no NULL check. On real N64 that lookup can
+     * never miss for the currently-selected folder; on PC it can, whenever
+     * the folder's save slot fails fileValidateSaves()'s CRC check or was
+     * never populated for the active folder (D299's SkipIntro case was one
+     * such route; this guards every route, not just that one). Returning
+     * "not unlocked" here is the same safe default the CRC-fail path
+     * already produces for other cheat state. No N64 behavior change --
+     * this branch is unreachable on real hardware. */
+    if (save == NULL)
+    {
+        return FALSE;
+    }
+#endif
+
     if (cheat >= 0 && cheat < CHEAT_INPUT_BUFFER_SIZE)
     {
         bits = save->unlocked_cheats_1 | save->unlocked_cheats_3 << 0x18 | save->unlocked_cheats_3 << 0x10 | save->unlocked_cheats_2 << 8;

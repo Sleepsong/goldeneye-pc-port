@@ -586,6 +586,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D298 | **Full HUD (not just the aim-mode crosshair) missing in a v0.3.0 dev build — user suspects a debug-launch artifact and asked NOT to raise it until seen in a regular release-targeted build; parked** — full `## D298` entry at file tail |s — regression reported 2026-09-16 during v0.3.0 work (build ce8427cf); user says "don't fix, just for context"; not yet investigated** — full `## D298` entry at file tail |
 | D299 | **Game.SkipIntro crashed selecting any save slot except one — reproduced on a fresh save and on a clean Release rebuild, ruling out stale save data (found + fixed 2026-09-17).** — full `## D299` entry at file tail | FIXED — `fileValidateSaves()` (only called from the skipped legal screen) never ran under `SkipIntro`, leaving `saves[]` all-zero; added the missing call to the `SkipIntro` shortcut (`src/game/lv.c`, `#ifdef PORT`, zero game-logic change). Build-verified both `RelWithDebInfo`/`Release`; live user re-test confirms all 4 slots now selectable with `SkipIntro=1`. Not yet run through a full 21-level sweep. |
 | D300 | **Hipfire look feels non-uniform (issue #89): mouse px routed through the N64 analog stick's quadratic natural-turn curve, so slow motion is "almost unrecognised" and fast motion saturates at full turn speed by ~13 px/poll.** — full `## D300` entry at file tail | FIXED (pending build-verify) — WI-1 per `docs/dev/GEPD-INPUT-PLAN.md`: new `hipDirectCompute()` (`port/src/input.c`) writes `vv_theta`/`vv_verta` directly, mirroring GEPD's hipfire formula and D194's existing aim-mode direct-write pattern — linear px→degree, FOV-scaled, dt-normalized, bypassing the stick curve entirely. Safety-gated on `bonddead`/`outside_watch_menu`/`pause_state` (GEPD's `!dead && !watch && !pause`, ported from decomp fields since hipfire, unlike aim mode, has no RMB-held natural gate). `Input.MouseDirectLook` (default 1) is the escape hatch back to the legacy stick path. Compile-verified clean (`ninja`, no new warnings); link/smoke-test pending (exe was locked by a running instance at compile time). |
+| D301 | **`fileGetIsCheatUnlocked()` NULL-deref, unguarded on every call site, not just the D299/SkipIntro one (GitHub #87, two reports with an identical crash PC/fault address).** — full `## D301` entry at file tail | FIXED locally on `release/v0.3.0` (not pushed) — NULL-guarded `fileGetIsCheatUnlocked()` itself (`src/game/file2.c`, `#ifdef PORT`) rather than only its one known trigger route; build-verified, crash-free smoke test. Live confirmation against the actual #87 repro still owed — a synthetic `GE_STARTMENU=6` repro attempt did not reproduce the crash even pre-fix, so the exact #87 trigger condition (why the save lookup fails) remains unconfirmed. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -11522,3 +11523,34 @@ This is a **perfect, smooth white-hot → yellow → orange → deep-red → fad
 **Verified:** compiles clean (`ninja`, `port/src/input.c` — no new warnings); full link succeeds; a 1200+-frame bare `-level_33` smoke boot (`GE_D243M=1`, unrelated to this change but running concurrently) completed with zero exceptions/crash signatures, confirming the build is otherwise healthy with this change in it. **Manual playtest still owed** — mouse feel (hipfire slow/fast linearity, aim mode unaffected, scope zoom, menu, death/cutscene safety-gate behavior) needs a human with real mouse input; a headless boot can't exercise it. `GE_INPUTLOG` already logs `hipdirect d=... cam=...` lines for the linearity check the plan's Verification section calls for — run with `GE_INPUTLOG=1` during that playtest.
 
 **Status:** **FIXED (pending manual playtest)** — code complete, compiles clean, links, and a concurrent smoke run showed no regression; mouse-feel verification needs a human session.
+
+## D301 — `fileGetIsCheatUnlocked()` NULL-deref, unguarded on every call site, not just the D299/SkipIntro one (GitHub #87)
+
+**Symptom (GitHub #87, two independent reports):** (1) fresh save → unlock a cheat (paintball, Dam) → backing out to the profile/file-select screen, or relaunching, crashes (`0xc0000005`, `FAULT ADDR: 0000000000000000`); deleting the save "fixes" it until the next cheat unlock. (2) normal campaign progress through Jungle → Control on 00 Agent (with worsening audio-sync/skipping reported starting around Jungle/Streets, likely unrelated — not folded into this finding), exit level, exit game, relaunch → crash after the intro, before the main menu. **Both crash logs have the identical PC (`00000001400797c1`) and identical `FAULT ADDR: 0000000000000000`**, strong evidence of one shared crash site rather than two coincidental bugs.
+
+**Root cause:** `fileGetIsCheatUnlocked(save_data *save, s32 cheat)` (`src/game/file2.c:391-402`) dereferences `save` with no NULL check:
+
+```c
+bits = save->unlocked_cheats_1 | save->unlocked_cheats_3 << 0x18 | ...
+```
+
+It's called with `fileGetSaveForFoldernum(selected_folder_num)` passed straight through, unguarded, from several sites: `front.c:1067-1124` (the mode-select screen's per-level cheat-availability checks — the code path that runs every time the mode-select/cheat menu renders) and `file.c:59` (briefing cheat check). `fileGetSaveForFoldernum()` returns NULL whenever no slot in `saves[]` currently matches the requested folder — which real N64 hardware invariants prevent for the *active* folder, but which the PC port can hit whenever that folder's slot fails `fileValidateSaves()`'s CRC check, or was never populated for the active folder in the first place.
+
+**Relationship to D299:** D299 fixed *one* route into this same unguarded function — `Game.SkipIntro` skipping `fileValidateSaves()` entirely, leaving `saves[]` all-zero. That fix (`src/game/lv.c`, `#ifdef PORT`) only calls `fileValidateSaves()` on the SkipIntro boot path; it does **not** guard `fileGetIsCheatUnlocked()` itself. Neither #87 report mentions SkipIntro, so they're reaching the same crash through a different, not-yet-fully-root-caused route (most likely a real save slot failing CRC validation after a cheat-unlock write, or a folder/slot mismatch on a fresh profile) — the *mechanism* (unguarded NULL deref) is now understood and closed regardless of *why* the lookup fails.
+
+**Fix (`src/game/file2.c`, `#ifdef PORT`, unreachable on real N64 hardware so no decomp/byte-match impact):**
+
+```c
+#ifdef PORT
+    if (save == NULL)
+    {
+        return FALSE;
+    }
+#endif
+```
+
+Returns "cheat not unlocked" — the same safe default other cheat-state paths already produce — instead of crashing. Closes the NULL-deref class at its single choke point rather than patching each call site.
+
+**Verified this session:** build green (`ninja`, clean incremental link); a `-level_09` smoke boot ran 1000+ frames crash-free with the fix in place; **confirmed the guard doesn't mask a working code path** by temporarily reverting it, rebuilding, and re-running the same smoke test (still crash-free either way — see caveat below). **Not yet reproduced live:** attempted to force the NULL-`save` condition headlessly via `GE_STARTMENU=6` (jumps straight to `MENU_MODE_SELECT`, skipping `fileValidateSaves()` the same way SkipIntro does) — this did **not** crash even on the pre-fix build, meaning `saves[]`'s all-zero decode coincidentally satisfies `fileGetSaveForFoldernum(0)` for that particular repro (the same "works for one folder" coincidence D299's own write-up describes), so this specific synthetic repro doesn't exercise the actual NULL path either reporter hit. **This fix has not been confirmed against the exact reported repro** — it closes a real, confirmed-unguarded crash vector of the identical shape (NULL-deref in this exact function, matching both crash logs' fault signature), but the precise trigger for *why* the lookup fails in the #87 reports remains unconfirmed. A live re-test from either reporter (or a `GE_SAVELOG=1` capture at crash time) would confirm whether this was the whole story or one of two contributing bugs.
+
+**Status:** FIXED locally on `release/v0.3.0` (not yet pushed) — build-verified, crash-free smoke test; live confirmation against the actual #87 repro still owed.

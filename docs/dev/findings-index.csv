@@ -178,3 +178,4 @@ D297,FIXED,v0.3.0 silently wipes ALL pre-fix player saves on first launch (D284 
 D298,?,Full HUD (not just the aim-mode crosshair) missing in a v0.3.0 dev build —,"s — regression reported 2026-09-16 during v0.3.0 work (build ce8427cf); user says ""don't fix, just for context""; not yet investigated —"
 D299,FIXED,Game.SkipIntro crashed selecting any save slot except one —,"FIXED — fileValidateSaves() (only called from the skipped legal screen) never ran under SkipIntro, leaving saves[] all-zero; added the missing call to the SkipIntro shortcut (src/game/lv.c, #ifdef PO…"
 D300,FIXED,Hipfire look feels non-uniform (issue #89):,FIXED (pending build-verify) —
+D301,FIXED,"fileGetIsCheatUnlocked() NULL-deref, unguarded on every call site, not just the D299/SkipIntro one (GitHub #87, two reports with an identical crash PC/fault ad…",FIXED locally on release/v0.3.0 (not pushed) —

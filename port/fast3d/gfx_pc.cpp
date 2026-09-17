@@ -1120,6 +1120,33 @@ static void import_texture(int i, int tile, bool importReplacement) {
         }
     }
 
+#ifdef PORT
+    /* D157-I (M-158): import census for the D219/D252 rainbow-spark repro.
+     * Logs every small-texture (<= 16 KiB) import inside the known-bad frame
+     * window of the Bunker1 -level_09 repro, deduped per source address (first
+     * 3 hits each). Paired with the D157T vertex probe: the census names the
+     * exact source addresses bound during the spark frames (the smoke/flare/
+     * scattered family should appear in lockstep with the scripted shots),
+     * which the vertex lines can then be grepped by. Remove once root-caused.
+     * D250: cached getenv, inert unless GE_D157 is set. */
+    static int ge_d157i = -1;
+    if (ge_d157i < 0) ge_d157i = getenv("GE_D157") != NULL;
+    if (ge_d157i) {
+        extern uint32_t num_dls;
+        if (num_dls >= 90 && num_dls <= 240 && loaded_texture.size_bytes <= 16384) {
+            static std::map<const void*, int> d157i_seen;
+            int& n = d157i_seen[(const void*)orig_addr];
+            if (++n <= 3) {
+                sysLogPrintf(LOG_NOTE,
+                    "D157I: frame=%u hit#%d addr=%p fmt=%u siz=%u size=%u line=%u tile=%u tmem=%u",
+                    num_dls, n, (const void*)orig_addr, fmt, siz,
+                    loaded_texture.size_bytes, loaded_texture.line_size_bytes,
+                    tile, rdp.texture_tile[tile].tmem);
+            }
+        }
+    }
+#endif
+
     static int ge_texdump = -1;
     if (ge_texdump < 0) ge_texdump = getenv("GE_TEXDUMP") != NULL;
     if (ge_texdump) {
@@ -1526,6 +1553,48 @@ static void gfx_sp_vertex(size_t n_vertices, size_t dest_index, const Vtx* verti
                         (rsp.geometry_mode & G_LIGHTING) ? "ON" : "off",
                         (int)d->color.r, (int)d->color.g, (int)d->color.b);
                     break;
+                }
+            }
+
+            /* D157-B (M-158): the exact-color-match key above NEVER caught the
+             * pale-yellow (255,255,200) door-spark vertices in the Bunker1
+             * rainbow repro (only 2 white hits, both LIGHTING=off), so per
+             * D219 M-157's revised next step this sibling block keys on
+             * TEXTURE IDENTITY instead: any vertex whose render tile (tile 0)
+             * holds a small loaded texture (size <= 16 KiB -- the spark
+             * family is IA 64x64, promoted 8b->16b by texSelect) inside the
+             * known-bad frame window of that repro (shots at frames 60-350,
+             * visible rainbow frames 108-220). Logs the full RGBA path per
+             * vertex: authored cn, shaded result, LIGHTING, geometry_mode,
+             * combine_mode (texSelect sets G_CC_MODULATEIA for these -- a
+             * different value here is a combiner-state leak), and the tile's
+             * source identity (addr/fmt/siz/size = the TextureCacheKey for
+             * non-CI textures, so cache-collision reasoning works offline).
+             * Frame window + size key are repro-specific; widen if re-running
+             * elsewhere. Remove once D219/D252 is root-caused. */
+            {
+                extern uint32_t num_dls;
+                if (num_dls >= 90 && num_dls <= 240) {
+                    const uint32_t tile0 = rdp.first_tile_index;
+                    LoadedTexture& lt0 = rdp.loaded_texture[rdp.texture_tile[tile0].tmem];
+                    if (lt0.addr && lt0.size_bytes <= 16384) {
+                        static int d157b_n = 0;
+                        d157b_n++;
+                        if (d157b_n <= 400 || (d157b_n % 200) == 0) {
+                            sysLogPrintf(LOG_NOTE,
+                                "D157T: frame=%u cn=(%d,%d,%d,%d) shaded=(%d,%d,%d) LIGHTING=%s geom=%08x combine=%llx | "
+                                "tile0=%u tmem=%u fmt=%u siz=%u addr=%p size=%u line=%u | uv=(%d,%d)",
+                                num_dls,
+                                v->v.cn[0], v->v.cn[1], v->v.cn[2], v->v.cn[3],
+                                (int)d->color.r, (int)d->color.g, (int)d->color.b,
+                                (rsp.geometry_mode & G_LIGHTING) ? "ON" : "off", rsp.geometry_mode,
+                                (unsigned long long)rdp.combine_mode,
+                                tile0, rdp.texture_tile[tile0].tmem,
+                                rdp.texture_tile[tile0].fmt, rdp.texture_tile[tile0].siz,
+                                (const void*)lt0.addr, lt0.size_bytes, lt0.line_size_bytes,
+                                (int)U, (int)V);
+                        }
+                    }
                 }
             }
         }

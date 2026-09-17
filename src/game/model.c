@@ -2855,6 +2855,24 @@ void modelSetAnimationWithMerge(Model *model, ModelAnimation *modelAnimation, s3
 
 
 void modelSetAnimation(Model *model, ModelAnimation *modelAnimation, s32 flip, f32 startframe, f32 speed, f32 merge) {
+#ifdef PORT
+    /* D173 M-175: identify the actual caller that sets the intro puppet's
+     * first animation (M-174's firing_animation_groups probe got zero hits,
+     * ruling that path out -- rather than keep guessing which function it
+     * is, catch it at the one place all callers funnel through and resolve
+     * the caller with addr2line against the built exe afterward. Filters
+     * on g_CurrentPlayer->bodyModel specifically so normal chr/guard
+     * animation-sets (which fire constantly) don't spam the log. */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    extern struct player *g_CurrentPlayer;
+    if (d243mProbeActive() && g_CurrentPlayer && (model == g_CurrentPlayer->bodyModel))
+    {
+        osSyncPrintf("D243M: setanim_caller frame=%d model=%p startframe=%.1f speed=%.2f merge=%.1f retaddr=%p\n",
+                     d243mGetFrameCounter(), (void *) model, (double) startframe,
+                     (double) speed, (double) merge, __builtin_return_address(0));
+    }
+#endif
     modelCopyAnimForMerge(model, merge);
     modelSetAnimation2(model, modelAnimation, flip, startframe, speed, merge);
 }

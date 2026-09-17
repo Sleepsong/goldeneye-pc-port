@@ -10840,6 +10840,22 @@ lean_return_to_centre:
             angle *= fa->x;
             local90 = fa->z;
             frame = fa->y;
+
+#ifdef PORT
+            /* D173 M-174: name the exact firing_animation_groups[group][sub]
+             * entry the puppet's per-tick animation selector lands on, so
+             * the ~328-unit float (M-172/M-173) can be traced to a specific
+             * table row instead of guessed from a static read (the group/sub
+             * selection logic above is too branchy to trust a static guess
+             * -- already tried and got it wrong once this session). Fires
+             * whenever this table lookup runs, gated on the existing
+             * d243mEnabled(); zero cost when GE_D243M is unset. */
+            if (d243mEnabled()) {
+                osSyncPrintf("D243M: firinganim frame=%d idx=%d group=%d sub=%d fa_y=%.1f fa_z=%.1f fa_x=%.2f\n",
+                             g_d243mFrameCounter, index, (int) group, (int) sub,
+                             (double) fa->y, (double) fa->z, (double) fa->x);
+            }
+#endif
         }
  
         cur = ppointers[index]->players_cur_animation;

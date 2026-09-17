@@ -1121,6 +1121,33 @@ non-flag ones (data loads, one-time validation, subsystem init) explicitly.
 Grepping the skipped `init_*`/`update_*` functions for calls with no
 matching state flag is the concrete check.
 
+## D11. A chr's own per-tick animation-position logic can silently overwrite an AI script's scripted position in the same frame (D243)
+
+`chrTick` (`src/game/chr.c:2442`) always runs one of three `chr->actiontype`-
+gated branches (`ACT_ANIM`/`ACT_STAND`/else, `chr.c:2578-2616`) that call
+`chrUpdateAnim`/`modelTickAnim` — ordinary per-chr animation/locomotion
+logic with no check for whether the chr is currently being driven by a
+scripted cutscene camera/AI-script position write instead. If something
+else (an AI script's `GOTO`/teleport, a cinema-pad move, D243's
+`CHR_BOND_CINEMA` teleport) writes `prop->pos` earlier in the same frame,
+`chrTick`'s own animation-position write can silently overwrite it before
+the model transform is computed — two writers racing for the same field
+within one tick, no error, no crash, just whichever runs last wins. This
+produced D243's "frozen render position that doesn't track the smooth
+scripted sweep" symptom: a first pass (M-159) wrongly attributed it to
+the on-screen/frustum-visibility gate (`posIsOnScreen`) skipping the
+render-transform refresh on off-camera ticks — REFUTED by a live capture
+that logged BOTH the pre-`chrTick` position (from the AI script, smoothly
+sweeping) and the post-`chrTick` position (frozen) for the same frame
+numbers, with the visibility gate returning true throughout. **The
+generalizable check:** when a rendered position looks "frozen" or
+lagging behind a scripted/AI-driven `prop->pos`, don't assume a
+visibility/culling gate is skipping an update — log the same field both
+immediately before and immediately after the suspect tick function to
+see whether something *inside* that function is overwriting it. A
+visibility gate stopping updates and a competing writer stomping them
+produce the same visual symptom but need opposite fixes.
+
 ## E. Process / method notes
 
 - Investigation loop is: reproduce → env-gated capped probe → root-cause

@@ -26,6 +26,7 @@
 | `port/src/` | Shims: `libultra.c` (OS API), `gesched.c` (scheduler), `n64stubs.c` (boot/TLB/FPU/rmon), `random.c` (PRNG ported verbatim from `random.s`), `ucode.c` (microcode segment markers), `main.c`, `video.c`, … |
 | `port/fast3d/` | Software RSP (adapted from the PD port). The main Phase 2 work. |
 | `rsp/graphics/gmain.s` | GE's RSP ucode — ground truth for GBI/CC/RM. |
+| `reference/mouse-injector/` | Vendored GEPD-Edition Mouse Injector source (GPLv2, read-only reference — never compile or modify). Ground truth for the mouse-aim model: `games/goldeneye.c` is the whole GE aim/hipfire/menu model (our D194 mirror); see its README + `docs/dev/GEPD-INPUT-PLAN.md`. |
 | A local **Perfect Dark PC port** checkout ([fgsfdsfgs/perfect_dark](https://github.com/fgsfdsfgs/perfect_dark)) | **Standing reference** — consult it whenever a work item has a PD analogue (same Rare engine family): port-layer ground truth (`port/fast3d/`, crash/system/video), plus copy candidates `port/src/preprocess/` (N64→PC asset conversion; `filemodel.c` is the D43 near-analogue) and `mixer.c`/`input.c`/`fs.c`. Port-layer files only; same family ≠ identical format — validate per field. Full audit: `docs/internals.md` §2.4. |
 
 ## Build

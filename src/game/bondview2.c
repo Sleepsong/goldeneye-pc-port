@@ -10474,7 +10474,7 @@ s32 playerTick(PropRecord *prop)
             g_playerPointers[index]->field_AC = 0;
             ret = chrTick(prop);
             g_playerPointers[index]->field_AC = 1;
- 
+
             g_playerPointers[index]->field_488.collision_position.x = g_playerPointers[index]->prop->pos.x;
             g_playerPointers[index]->field_488.collision_position.y = g_playerPointers[index]->prop->pos.y;
             g_playerPointers[index]->field_488.collision_position.z = g_playerPointers[index]->prop->pos.z;

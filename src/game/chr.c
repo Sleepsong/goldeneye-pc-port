@@ -2617,6 +2617,26 @@ s32 chrTick(PropRecord *prop)
     }
 
 after_position_update:
+#ifdef PORT
+    /* D243 M-159/M-160: does render_pos only refresh on ticks that pass the
+     * on-screen visibility gate? Log the gate's result + the live prop
+     * position every chrTick call while a scripted cutscene camera is
+     * active (reuses bondview2.c's GE_D243M accessors -- gate already folds
+     * in POSEND/INTRO/SWIRL/FADESWIRL, so this is silent during FPS play).
+     * If the freeze/teleport boundaries line up with headSwitchVisible
+     * flipping 0->1, this confirms the mechanism named in findings.md D243
+     * M-159. Diagnosis only; zero behaviour change when GE_D243M is unset. */
+    {
+        extern int d243mProbeActive(void);
+        extern int d243mGetFrameCounter(void);
+        if (d243mProbeActive())
+        {
+            osSyncPrintf("D243M: onscreen frame=%d chr=%p vis=%d pos=%.1f,%.1f,%.1f\n",
+                         d243mGetFrameCounter(), (void *) chr, (int) headSwitchVisible,
+                         (double) prop->pos.f[0], (double) prop->pos.f[1], (double) prop->pos.f[2]);
+        }
+    }
+#endif
     if (((chr->actiontype != ACT_STAND) || (model->anim2 != NULL)) || (prop->type == PROP_TYPE_VIEWER))
     {
         chr->hidden |= CHRHIDDEN_BACKGROUND_AI;

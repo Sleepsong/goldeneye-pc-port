@@ -329,6 +329,11 @@ static int aimAbsolute      = 1;    /* D194: 1 = GEPD-style aim while RMB is hel
                                       * crosshair locked at centre, mouse MOVEMENT
                                       * rotates the view 1:1 in screen angle; 0 =
                                       * legacy velocity stick from mouse delta. */
+static int mouseDirectLook  = 1;    /* WI-1 (GEPD-INPUT-PLAN.md #89): 1 = hipfire
+                                      * writes vv_theta/vv_verta directly (see
+                                      * hipDirectCompute), same linear-in-px model
+                                      * as aim mode; 0 = legacy stick-curve path
+                                      * (MOUSE_TURN_GAIN), kept as an escape hatch. */
 
 /* D194 GEPD-aim state. Touched ONLY in inputComputePad (game thread), the
  * same confinement as every other static here. The per-poll grabbed delta
@@ -343,6 +348,7 @@ static int aimAbsolute      = 1;    /* D194: 1 = GEPD-style aim while RMB is hel
 static double s_gepdCrossX = 0.0, s_gepdCrossY = 0.0;
 static int    s_gepdHeldPrev = 0;   /* aim held last tick -> adopt on entry */
 static int aimGepdCompute(double dxPx, double dyLook);
+static int hipDirectCompute(double dxPx, double dyLook);
 /* D194: bondview2's "look-ahead" pitch centreing (docentreupdown) arms during
  * hip-fire walking whenever the pitch strays from the horizon target, and --
  * once armed -- keeps pulling vv_verta back to it even in aim mode, EXCEPT
@@ -1044,6 +1050,19 @@ unsigned inputComputePad(int idx, signed char *stick_x, signed char *stick_y)
             } else {
                 double hipEdx = edx * lookDtScale, hipDyLook = dyLook * lookDtScale;
                 double hipSens = (mouseTurnSpeed / 100.0) * (mouseSensitivity / 100.0);
+                /* WI-1: direct camera write, same linear px->degree model as
+                 * aim mode (GEPD's hipfire branch) -- bypasses the N64 stick's
+                 * quadratic natural-turn curve entirely (D238/#89: that curve
+                 * saturated at ~13 px/poll, making slow motion "almost
+                 * unrecognised" and fast motion bang-bang). Falls through to
+                 * the legacy stick path below when it declines (disabled, no
+                 * player, or a safety gate is closed). */
+                if (mouseDirectLook && hipDirectCompute(hipEdx, hipDyLook)) {
+                    /* Pitch handled inside hipDirectCompute too; nothing left
+                     * to do for yaw/pitch this poll. Digital pitch-pulse
+                     * (naturalPitchMode==0) still applies below only in the
+                     * legacy path, so skip both branches here. */
+                } else {
                 sx += (int)(hipEdx * hipSens * MOUSE_TURN_GAIN);
                 if (naturalPitchMode) {
                     /* D194/D238: SOLITARE gives hipfire pitch the same
@@ -1071,6 +1090,7 @@ unsigned inputComputePad(int idx, signed char *stick_x, signed char *stick_y)
                         hipPitchPhase = 0.0;
                     }
                 }
+                } /* end mouseDirectLook fallback (WI-1) */
             }
         }
 
@@ -1481,11 +1501,70 @@ static int aimGepdCompute(double dxPx, double dyLook)
     return 1;
 }
 
+/* WI-1 (GEPD-INPUT-PLAN.md #89): hipfire direct camera write.
+ *
+ * Mirrors GEPD's hipfire branch (games/goldeneye.c): `camx += XPOS/10 *
+ * (SENS/40) * (fov/basefov)` degrees this poll -- linear in px, FOV-scaled,
+ * no stick curve in between. We fold GEPD's SENS/40 into our own
+ * MouseTurnSpeed*MouseSensitivity product (both already 100% at defaults,
+ * same "in line" convention D238 established for aimGepdCompute's GepdSens):
+ * at defaults this reduces to exactly GEPD's px/10 baseline.
+ *
+ * dxPx/dyLook are this poll's dt-scaled px (same convention as
+ * aimGepdCompute -- callers pre-multiply by lookDtScale).
+ *
+ * GEPD's safety gates (`camera==4||0 && menupage==11 && !dead && !watch &&
+ * !pause`) matter here in a way they didn't for aim mode: aim mode requires
+ * RMB held, so it naturally can't fire during a death/cutscene/pause state a
+ * player would be holding RMB through; hipfire looks are always live, so a
+ * frozen or scripted-camera state (POSEND/INTRO cutscenes, death cam, pause)
+ * must be checked explicitly or this would fight the game's own camera
+ * control during those states. `current_menu` already gates menupage==11
+ * (checked by the caller's menuMode branch, same as aim mode); the rest are
+ * read here directly -- read-only, no logic change.
+ *
+ * Returns 1 if it handled this poll (caller must not also run the legacy
+ * stick path); 0 to fall back (disabled, no player, or a safety gate is
+ * closed -- e.g. mid-death or mid-cutscene, matching GEPD's !dead/!watch).
+ */
+static int hipDirectCompute(double dxPx, double dyLook)
+{
+    struct player *p = g_CurrentPlayer;
+
+    if (!mouseDirectLook || !mouseGrabbed || p == NULL)
+        return 0;
+
+    /* GEPD: !dead && !watch && !pause. bonddead/outside_watch_menu/
+     * pause_state are the decomp-canonical equivalents (bondview.h). */
+    if (p->bonddead || !p->outside_watch_menu || p->pause_state != 0)
+        return 0;
+
+    f32 fov = viGetFovY();
+    f32 scale = (fov > 0.0f) ? fov / GEPD_BASE_FOV : 1.0f;
+    double sens = (mouseTurnSpeed / 100.0) * (mouseSensitivity / 100.0);
+
+    /* dyLook already carries MouseInvertY + MouseYScale (applied by the
+     * caller before dt-scaling, same as every other consumer of dyLook) --
+     * do not re-apply either here. */
+    p->vv_theta += (f32) (dxPx * 0.1 * sens * scale);
+    p->vv_verta -= (f32) (dyLook * 0.1 * sens * scale);
+    if (p->vv_verta >  90.0f) p->vv_verta =  90.0f;
+    if (p->vv_verta < -90.0f) p->vv_verta = -90.0f;
+
+    if (configGetInputLog()) {
+        sysLogPrintf(LOG_NOTE,
+            "GE_INPUTLOG hipdirect d=(%.1f,%.1f) cam=(%.1f,%.1f)",
+            dxPx, dyLook, (double)p->vv_theta, (double)p->vv_verta);
+    }
+    return 1;
+}
+
 PD_CONSTRUCTOR static void inputConfigInit(void)
 {
     configRegisterInt("Input.MouseEnabled", &mouseEnabled, 0, 1);
     configRegisterInt("Input.MouseAimSpeed", &mouseAimSpeed, 1, 500);
     configRegisterInt("Input.AimAbsolute", &aimAbsolute, 0, 1);  /* D194 */
+    configRegisterInt("Input.MouseDirectLook", &mouseDirectLook, 0, 1);  /* WI-1 */
     /* D194: renamed Input.GepdSens -> Input.AimModeSens (community name for
      * the RMB aim mode; "GEPD" is internal provenance jargon). The old key
      * stays registered against the same variable as a deprecated alias --

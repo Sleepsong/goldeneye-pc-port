@@ -10492,9 +10492,45 @@ s32 playerTick(PropRecord *prop)
 #endif
                 RenderPosView *rp = g_playerPointers[index]->bodyModel->render_pos;
                 matrix_4x4_multiply_homogeneous(currentPlayerGetViewToWorldMtxf(), (Mtxf *) rp, (Mtxf *) mtx);
+#ifdef PORT
+                /* D243 M-167: M-162/M-163 smoothed prop->pos (chr.c) but the
+                 * visible shake was UNCHANGED -- because field_488.pos, which
+                 * THIS site writes and which is what the camera's look-at
+                 * filter (M-143's field_3B8/field_3C4-8-C) actually chases,
+                 * comes from render_pos here -- a completely separate data
+                 * path from prop->pos, driven by the model's own animated
+                 * skeleton (subcalcmatrices/instcalcmatrices, computed inside
+                 * chrTick's chrUpdateAnim -> modelTickAnim/subcalcpos calls,
+                 * upstream of and independent from prop->pos). M-163's live
+                 * capture confirmed this directly: field_488.pos kept cycling
+                 * every tick (228.8/229.3/79.3/-1214.7 repeating) while
+                 * prop->pos in the same capture was smooth. This experiment
+                 * targets the actual variable the filter reads: skip this
+                 * write entirely while active, freezing field_488.pos at
+                 * whatever it was the moment suppression engaged. Gated on
+                 * GE_D243X3 (separate from GE_D243X2 so results aren't
+                 * conflated) + the same POSEND-active gate. THIS IS A TEST,
+                 * NOT A FIX -- revert once it reports (see docs/dev/findings.md
+                 * D243 M-167). */
+                static int s_d243x3 = -1;
+                if (s_d243x3 < 0) { s_d243x3 = getenv("GE_D243X3") != NULL; }
+                if (!(s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND)))
+                {
+#endif
                 g_playerPointers[index]->field_488.pos.x = mtx[12] + (mtx[4] * 7.0f);
                 g_playerPointers[index]->field_488.pos.y = mtx[13] + (mtx[5] * 7.0f);
                 g_playerPointers[index]->field_488.pos.z = mtx[14] + (mtx[6] * 7.0f);
+#ifdef PORT
+                }
+                if (d243mEnabled()) {
+                    osSyncPrintf("D243M: f488write frame=%d idx=%d x3active=%d f488pos=%.1f,%.1f,%.1f\n",
+                                 g_d243mFrameCounter, index,
+                                 (int) (s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND)),
+                                 (double) g_playerPointers[index]->field_488.pos.x,
+                                 (double) g_playerPointers[index]->field_488.pos.y,
+                                 (double) g_playerPointers[index]->field_488.pos.z);
+                }
+#endif
             }
  
             return ret;

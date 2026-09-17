@@ -2776,6 +2776,77 @@ after_position_update:
 
         subcalcmatrices(&renderdata, model);
 
+#ifdef PORT
+        /* D243 M-168 (rewritten after two live crashes -- see findings.md
+         * D243 M-168 for the full postmortem): same technique as M-167
+         * (field_488.pos freeze), aimed at the actual draw-path consumer of
+         * the cycling skeleton state -- render_pos itself. M-167 only froze
+         * the camera's copy (field_488.pos) and fixed the shake, but the
+         * user still saw Bond's own rendered body glitch/duplicate --
+         * expected, since the draw call reads render_pos directly
+         * (objecthandler.c's drawjointlist, via gSPSegment), a path M-167
+         * never touched.
+         *
+         * The first two attempts tried to SKIP this subcalcmatrices() call
+         * entirely once a model "looked already validated" -- both crashed,
+         * because a model POINTER can be reused by the allocator for a
+         * genuinely new logical model instance (a new CREATE at the same
+         * freed address), and there is no way to tell "is this the same
+         * instance" from the pointer value or from render_pos's own content
+         * (M-154 already learned the render_pos sentinel-guessing lesson
+         * once; this is the same trap from a different angle). Skipping the
+         * call left a brand-new instance's render_pos at its fresh,
+         * uninitialized -1 tombstone, and sub_GAME_7F06C768() (model.c:459,
+         * called moments later at chr.c:2822 to compute zDepth) dereferenced
+         * it and crashed at fault address -1.
+         *
+         * This version NEVER skips the call -- subcalcmatrices() always
+         * runs above, unconditionally, so render_pos is always left valid.
+         * The freeze is purely a CONTENTS overwrite on top of that
+         * guaranteed-valid buffer: cache the buffer for a couple of ticks
+         * after the gate first engages (letting the pose settle from
+         * whatever it was mid-transition), then hold it steady by copying
+         * the cached contents back over each subsequent tick's freshly
+         * (and validly) computed buffer. Gated on GE_D243X4 +
+         * d243mProbeActive(); the active/inactive edge resets the warm-up
+         * counter so a later, different model under the same gate re-warms
+         * instead of inheriting a stale snapshot. Capped at 128 matrices
+         * (generous; GE character models are well under this). THIS IS A
+         * TEST, NOT A FIX -- revert once it reports. */
+        {
+            extern int d243mProbeActive(void);
+            static int s_d243x4 = -1;
+            static int s_d243x4WasActive = 0;
+            static int s_d243x4WarmTicks = 0;
+            static RenderPosView s_d243x4Snap[128];
+            static s16 s_d243x4Count = 0;
+            if (s_d243x4 < 0) { s_d243x4 = getenv("GE_D243X4") != NULL; }
+            {
+                int active = s_d243x4 && d243mProbeActive();
+                if (active && !s_d243x4WasActive) { s_d243x4WarmTicks = 0; }
+                s_d243x4WasActive = active;
+                if (active && (model->render_pos != NULL) && (model->obj != NULL))
+                {
+                    s16 n = model->obj->numMatrices;
+                    if (n > 0 && n <= 128)
+                    {
+                        s32 i;
+                        if (s_d243x4WarmTicks < 2)
+                        {
+                            for (i = 0; i < n; i++) { s_d243x4Snap[i] = model->render_pos[i]; }
+                            s_d243x4Count = n;
+                            s_d243x4WarmTicks++;
+                        }
+                        else if (n == s_d243x4Count)
+                        {
+                            for (i = 0; i < n; i++) { model->render_pos[i] = s_d243x4Snap[i]; }
+                        }
+                    }
+                }
+            }
+        }
+#endif
+
         g_ModelJointPositionedFunc = NULL;
         modelSetDistanceScale(1.0f);
 

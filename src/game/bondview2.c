@@ -378,6 +378,24 @@ int d243mProbeActive(void)
 }
 
 int d243mGetFrameCounter(void) { return g_d243mFrameCounter; }
+
+/* D243 M-169: the "real signal" named as next-step (b) in findings.md's
+ * D243 CONSOLIDATED NEXT STEPS -- a monotonic epoch counter bumped by
+ * chrai.c's AI_TRYTeleportingChrToPad case (the exact decomp call, chrai.c
+ * ~4064-4119, that legitimately re-anchors a chr's model root joint via
+ * setsuboffset() for a real cutscene shot-change) right after that call.
+ * chr.c's GE_D243X4 (render_pos freeze) and this file's GE_D243X3
+ * (field_488.pos freeze) both poll this to re-baseline their frozen
+ * snapshot exactly on a legitimate shot-change instead of either freezing
+ * forever (losing real repositioning) or guessing a position-delta
+ * threshold (next-step (a), not attempted). Global, not per-chr: sufficient
+ * for this cutscene's scope (one chr teleported at a time); revisit if a
+ * future cutscene needs per-chr tracking. Diagnosis/experiment plumbing
+ * only -- zero cost and zero behaviour change when GE_D243M is unset, since
+ * nothing reads the epoch unless the X3/X4 experiments are also enabled. */
+static u32 g_d243TeleportEpoch = 0;
+void d243NotifyTeleport(void) { g_d243TeleportEpoch++; }
+u32 d243GetTeleportEpoch(void) { return g_d243TeleportEpoch; }
 #endif
 
 void solo_char_load(void)
@@ -10513,8 +10531,25 @@ s32 playerTick(PropRecord *prop)
                  * NOT A FIX -- revert once it reports (see docs/dev/findings.md
                  * D243 M-167). */
                 static int s_d243x3 = -1;
+                static int s_d243x3WasActive = 0;
+                static u32 s_d243x3LastEpoch = 0;
+                extern u32 d243GetTeleportEpoch(void);
+                int wantFreeze;
+                u32 epoch;
+                int justRebaselined;
+                int skipWrite;
                 if (s_d243x3 < 0) { s_d243x3 = getenv("GE_D243X3") != NULL; }
-                if (!(s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND)))
+                wantFreeze = s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND);
+                epoch = d243GetTeleportEpoch();
+                /* M-169: same teleport-epoch re-baseline as chr.c's X4 --
+                 * let this write through on the tick a legitimate
+                 * shot-change teleport fires (and on first engaging POSEND),
+                 * then resume freezing until the next teleport. */
+                justRebaselined = (!s_d243x3WasActive) || (epoch != s_d243x3LastEpoch);
+                skipWrite = wantFreeze && !justRebaselined;
+                if (wantFreeze) { s_d243x3LastEpoch = epoch; }
+                s_d243x3WasActive = wantFreeze;
+                if (!skipWrite)
                 {
 #endif
                 g_playerPointers[index]->field_488.pos.x = mtx[12] + (mtx[4] * 7.0f);
@@ -10523,9 +10558,9 @@ s32 playerTick(PropRecord *prop)
 #ifdef PORT
                 }
                 if (d243mEnabled()) {
-                    osSyncPrintf("D243M: f488write frame=%d idx=%d x3active=%d f488pos=%.1f,%.1f,%.1f\n",
+                    osSyncPrintf("D243M: f488write frame=%d idx=%d x3active=%d x3skip=%d epoch=%u f488pos=%.1f,%.1f,%.1f\n",
                                  g_d243mFrameCounter, index,
-                                 (int) (s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND)),
+                                 (int) wantFreeze, (int) skipWrite, (unsigned) epoch,
                                  (double) g_playerPointers[index]->field_488.pos.x,
                                  (double) g_playerPointers[index]->field_488.pos.y,
                                  (double) g_playerPointers[index]->field_488.pos.z);

@@ -2815,15 +2815,24 @@ after_position_update:
          * TEST, NOT A FIX -- revert once it reports. */
         {
             extern int d243mProbeActive(void);
+            extern u32 d243GetTeleportEpoch(void);
             static int s_d243x4 = -1;
             static int s_d243x4WasActive = 0;
             static int s_d243x4WarmTicks = 0;
             static RenderPosView s_d243x4Snap[128];
             static s16 s_d243x4Count = 0;
+            static u32 s_d243x4LastEpoch = 0;
             if (s_d243x4 < 0) { s_d243x4 = getenv("GE_D243X4") != NULL; }
             {
                 int active = s_d243x4 && d243mProbeActive();
-                if (active && !s_d243x4WasActive) { s_d243x4WarmTicks = 0; }
+                u32 epoch = d243GetTeleportEpoch();
+                if (active && !s_d243x4WasActive) { s_d243x4WarmTicks = 0; s_d243x4LastEpoch = epoch; }
+                /* M-169: a legitimate shot-change teleport fired since the
+                 * last snapshot -- re-warm so the freeze re-baselines to the
+                 * post-teleport pose instead of holding the pre-teleport
+                 * one (which produced the "camera looks the wrong way for
+                 * later shots" incompleteness noted in the M-168 postmortem). */
+                if (active && (epoch != s_d243x4LastEpoch)) { s_d243x4WarmTicks = 0; s_d243x4LastEpoch = epoch; }
                 s_d243x4WasActive = active;
                 if (active && (model->render_pos != NULL) && (model->obj != NULL))
                 {

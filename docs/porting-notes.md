@@ -1392,6 +1392,22 @@ made mutually acceptable (dual validation / one-time migration).
   ge007.x86_64.exe` instead to reliably terminate it from this shell, and
   `ps aux | grep -i ge007` to confirm before moving on — don't trust a
   `kill`/`pkill` exit code alone.
+- **Headless visual verification of a rendering bug is possible without a
+  live human** (M-156/M-157, D252/D219 sessions) — combine `GE_INPUTSCRIPT`
+  (scripted controller input, e.g. `Z` pulses to fire a weapon) with
+  `GE_PCDUMP="lo-hi:step"` (writes `./ppm/frame_NNNNNN.ppm` — NOT a separate
+  configurable output dir, just `./ppm` relative to cwd; `GE_MKDIR` creates
+  it) in the *same* run, then actually open the resulting PPMs (Python
+  `PIL.Image.open(...).convert('RGB')` reads them fine, no format quirks)
+  instead of only grepping a probe's text log. A text-only probe proves a
+  code path fired; it does not prove what ended up on screen — several
+  long-OPEN findings (D290/D291/D294, and D252/D219's whole "rainbow
+  particle" family before this session) were stalled for lack of eyes on
+  the actual pixels, not for lack of a working probe. Build a low-res
+  contact-sheet montage first (tile many frames small, e.g. 160×120, to
+  scan for the moment of interest cheaply) before zooming into individual
+  full-res frames — full Dam/Bunker1 frames are 3072×1728, too large to
+  eyeball one at a time across a whole capture window.
 - **A crash fault address of `0xffffffffffffffff` on x86-64 usually means a
   non-canonical #GP from a garbage-high-bits pointer (bits 63:48 not a sign
   extension of bit 47), not a computed `-1` sentinel** (cross-validated

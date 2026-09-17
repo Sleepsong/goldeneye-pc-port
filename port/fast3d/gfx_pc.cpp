@@ -1501,6 +1501,36 @@ static void gfx_sp_vertex(size_t n_vertices, size_t dest_index, const Vtx* verti
             d->color.b = vcn->b;
         }
 
+#ifdef PORT
+        /* D157 diag (temporary, session 2026-09-16/17): does bullet_spark_render
+         * (glass2.c) actually draw with G_LIGHTING on? The M-110 mechanism
+         * (this vertex's v.cn[]/n.n[] union reinterpretation above) was
+         * already ruled out for explosion.c's particles (5000/5000 samples
+         * measured LIGHTING=off, see the D219 comment a few hundred lines
+         * below) -- don't assume it holds for glass2.c's bullet sparks
+         * without measuring. Key on the ORIGINAL authored bytes
+         * (v->v.cn[], readable regardless of which branch fired above,
+         * since n.n[]/cn[] are the same union storage) matching one of
+         * glass2.c's g_BulletSparkColors[] entries exactly. */
+        static int ge_d157 = -1;
+        if (ge_d157 < 0) ge_d157 = getenv("GE_D157") != NULL;
+        if (ge_d157) {
+            static const uint8_t known[][4] = {
+                {0xFF,0xFF,0xFF,0xFF}, {0xFF,0xFF,0xC8,0xFF}, {0xFF,0x00,0x00,0xFF},
+            };
+            for (const auto& k : known) {
+                if (v->v.cn[0] == k[0] && v->v.cn[1] == k[1] && v->v.cn[2] == k[2] && v->v.cn[3] == k[3]) {
+                    sysLogPrintf(LOG_NOTE,
+                        "D157: bulletspark-color-match cn=(%d,%d,%d,%d) geometry_mode=%08x LIGHTING=%s -> shaded=(%d,%d,%d)",
+                        v->v.cn[0], v->v.cn[1], v->v.cn[2], v->v.cn[3], rsp.geometry_mode,
+                        (rsp.geometry_mode & G_LIGHTING) ? "ON" : "off",
+                        (int)d->color.r, (int)d->color.g, (int)d->color.b);
+                    break;
+                }
+            }
+        }
+#endif
+
         d->u = U;
         d->v = V;
 

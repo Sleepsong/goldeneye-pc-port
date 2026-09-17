@@ -1101,6 +1101,26 @@ output is stored on disk — not just the in-memory streams. A "port-only" fix t
 a checksum primitive is a save-file-format break unless old and new outputs are
 made mutually acceptable (dual validation / one-time migration).
 
+## D10. A "skip to state X" port shortcut must replicate every side effect of the screens it skips, not just the terminal flags
+
+D216's `Game.SkipIntro` jumps straight from boot to `MENU_FILE_SELECT`,
+skipping the legal screen + Nintendo/Rare/GoldenEye logo attract loop, by
+directly setting the handful of state-machine flags (`is_first_time_on_main_menu`,
+`prev_keypresses`, `maybe_is_in_menu`, `menu_update`) that the normal intro
+path would have arrived at. Its original comment claimed this "reuses the
+game's own post-intro route" — true for the menu *flags*, but the skipped
+`init_menu00_legalscreen()` also has a one-time side effect with no flag of
+its own: it calls `fileValidateSaves()`, the only place `saves[]` is ever
+populated from EEPROM. Skipping it left `saves[]` all-zero, and file-select's
+unguarded `fileGetIsCheatUnlocked()` crashed selecting any folder except the
+one a zeroed `save_data` happened to decode to (D299). Generalizable rule:
+when adding a port shortcut that jumps over N64 screens/states, enumerate
+every side effect those screens' `init_menuXX_*()`/`update_menuXX_*()`
+functions perform — not just the menu-transition flags — and replicate the
+non-flag ones (data loads, one-time validation, subsystem init) explicitly.
+Grepping the skipped `init_*`/`update_*` functions for calls with no
+matching state flag is the concrete check.
+
 ## E. Process / method notes
 
 - Investigation loop is: reproduce → env-gated capped probe → root-cause

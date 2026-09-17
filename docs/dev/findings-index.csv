@@ -176,3 +176,4 @@ D295,FIXED,"Campaign-halting crash at the end of Control Center on 00 Agent diff
 D296,OPEN,"Control Center, 00 Agent:","OPEN — single live report, un-triaged; observed only under a gdb-attached debug-harness launch (tools_pc/debug.ps1), not the packaged release artifact —"
 D297,FIXED,v0.3.0 silently wipes ALL pre-fix player saves on first launch (D284 side effect; found during D295/M-148).,FIXED (M-150) — migration shim landed:
 D298,?,Full HUD (not just the aim-mode crosshair) missing in a v0.3.0 dev build —,"s — regression reported 2026-09-16 during v0.3.0 work (build ce8427cf); user says ""don't fix, just for context""; not yet investigated —"
+D299,FIXED,Game.SkipIntro crashed selecting any save slot except one —,"FIXED — fileValidateSaves() (only called from the skipped legal screen) never ran under SkipIntro, leaving saves[] all-zero; added the missing call to the SkipIntro shortcut (src/game/lv.c, #ifdef PO…"

@@ -419,9 +419,23 @@ void lvlStageLoad(s32 stage)
                  * logo attract loop. Reuses the game's own post-intro route:
                  * every intro stage already jumps to MENU_FILE_SELECT once
                  * is_first_time_on_main_menu is FALSE (front.c). Port config
-                 * only; default 0 = unchanged. */
+                 * only; default 0 = unchanged.
+                 *
+                 * D3xx (found this session): the skipped legal screen's own
+                 * init (front.c init_menu00_legalscreen) is what calls
+                 * fileValidateSaves() -- the only place saves[] is ever
+                 * populated from EEPROM. Skipping straight to file-select
+                 * left saves[] all-zero, so fileGetSaveForFoldernum()
+                 * returned NULL for every folder except whichever one a
+                 * zeroed save_data happens to decode to, and file-select's
+                 * unguarded fileGetIsCheatUnlocked() (file2.c:397) crashed
+                 * dereferencing NULL for the other three. Call it here too
+                 * so saves[] matches what the legal screen would have
+                 * produced. */
                 extern s32 portSkipIntro;
                 if (portSkipIntro) {
+                    extern void fileValidateSaves(void);
+                    fileValidateSaves();
                     is_first_time_on_main_menu = FALSE;
                     prev_keypresses = TRUE;
                     maybe_is_in_menu = TRUE;

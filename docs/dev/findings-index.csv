@@ -139,7 +139,7 @@ D239,?,"QoL ask (M-106, user QA):",CLOSED — executed in the v0.2.0 prep pass (
 D240,OPEN,"Player gunshot SFX timing/cadence reportedly does not match the N64 original's rate (M-106, user QA report).","OPEN — not root-caused; static call-site tracing only, no runtime verification possible in this environment."
 D241,OPEN,Player gunshot SFX goes silent under some conditions —,"OPEN — not newly root-caused; high confidence this is D207 reproduced, not an independent bug."
 D242,?,Player-death sequence UX regression vs N64 original:,NOT A PORT-LOGIC BUG as far as static analysis can tell.
-D243,FIXED,"Dam end-of-level cutscene (the abseil/bungee sequence, D148/D160's subject):","PARKED (M-161, diminishing returns after ~15 session-passes; resume only with a new lead —"
+D243,OPEN,"Dam end-of-level cutscene (the abseil/bungee sequence, D148/D160's subject):","OPEN, M-166 build ready for next live session (M-163:"
 D245,OPEN,IsWater water: two competing patterns with a visible seam that moves as the player looks around (mouse/aim) —,"OPEN — REOPENED, M-142 headless probe found the tc-shift k measurably flips during ordinary view rotation (new root-cause evidence); an opt-in GE_D245_FIXEDSHIFT candidate is build-verified but needs…"
 D246,OPEN,"Tiny pixel strips at the left and right edges of the screen, ""like overscan"" —","OPEN — one candidate ruled out (M-116 follow-up), root cause not found."
 D247,RESOLVED,Black bars top and bottom of screen —,"NOT A BUG — confirmed faithful, unmodified N64 decomp behaviour, no code change made."

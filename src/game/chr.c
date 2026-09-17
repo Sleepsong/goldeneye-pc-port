@@ -2447,6 +2447,11 @@ s32 chrTick(PropRecord *prop)
     s32 headSwitchVisible;
     s32 headVisible;
     s32 tickamount;
+#ifdef PORT
+    int d243x2Active = 0;      /* D243 M-162/M-163, see the CHRFLAG_HIDDEN else block below */
+    coord3d d243x2SavedPos = {0};
+    coord3d d243x2CycledPos = {0};
+#endif
 
     renderdata = D_8002CC6C;
     chr = prop->chr;
@@ -2522,6 +2527,47 @@ s32 chrTick(PropRecord *prop)
     }
     else
     {
+#ifdef PORT
+        /* D243 M-162/M-163: corrected decisive experiment. M-161 restored
+         * prop->pos AFTER this chrTick() call returned -- but render_pos/
+         * field_488.pos are computed INSIDE this same call (subcalcmatrices,
+         * further down this function), from whatever prop->pos is at THAT
+         * point, so M-161 never actually prevented the stale value from
+         * being rendered -- its "no change" result was inconclusive, not a
+         * real falsification (see docs/dev/findings.md D243 M-162).
+         *
+         * Save pos right here, before the position-update dispatch below
+         * runs (chr.c:2541-2617, the ACT_PATROL/ACT_ANIM/ACT_STAND/else
+         * chain M-160 traced the overwrite to), and restore it at
+         * after_position_update -- before anything later in this tick
+         * (including the render-matrix computation) can see the cycled
+         * value.
+         *
+         * M-162 (Z-only) confirmed the mechanism -- Z stopped cycling and
+         * went smooth -- but the visible glitch was UNCHANGED, because this
+         * capture's chr (actiontype=3, different from M-160's capture) turned
+         * out to cycle Y instead of Z, and Y was left untouched. M-163: the
+         * whole vector, to see if suppressing every axis finally stops the
+         * visible shake. This DOES also freeze whatever legitimate motion
+         * exists on any axis (e.g. a real descent) -- acceptable for a
+         * decisive test, not for a fix.
+         *
+         * Gated on GE_D243X2 + the existing d243mProbeActive() cutscene-mode
+         * gate (POSEND/INTRO/SWIRL/FADESWIRL) -- g_CameraMode was verified
+         * POSEND for the entire abseil capture (GE_D243M data), so this is
+         * scoped correctly without needing a new g_CameraMode extern here.
+         *
+         * THIS IS A TEST, NOT A FIX. If it confirms the cycling stops: the
+         * real root cause is still open -- this is decomp-faithful game
+         * code, so find WHY it emits cycling values on PC before touching
+         * anything for real (rule #2's diagnosis-before-fix discipline).
+         * Revert this block once the experiment reports. */
+        extern int d243mProbeActive(void);
+        static int s_d243x2 = -1;
+        if (s_d243x2 < 0) { s_d243x2 = getenv("GE_D243X2") != NULL; }
+        d243x2Active = s_d243x2 && d243mProbeActive();
+        d243x2SavedPos = prop->pos;
+#endif
         if (((prop->type == PROP_TYPE_VIEWER) && (g_playerPointers[getPlayerPointerIndex(prop)]->cameramode == 1)) || (chr->chrflags & CHRFLAG_CULL_USING_HITBOX))
         {
             headSwitchVisible = 1;
@@ -2618,6 +2664,17 @@ s32 chrTick(PropRecord *prop)
 
 after_position_update:
 #ifdef PORT
+    /* D243 M-163: apply the save/restore decided above, BEFORE anything else
+     * in this tick (including the D243M: onscreen log right below, so it
+     * reports what will actually be used downstream -- and before the
+     * render-matrix computation further down this function) can see the
+     * cycled position. Whole vector this pass (M-162 was Z-only; see the
+     * comment at the save site for why). */
+    {
+        d243x2CycledPos = prop->pos;
+        if (d243x2Active) { prop->pos = d243x2SavedPos; }
+    }
+
     /* D243 M-159/M-160: does render_pos only refresh on ticks that pass the
      * on-screen visibility gate? Log the gate's result + the live prop
      * position every chrTick call while a scripted cutscene camera is
@@ -2625,15 +2682,34 @@ after_position_update:
      * in POSEND/INTRO/SWIRL/FADESWIRL, so this is silent during FPS play).
      * If the freeze/teleport boundaries line up with headSwitchVisible
      * flipping 0->1, this confirms the mechanism named in findings.md D243
-     * M-159. Diagnosis only; zero behaviour change when GE_D243M is unset. */
+     * M-159. M-162/M-163: actiontype= and anim= (current attached animation
+     * pointer) added -- M-160 flagged "which of chrTick's branches fires"
+     * as the open next step toward the actual root cause once the
+     * suppression experiment reports; x2active=/x2raw= show whether the
+     * suppression ran this tick and what raw position it overrode, so a
+     * positive result can be read straight from this log instead of by eye.
+     * Diagnosis only; zero behaviour change when GE_D243M/GE_D243X2 unset. */
     {
         extern int d243mProbeActive(void);
         extern int d243mGetFrameCounter(void);
         if (d243mProbeActive())
         {
-            osSyncPrintf("D243M: onscreen frame=%d chr=%p vis=%d pos=%.1f,%.1f,%.1f\n",
+            /* M-166: aidx=/animframe= reuse the GE_D193A reverse-resolve
+             * technique (d193aAnimIndex, chr.c:67) + model->animframe1 (the
+             * actual current playback phase, bondtypes.h:1578) -- named per
+             * M-165/M-166's open question: is the visible chr's animation
+             * IDENTITY deterministic but its PHASE inherited from whatever
+             * gameplay preceded the cutscene (not guaranteed identical
+             * cross-platform)? A live capture with this field can now
+             * answer that directly instead of needing another round-trip. */
+            osSyncPrintf("D243M: onscreen frame=%d chr=%p vis=%d pos=%.1f,%.1f,%.1f "
+                         "actiontype=%d anim=%p aidx=%d animframe=%.2f x2active=%d x2raw=%.1f,%.1f,%.1f\n",
                          d243mGetFrameCounter(), (void *) chr, (int) headSwitchVisible,
-                         (double) prop->pos.f[0], (double) prop->pos.f[1], (double) prop->pos.f[2]);
+                         (double) prop->pos.f[0], (double) prop->pos.f[1], (double) prop->pos.f[2],
+                         (int) chr->actiontype, (void *) model->anim,
+                         d193aAnimIndex((void *) model->anim), (double) model->animframe1,
+                         (int) d243x2Active,
+                         (double) d243x2CycledPos.f[0], (double) d243x2CycledPos.f[1], (double) d243x2CycledPos.f[2]);
         }
     }
 #endif

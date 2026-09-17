@@ -2461,6 +2461,30 @@ s32 chrTick(PropRecord *prop)
 
 #ifdef PORT
     d193aSample(chr, model);
+
+    /* D173 M-173: does a normal (non-player-puppet) chr's prop->pos, read
+     * BEFORE this tick's position-update dispatch runs, differ from what
+     * the existing D243M: onscreen probe logs AFTER it (chr.c:~2705, at
+     * after_position_update:)? For the player's own third-person puppet,
+     * M-172 (findings.md D173) measured a fixed ~328-unit gap between
+     * prop->pos and the rendered root that holds across levels and
+     * animations. This applies the exact same before/after comparison to
+     * EVERY ticked chr (not just the player), gated on the existing
+     * d243mProbeActive() (fires during INTRO/SWIRL/POSEND, silent in normal
+     * FPS play) -- if ordinary guards show the same before/after gap, the
+     * compensation a normal chr's render is missing is universal (a
+     * port-layer/render-path gap); if guards show ~zero gap, the puppet's
+     * animation/model selection itself is what differs. Diagnosis only. */
+    {
+        extern int d243mProbeActive(void);
+        extern int d243mGetFrameCounter(void);
+        if (d243mProbeActive())
+        {
+            osSyncPrintf("D243M: prebefore frame=%d chr=%p pos=%.1f,%.1f,%.1f\n",
+                         d243mGetFrameCounter(), (void *) chr,
+                         (double) prop->pos.f[0], (double) prop->pos.f[1], (double) prop->pos.f[2]);
+        }
+    }
 #endif
 
     if ((!(chr->chrflags & CHRFLAG_HIDDEN)) || (chr->chrflags & CHRFLAG_00040000))

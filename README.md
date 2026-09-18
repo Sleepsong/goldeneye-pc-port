@@ -425,6 +425,11 @@ This port is a thin layer on a large amount of other people's work.
   Kids decompilation write-up), the agent-workflow practices in
   [`docs/dev-process.md`](docs/dev-process.md) are adapted from it.
 
+**Consultation**
+
+- **f1zz1ec0ke** ([GitHub](https://github.com/f1zz1ec0ke)): LLM consultation on model
+  tuning, agent harnesses, and agentic strategy throughout the port's development.
+
 **Tools and models used to develop the port**
 
 - Qwen 3.8 (Alibaba Qwen team), run locally as the

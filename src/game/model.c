@@ -2952,6 +2952,21 @@ void sub_GAME_7F06FE44(Model *model, s32 arg1) {
 }
 
 void modelSetAnimSpeed(Model *model, f32 anim_speed, f32 startframe) {
+#ifdef PORT
+    /* D243 M-180: log all modelSetAnimSpeed calls during scripted camera modes
+     * to identify if unusual speed values are being set during cutscenes.
+     * Env-gated on GE_D243M (already cached elsewhere). */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    if (d243mProbeActive() && model != NULL) {
+        osSyncPrintf("D243M: setanimspeed frame=%d model=%p speed=%.3f startframe=%.1f "
+                     "timespeed=%.1f oldspeed=%.3f newspeed=%.3f elapsespeed=%.1f\n",
+                     d243mGetFrameCounter(), (void *) model, (double) anim_speed,
+                     (double) startframe, (double) model->timespeed,
+                     (double) model->speed, (double) model->newspeed,
+                     (double) model->elapsespeed);
+    }
+#endif
 
     if (startframe > 0.0f) {
         model->timespeed = startframe;
@@ -2994,6 +3009,20 @@ void sub_GAME_7F06FE90(Model *model, f32 arg1, f32 arg2)
 }
 
 void modelSetAnimPlaySpeed(Model *model, f32 animation_rate, f32 startframe) {
+#ifdef PORT
+    /* D243 M-181: log all modelSetAnimPlaySpeed calls during scripted camera
+     * modes to identify if unusual playspeed values are being set during
+     * cutscenes. Env-gated on GE_D243M (already cached elsewhere). */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    if (d243mProbeActive() && model != NULL) {
+        osSyncPrintf("D243M: setanimplayspeed frame=%d model=%p rate=%.3f startframe=%.1f "
+                     "unkb0=%.1f playspeed=%.3f animrate=%.3f\n",
+                     d243mGetFrameCounter(), (void *) model, (double) animation_rate,
+                     (double) startframe, (double) model->unkb0,
+                     (double) model->playspeed, (double) model->animrate);
+    }
+#endif
     if (startframe > 0.0f) {
         model->unkb0 = startframe;
         model->animrate = animation_rate;
@@ -3493,6 +3522,23 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
     f32 frame2;
     f32 animlast;
 
+#ifdef PORT
+    /* D243 M-182: log playspeed at the start of every tick during scripted
+     * camera modes to identify when and how it changes. Env-gated on
+     * GE_D243M (already cached elsewhere). */
+    extern int d243mProbeActive(void);
+    extern int d243mGetFrameCounter(void);
+    if (d243mProbeActive() && model != NULL)
+    {
+        osSyncPrintf("D243M: tickstart frame=%d model=%p playspeed=%.3f animrate=%.3f "
+                     "unkb0=%.1f unkb4=%.1f unkac=%.3f endframe=%.1f\n",
+                     d243mGetFrameCounter(), (void *) model,
+                     (double) model->playspeed, (double) model->animrate,
+                     (double) model->unkb0, (double) model->unkb4,
+                     (double) model->unkac, (double) model->endframe);
+    }
+#endif
+
     frame = model->animframe1;
     frame2 = model->animframe2;
 
@@ -3570,7 +3616,36 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
             }
 
             speed = model->speed;
+
+#ifdef PORT
+            /* D243 M-183: clamp playspeed to a sane range during scripted
+             * camera modes when it exceeds a threshold. This works around
+             * a struct layout/punning issue where playspeed is read from
+             * the wrong location in memory due to 32→64-bit pointer widening
+             * (D100/D140 pun family). The huge playspeed values (~388-410)
+             * cause rapid animation advancement (~97 frames/tick) that makes
+             * Bond appear "stuck" or "duplicated" during cutscenes.
+             * Threshold: 50.0 is way above any legitimate playspeed (normal
+             * is ~1.0, max observed in gameplay is ~2.0). */
+            extern int d243mProbeActive(void);
+            if (d243mProbeActive() && playspeed > 10.0f)
+            {
+                osSyncPrintf("D243M: clamp playspeed %.3f → 1.0\n", (double) playspeed);
+                playspeed = 1.0f;
+            }
+#endif
+
             frame += playspeed * speed;
+
+#ifdef PORT
+            /* M-184: log frame progression after advancement */
+            extern int d243mProbeActive(void);
+            if (d243mProbeActive() && model != NULL)
+            {
+                osSyncPrintf("D243M: postadv frame=%.2f endframe=%.1f\n",
+                             (double) frame, (double) endframe);
+            }
+#endif
 
 #ifdef PORT
             /* D243 M-179: log large per-tick animation advancements to identify
@@ -3626,6 +3701,22 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
             {
                 animlast = model->anim->unk04 - 1;
                 endframe = model->endframe;
+
+#ifdef PORT
+            /* D243 M-185: clamp corrupted endframe values during scripted
+             * camera modes. The endframe field is sometimes read from the
+             * wrong location in memory due to 32→64-bit pointer widening
+             * (D100/D140 pun family), producing huge negative values like
+             * -604462909807314587353088.0 that cause the animation to loop
+             * indefinitely or behave unexpectedly. Clamp to a reasonable
+             * range (0-1000) to prevent this. */
+            extern int d243mProbeActive(void);
+            if (d243mProbeActive() && (endframe < 0.0f || endframe > 1000.0f))
+            {
+                osSyncPrintf("D243M: clamp endframe %.1f → 100.0\n", (double) endframe);
+                endframe = 100.0f;
+            }
+#endif
 
                 if (endframe);
 

@@ -635,16 +635,49 @@ void bullet_spark_render(s_bullet_spark *thing, Gfx *gdlarg, s32 zbufferMode)
         return;
     }
 
+#ifdef PORT
+    /* D219/D3x: the same class of bug as the cn[] fix below, one step
+     * earlier -- D_80040980 is declared (correctly, per its actual N64 use
+     * as a zero-initialized template) as a plain u32, but this line reread
+     * it as a full Vtx (16 bytes) to get a "blank" starting vertex. Every
+     * field this sets (ob/tc/cn) is unconditionally overwritten later in
+     * this function; only v.flag survives from here, and D_80040980's own
+     * initializer (=0) shows the N64-side intent was a zeroed vertex. Zero
+     * the local directly instead of reading 12 bytes past a 4-byte global
+     * (harmless in practice so far, but real UB the PC compiler already
+     * flags with -Warray-bounds). */
+    memset(&vtx, 0, sizeof(vtx));
+#else
     vtx = *((Vtx *) (&D_80040980));
+#endif
     mtx = currentPlayerGetViewToWorldMtxf();
     gdl = *((Gfx **) gdlarg);
     vertices = dynAllocateVertices(4);
     room = thing->unk06;
     roompos = getRoomPositionByIndex(room);
+#ifdef PORT
+    /* D219/D3x: on 32-bit N64, s_bullet_spark's void* unk0C field is 4 bytes,
+     * keeping unk28/29/2A/2B (the spark's stored RGBA colour, set from
+     * g_BulletSparkColors[] in bullet_sparks_init) at raw byte offset 0x28 --
+     * this function's original hardcoded ((u8*)thing)[0x28..0x2b] read relied
+     * on that. On 64-bit PC the pointer widens to 8 bytes (plus alignment
+     * padding before it), pushing the real compiler-computed offset of
+     * unk28 to 0x30 -- the old hardcoded 0x28 read instead lands inside the
+     * unk1c/unk20 f32 fields (the spark's random cosf/sinf-derived velocity
+     * components), reinterpreting arbitrary float bytes as the vertex colour.
+     * That is the root cause of the "rainbow" bullet-spark colour bug
+     * (D219): read the correctly-named/typed fields instead, which the
+     * compiler places at the right offset on any pointer width. */
+    vtx.v.cn[0] = thing->unk28;
+    vtx.v.cn[1] = thing->unk29;
+    vtx.v.cn[2] = thing->unk2A;
+    vtx.v.cn[3] = thing->unk2B;
+#else
     vtx.v.cn[0] = ((u8 *) thing)[0x28];
     vtx.v.cn[1] = ((u8 *) thing)[0x29];
     vtx.v.cn[2] = ((u8 *) thing)[0x2a];
     vtx.v.cn[3] = ((u8 *) thing)[0x2b];
+#endif
     frame = (s32) (((f32) thing->age) * (*(&thing->unk08)));
     
     x = *((f32 *) (&thing->unk10));

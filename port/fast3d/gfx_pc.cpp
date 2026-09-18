@@ -233,6 +233,34 @@ static bool game_renders_to_framebuffer;
 static int game_framebuffer;
 static int game_framebuffer_msaa_resolved;
 
+/* Safe-area (TV-overscan) crop. GE's own N64 game code insets its normal
+ * single-player "Full" gameplay viewport a fixed margin from the true VI
+ * framebuffer edges (src/fr.h: VIEWPORT_HEIGHT_DEFAULT_NTSC=220 of a
+ * 240-line frame -- ~8% top+bottom; PAL's equivalent is already full-height,
+ * no margin) and separately fills that margin with black rectangles
+ * (src/fr.c viSetupScreensForNumPlayers). On a real CRT that margin falls
+ * in the invisible overscan region; this port displays the full VI frame,
+ * so the margin shows up as literal top/bottom black bars.
+ *
+ * g_gpSafeTop/g_gpSafeHeight cache the most recently set SP viewport's raw
+ * (pre window-scale) Y bounds, in the same native-VI-Y units gfx_pc.cpp
+ * uses elsewhere (see gfx_calc_and_set_viewport). gfx_adjust_viewport_or_
+ * scissor remaps every screen-space Y (the 3D viewport itself AND RDP
+ * fill-rect/texture-rect draws, which deliberately bypass the current SP
+ * viewport and use the full VI canvas -- see gfx_draw_rectangle's
+ * default_viewport) against this cached region instead of the full VI
+ * canvas, so it fills the window edge to edge. Self-gating: front-end/menus
+ * and PAL "Full" never inset their viewport (top=0, full height), so this
+ * is a no-op there; -1 sentinel means "no viewport captured yet",
+ * passthrough (identical to original behavior). */
+static float g_gpSafeTop = 0.0f;
+static float g_gpSafeHeight = -1.0f;
+static bool g_safe_area_crop_enabled = true;
+
+extern "C" void gfx_set_safe_area_crop(int on) {
+    g_safe_area_crop_enabled = !!on;
+}
+
 uint32_t gfx_msaa_level = 1;
 
 static bool dropped_frame;
@@ -1133,7 +1161,10 @@ static void import_texture(int i, int tile, bool importReplacement) {
     if (ge_d157i < 0) ge_d157i = getenv("GE_D157") != NULL;
     if (ge_d157i) {
         extern uint32_t num_dls;
-        if (num_dls >= 90 && num_dls <= 240 && loaded_texture.size_bytes <= 16384) {
+        /* 2026-09-18: dropped the old num_dls in [90,240] gate here too (see
+         * the matching D157T comment) -- per-address dedup below already
+         * bounds this to 3 lines per distinct texture for the whole session. */
+        if (loaded_texture.size_bytes <= 16384) {
             static std::map<const void*, int> d157i_seen;
             int& n = d157i_seen[(const void*)orig_addr];
             if (++n <= 3) {
@@ -1574,13 +1605,24 @@ static void gfx_sp_vertex(size_t n_vertices, size_t dest_index, const Vtx* verti
              * elsewhere. Remove once D219/D252 is root-caused. */
             {
                 extern uint32_t num_dls;
-                if (num_dls >= 90 && num_dls <= 240) {
+                /* 2026-09-18: dropped the old num_dls in [90,240] gate -- that
+                 * window only fit the original short GE_INPUTSCRIPT repro; a
+                 * real interactive session runs for thousands of frames before
+                 * the player actually triggers the bug, so the gate silently
+                 * discarded 100% of useful data in live play. The existing
+                 * per-run hit caps below already bound log growth without it. */
+                {
                     const uint32_t tile0 = rdp.first_tile_index;
                     LoadedTexture& lt0 = rdp.loaded_texture[rdp.texture_tile[tile0].tmem];
                     if (lt0.addr && lt0.size_bytes <= 16384) {
                         static int d157b_n = 0;
                         d157b_n++;
-                        if (d157b_n <= 400 || (d157b_n % 200) == 0) {
+                        /* Raised from 400/1-in-200 (sized for a ~250-frame
+                         * scripted repro) to a much larger continuous window
+                         * so a real, minutes-long play session doesn't drop
+                         * to sparse 1-in-200 sampling before the player
+                         * actually triggers the bug. */
+                        if (d157b_n <= 20000 || (d157b_n % 50) == 0) {
                             sysLogPrintf(LOG_NOTE,
                                 "D157T: frame=%u cn=(%d,%d,%d,%d) shaded=(%d,%d,%d) LIGHTING=%s geom=%08x combine=%llx | "
                                 "tile0=%u tmem=%u fmt=%u siz=%u addr=%p size=%u line=%u | uv=(%d,%d)",
@@ -2430,10 +2472,35 @@ static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_as
     // HACK: assume all target framebuffers have the same aspect
     // Use floor/ceil to ensure scissor fully contains the logical region
     // and prevents sub-pixel gaps at viewport edges
-    float x1 = area->x * RATIO_X;
-    float y1 = (SCREEN_HEIGHT - area->y) * RATIO_Y;
-    float x2 = (area->x + area->width) * RATIO_X;
-    float y2 = (SCREEN_HEIGHT - area->y + area->height) * RATIO_Y;
+    // g_gpSafeTop already plays the exact role SCREEN_HEIGHT plays below
+    // (both are the bottom-up Y value of the mapped region's TOP edge) --
+    // this reduces to the untouched original formula when crop is off.
+    const bool crop = g_safe_area_crop_enabled && g_gpSafeHeight > 0.0f;
+    const float safeTop = crop ? g_gpSafeTop : (float)SCREEN_HEIGHT;
+    const float safeHeight = crop ? g_gpSafeHeight : (float)SCREEN_HEIGHT;
+    const float ratioY = gfx_current_dimensions.height / safeHeight;
+
+    // D246 (findings.md): a consistent, exactly-1-logical-unit gap at the
+    // left AND right screen edges (measured empirically: 2px/3px/4px at
+    // RATIO_X 2/3/4 -- always exactly 1 unit of the 320-wide logical space,
+    // on both edges, symmetric, same underlying cause on every level tested)
+    // reveals whatever's drawn behind the foreground scene there (varies by
+    // level, e.g. sky/ambient colour) instead of scene content. Root cause
+    // not isolated to a specific game-code or fast3d call site despite a
+    // deep pass (viewport/scissor math here is provably exact at integer
+    // RATIO_X, ruling out a floor/ceil rounding bug) -- treat this as the
+    // same class of issue as the vertical safe-area crop above (D247/the
+    // TV-overscan margin) and fold it into the same toggle: trim the same
+    // fixed 1-unit margin from both edges rather than trying to force
+    // content to reach a boundary it may never actually be drawn to.
+    const float safeLeft = g_safe_area_crop_enabled ? 1.0f : 0.0f;
+    const float safeWidth = g_safe_area_crop_enabled ? (float)SCREEN_WIDTH - 2.0f : (float)SCREEN_WIDTH;
+    const float ratioX = gfx_current_dimensions.width / safeWidth;
+
+    float x1 = (area->x - safeLeft) * ratioX;
+    float y1 = (safeTop - area->y) * ratioY;
+    float x2 = (area->x + area->width - safeLeft) * ratioX;
+    float y2 = (safeTop - area->y + area->height) * ratioY;
     
     area->x = std::floor(x1);
     area->y = std::floor(y1);
@@ -2469,6 +2536,14 @@ static void gfx_calc_and_set_viewport(const Vp_t* viewport) {
     rdp.viewport.y = y;
     rdp.viewport.width = width;
     rdp.viewport.height = height;
+
+    /* Cache the raw (pre window-scale) viewport bounds for the safe-area
+     * crop above -- guard against a degenerate/zero-height viewport so a
+     * later divide can't ever see one. */
+    if (height > 1.0f) {
+        g_gpSafeTop = y;
+        g_gpSafeHeight = height;
+    }
 
     gfx_adjust_viewport_or_scissor(&rdp.viewport);
 

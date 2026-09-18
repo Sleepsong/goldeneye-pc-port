@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #if defined(_WIN32)
 #include <direct.h>
@@ -59,11 +60,13 @@ static int cfgTexFilter     = 1;   /* 0 = nearest, 1 = bilinear (default), 2 = N
 static int cfgFixMipTex     = 1;   /* RC2: clip mip-contaminated texture uploads to base height */
 static int cfgWrapFix       = 0;   /* D74 sub-tile UV pre-wrap + RC3/D167 non-PoT mask-period wrap (opt-in; GE_WRAPFIX env overrides) */
 static int cfgFovScale      = 100; /* D211: percent of the original vertical FOV; 100 = unchanged (byte-identical) */
+static int cfgWidescreenAuto = 1;  /* WIDESCREEN-FOV-PLAN Phase 4: auto-scale vertical FOV by window aspect ratio; on by default, no-op at 4:3 */
 static int cfgDrawDistance      = 150; /* D218: percent of the level's authored far-clip/fog distance. Default raised 100->150 for v0.2.0: at the authored N64 distance, props visibly fade in just before they become visible on modern displays (Dam alarms / wall switches); 150 is the value the Steam Deck preset playtest-validated. 100 = unchanged N64. */
 static int cfgDrawDistanceAutoFov = 1;   /* D218: couple draw distance to Video.FovScale unless DrawDistance is set explicitly */
 static int cfgLodDistance         = 150; /* D249: percent scale on the geometry/model LOD-swap distance. Default raised 100->150 for v0.2.0 (same pop-in family as DrawDistance: LOD-swapped props like Dam's alarms/wall switches faded in at range); 150 matches the Steam Deck preset. 100 = unchanged N64. */
 static int cfgLodDistanceAutoFov  = 0;   /* off by default -- unlike DrawDistance, this is meant as a standalone perf lever, not something that should silently get more expensive as FovScale widens */
 static int cfgAniso         = 4;   /* D212: anisotropic filtering samples; 4 = the value fast3d already applied (no visual delta at default) */
+static int cfgSafeAreaCrop  = 1;   /* crop the N64 TV-overscan safe-area margin (visible as black top/bottom bars on PC) instead of showing it; on by default */
 static int cfgFullscreen    = 0;   /* 0 = windowed, 1 = borderless fullscreen   */
 
 /*
@@ -126,13 +129,31 @@ f32 portFovScale = 1.0f;
  * were still narrow. `isTitleScreen` mirrors fr.c's own
  * `lvlGetCurrentStageToLoad() != LEVELID_TITLE` guard -- the front end's
  * fixed-FOV 3D must not be touched. 1.0f/identity at FovScale=100 (default),
- * bit-for-bit no-op. */
+ * bit-for-bit no-op.
+ *
+ * WIDESCREEN-FOV-PLAN Phase 4: Video.WidescreenAuto (default on) applies an
+ * automatic aspect-ratio-aware scale BEFORE the manual Video.FovScale
+ * multiplier above, so the two compose rather than fight. Formula:
+ * sqrt(aspect / 4:3) -- identity at 4:3 (the game's native aspect), widens
+ * smoothly for 16:9/21:9/etc. Uses gfx_current_dimensions.aspect_ratio,
+ * already tracked and updated on window resize (port/fast3d/gfx_pc.cpp).
+ * The final clamp gained a symmetric floor (20 deg) alongside the existing
+ * 160 deg ceiling -- covers narrow/portrait-ish window resizes, which the
+ * auto-scale formula can otherwise degenerate toward as aspect -> 0; this
+ * resolves WIDESCREEN-FOV-PLAN.md's open "horizontal extreme-aspect sanity
+ * clamp" question. */
 f32 portScaleFovY(f32 fovy, s32 isTitleScreen)
 {
-    if (!isTitleScreen && portFovScale > 0.4f && portFovScale < 2.01f && portFovScale != 1.0f) {
-        fovy *= portFovScale;
-        if (fovy > 160.0f) { fovy = 160.0f; }
+    if (!isTitleScreen) {
+        if (cfgWidescreenAuto && gfx_current_dimensions.aspect_ratio > 0.01f) {
+            fovy *= sqrtf(gfx_current_dimensions.aspect_ratio / (4.0f / 3.0f));
+        }
+        if (portFovScale > 0.4f && portFovScale < 2.01f && portFovScale != 1.0f) {
+            fovy *= portFovScale;
+        }
     }
+    if (fovy > 160.0f) { fovy = 160.0f; }
+    if (fovy < 20.0f)  { fovy = 20.0f; }
     return fovy;
 }
 
@@ -221,11 +242,13 @@ PD_CONSTRUCTOR static void videoConfigInit(void)
     configRegisterInt("Video.FixMipTextures", &cfgFixMipTex, 0, 1);
     configRegisterInt("Video.WrapFix", &cfgWrapFix, 0, 1);
     configRegisterInt("Video.FovScale", &cfgFovScale, 50, 150);
+    configRegisterInt("Video.WidescreenAuto", &cfgWidescreenAuto, 0, 1);
     configRegisterInt("Video.DrawDistance", &cfgDrawDistance, 100, 400);
     configRegisterInt("Video.DrawDistanceAutoFov", &cfgDrawDistanceAutoFov, 0, 1);
     configRegisterInt("Video.LodDistance", &cfgLodDistance, 25, 400);
     configRegisterInt("Video.LodDistanceAutoFov", &cfgLodDistanceAutoFov, 0, 1);
     configRegisterInt("Video.Anisotropy", &cfgAniso, 1, 16);
+    configRegisterInt("Video.SafeAreaCrop", &cfgSafeAreaCrop, 0, 1);
     configRegisterInt("Video.Fullscreen",    &cfgFullscreen, 0, 1);
     configRegisterInt("Window.Width",        &cfgWinW,       0, 16384);
     configRegisterInt("Window.Height",       &cfgWinH,       0, 16384);
@@ -267,6 +290,7 @@ static void videoApplyImageOptions(void)
 {
     portFovScale = (f32)cfgFovScale / 100.0f;
     gfx_set_anisotropy_level(cfgAniso);
+    gfx_set_safe_area_crop(cfgSafeAreaCrop);
 }
 
 static void videoApplyTexFilter(void)

@@ -83,7 +83,8 @@ game assets shipped) and how faithfully the port tracks the original N64
 game's logic: [Security & fidelity status](docs/security-and-fidelity-status.md).
 
 **Working:** boot sequence and front end (menu → mission select → briefing →
-start); all 21 solo missions load, render and are crash-free (full campaign
+start), front-end menu navigation on the left stick to match the F10 overlay
+(D282); all 21 solo missions load, render and are crash-free (full campaign
 playtested end to end at Agent difficulty); steady 60 fps
 (software RSP off the presentation critical path); full audio: in-level music and SFX; keyboard + mouse (click-to-lock, proportional aim mode, a single
 simplified sensitivity control) and a modern dual-stick controller layout;

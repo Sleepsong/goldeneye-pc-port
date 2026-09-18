@@ -541,7 +541,7 @@ void bossMainloop(void)
 
                             gdl = firstGdl = dynGetMasterDisplayList();
 
-#ifdef DEBUGMENU
+#if defined(DEBUGMENU)
                             //ported from pd beta, official way to open debug menu
 			                // If menu is open (?) or player has pressed C down + C up
 			                if (g_BossIsDebugMenuOpen || joyGetButtons(0, U_CBUTTONS | D_CBUTTONS) == (U_CBUTTONS | D_CBUTTONS)) {
@@ -552,16 +552,46 @@ void bossMainloop(void)
 			                } else if (joyGetButtons(0, START_BUTTON) == 0) {
                                 g_DebugMode = g_DebugHighlightedOption;
 			                } else
-#endif
-#ifndef DEBUGMENU
-                            if (g_BossIsDebugMenuOpen)
-#endif
                             {
 			                	joyStickXPos = joyGetStickX(0);
 			                	joyStickYPos = joyGetStickY(0);
 			                	joyButtons = joyGetButtons(0, ANY_BUTTON);
 			                	g_BossIsDebugMenuOpen = debug_menu_processor(joyStickXPos, joyStickYPos, joyButtons, joyGetButtonsPressedThisFrame(0, ANY_BUTTON));
 			                }
+#elif defined(PORT)
+                            // GE_DEBUGMENU=1 -- diagnostic-only: enable leftover debug-menu open
+                            // path (D243). Unset (default) reproduces the #ifndef DEBUGMENU
+                            // behavior below exactly -- no behavior change.
+                            static int ge_debugmenu = -1;
+                            if (ge_debugmenu < 0) ge_debugmenu = getenv("GE_DEBUGMENU") != NULL;
+                            if (ge_debugmenu && (g_BossIsDebugMenuOpen || joyGetButtons(0, U_CBUTTONS | D_CBUTTONS) == (U_CBUTTONS | D_CBUTTONS))) {
+                                joyStickXPos = joyGetStickX(0);
+                                joyStickYPos = joyGetStickY(0);
+                                joyButtons = joyGetButtons(0, ANY_BUTTON);
+                                g_BossIsDebugMenuOpen = debug_menu_processor(joyStickXPos, joyStickYPos, joyButtons, joyGetButtonsPressedThisFrame(0, ANY_BUTTON));
+                            } else if (ge_debugmenu && joyGetButtons(0, START_BUTTON) == 0) {
+                                g_DebugMode = g_DebugHighlightedOption;
+                            } else if (ge_debugmenu) {
+                                joyStickXPos = joyGetStickX(0);
+                                joyStickYPos = joyGetStickY(0);
+                                joyButtons = joyGetButtons(0, ANY_BUTTON);
+                                g_BossIsDebugMenuOpen = debug_menu_processor(joyStickXPos, joyStickYPos, joyButtons, joyGetButtonsPressedThisFrame(0, ANY_BUTTON));
+                            } else if (g_BossIsDebugMenuOpen)
+                            {
+                                joyStickXPos = joyGetStickX(0);
+                                joyStickYPos = joyGetStickY(0);
+                                joyButtons = joyGetButtons(0, ANY_BUTTON);
+                                g_BossIsDebugMenuOpen = debug_menu_processor(joyStickXPos, joyStickYPos, joyButtons, joyGetButtonsPressedThisFrame(0, ANY_BUTTON));
+                            }
+#else
+                            if (g_BossIsDebugMenuOpen)
+                            {
+			                	joyStickXPos = joyGetStickX(0);
+			                	joyStickYPos = joyGetStickY(0);
+			                	joyButtons = joyGetButtons(0, ANY_BUTTON);
+			                	g_BossIsDebugMenuOpen = debug_menu_processor(joyStickXPos, joyStickYPos, joyButtons, joyGetButtonsPressedThisFrame(0, ANY_BUTTON));
+			                }
+#endif
 
                             lvlManageMpGame();
                             shuffle_player_ids();

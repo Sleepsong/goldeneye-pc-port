@@ -3572,6 +3572,32 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
             speed = model->speed;
             frame += playspeed * speed;
 
+#ifdef PORT
+            /* D243 M-179: log large per-tick animation advancements to identify
+             * whether rapid cutscene anim advancement is due to playspeed, speed,
+             * or numticks. Fires when a single tick advances >5 frames (normal
+             * is ~0.5-3). Env-gated on GE_D243M (already cached elsewhere). */
+            {
+                extern int d243mProbeActive(void);
+                extern int d243mGetFrameCounter(void);
+                if (d243mProbeActive())
+                {
+                    f32 advancement = playspeed * speed;
+                    if (advancement > 5.0f)
+                    {
+                        osSyncPrintf("D243M: biganim frame=%d model=%p adv=%.2f "
+                                     "playspeed=%.2f speed=%.2f numticks=%d "
+                                     "unkb0=%.1f unk88=%.1f timespeed=%.1f\n",
+                                     d243mGetFrameCounter(), (void *) model,
+                                     (double) advancement, (double) playspeed,
+                                     (double) speed, numticks,
+                                     (double) model->unkb0, (double) model->unk88,
+                                     (double) model->timespeed);
+                    }
+                }
+            }
+#endif
+
             if (model->anim2 != NULL) 
             {
                 if (model->unk7c > 0.0f) 

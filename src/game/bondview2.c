@@ -10420,6 +10420,27 @@ s32 playerTick(PropRecord *prop)
     chr = prop->chr;
 
 #ifdef PORT
+    /* GE_D243SWIRL=<tick> -- diagnostic-only: force CAMERAMODE_SWIRL once, at the
+     * given tick of this per-player function (called once/frame while playing),
+     * to make ai_25's AI_IFCameraIsInBondSwirl poll jump into ai_17 (the Dam
+     * abseil cutscene) without navigating to the ledge (D243). Independent of
+     * GE_D243M/d243mEnabled() so it works with just this one flag set. No-op,
+     * zero cost, when unset. */
+    {
+        static int d243SwirlTarget = -2; /* -2 = uncached, -1 = disabled */
+        static int d243SwirlTick = 0;
+        if (d243SwirlTarget == -2) {
+            const char *e = getenv("GE_D243SWIRL");
+            d243SwirlTarget = e ? atoi(e) : -1;
+        }
+        if (d243SwirlTarget >= 0) {
+            d243SwirlTick++;
+            if (d243SwirlTick == d243SwirlTarget) {
+                osSyncPrintf("D243SWIRL: forcing CAMERAMODE_SWIRL at tick=%d\n", d243SwirlTick);
+                bondviewSetCameraMode(CAMERAMODE_SWIRL);
+            }
+        }
+    }
     if (d243mEnabled()) {
         struct player *pp = g_playerPointers[index];
         int cutsceneCam = ((g_CameraMode == CAMERAMODE_POSEND) || (g_CameraMode == CAMERAMODE_INTRO));
@@ -10530,7 +10551,22 @@ s32 playerTick(PropRecord *prop)
                  * conflated) + the same POSEND-active gate. THIS IS A TEST,
                  * NOT A FIX -- revert once it reports (see docs/dev/findings.md
                  * D243 M-167). */
-                static int s_d243x3 = -1;
+                /* D243 M-170: permanent fix for the Dam abseil camera shake.
+                 * The camera's look-at filter reads field_488.pos, which is
+                 * derived from render_pos (the model's animated-skeleton
+                 * transform). During scripted cutscenes, chrTick's normal
+                 * animation dispatch continues running, advancing whatever
+                 * animation is attached and reading the model's root-joint
+                 * position back into the render path every tick. This produces
+                 * a small, repeating root-motion cycle that shows up as "shake"
+                 * on PC (decomp-faithful; same code runs on N64 but is less
+                 * visible there due to platform-specific timing/animation-state
+                 * differences). Fix: freeze field_488.pos during POSEND camera
+                 * mode, re-baselining only when a legitimate shot-change teleport
+                 * fires (detected via the d243TeleportEpoch counter incremented
+                 * by d243NotifyTeleport() in chrai.c's AI_TRYTeleportingChrToPad
+                 * handler). This eliminates the shake while allowing legitimate
+                 * inter-shot repositioning. */
                 static int s_d243x3WasActive = 0;
                 static u32 s_d243x3LastEpoch = 0;
                 extern u32 d243GetTeleportEpoch(void);
@@ -10538,13 +10574,8 @@ s32 playerTick(PropRecord *prop)
                 u32 epoch;
                 int justRebaselined;
                 int skipWrite;
-                if (s_d243x3 < 0) { s_d243x3 = getenv("GE_D243X3") != NULL; }
-                wantFreeze = s_d243x3 && (g_CameraMode == CAMERAMODE_POSEND);
+                wantFreeze = (g_CameraMode == CAMERAMODE_POSEND);
                 epoch = d243GetTeleportEpoch();
-                /* M-169: same teleport-epoch re-baseline as chr.c's X4 --
-                 * let this write through on the tick a legitimate
-                 * shot-change teleport fires (and on first engaging POSEND),
-                 * then resume freezing until the next teleport. */
                 justRebaselined = (!s_d243x3WasActive) || (epoch != s_d243x3LastEpoch);
                 skipWrite = wantFreeze && !justRebaselined;
                 if (wantFreeze) { s_d243x3LastEpoch = epoch; }

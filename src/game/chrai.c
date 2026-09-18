@@ -680,27 +680,14 @@ s32 chraiitemsize(u8 *AIList, s32 offset)
         case AI_ObjectRocketLaunch:
             return sizeof(AiObjectRocketLaunchRecord);
         case AI_PRINT:
-#ifdef PORT
-            /* D310 / RULE-2-SIGNOFF (2026-09-18, grant: "I want to proceed
-             * with your implementation plan here"): the PRINT() macro emits
-             * a 1-byte record (its string is discarded at list-build time),
-             * but the original sizer below NUL-scans forward, so stepping on
-             * a PRINT skips ~20 bytes into whatever follows. Both active
-             * PRINTs in the data are in m_RunToBondPersistent: "no go!" mis-
-             * lands on 00 00 (phantom GotoNext(0) -> label-not-found -> PC
-             * restart -> infinite spin, D309's Caverns->intro freeze), and
-             * "wait" mis-lands on arg bytes reading Label+EndList -> ai()
-             * returns without saving the offset -> Stop re-issued every tick
-             * (guards stand still forever, user report 2026-09-18). Sizing
-             * the record at its true 1-byte size resumes at the next real
-             * record, exactly as the list source intends (full-list decode
-             * verified clean to EndList; post-"wait" sequence matches
-             * chraidata.c line-for-line). Same-engine precedent: PD removed
-             * PRINT and reassigned slot 0xAD (aiChrCopyProperties).
-             * See docs/dev/findings.md D310. */
-            return 1;
-#else
         {
+            /* D310: for GLOBAL lists the PRINT record is really 1 byte (the
+             * macro discards its string at list-build time) and this NUL-scan
+             * mis-skips into later records -- see d310ItemSize() below, which
+             * applies the 1-byte size on PORT for global lists only. LOCAL
+             * (level-setup) lists embed a NUL-terminated string after the
+             * command byte, so the scan is correct for them and must stay.
+             * This function itself is left byte-identical to the decomp. */
             s32 pos = offset + 1;
             while (AIList[pos] != 0)
             {
@@ -708,7 +695,6 @@ s32 chraiitemsize(u8 *AIList, s32 offset)
             }
             return (pos - offset) + 1;
         }
-#endif
         default:
 #if defined(ENABLE_LOG)
             osSyncPrintf("chraiitemsize: unknown type %d!\n", *AIList);
@@ -716,6 +702,37 @@ s32 chraiitemsize(u8 *AIList, s32 offset)
             return 1;
     }
 }
+
+#ifdef PORT
+/* D310 / RULE-2-SIGNOFF (2026-09-18, grant: "I want to proceed with your
+ * implementation plan here"): AI_PRINT records differ by list origin.
+ * Global lists (g_GlobalAILists, macro-built in chraidata.c) discard the
+ * PRINT string at build time -> the record is 1 byte and chraiitemsize's
+ * NUL-scan mis-skips ~20 bytes into later records: m_RunToBondPersistent's
+ * "no go!" lands on 00 00 (phantom GotoNext(0) -> label-not-found -> PC
+ * restart -> infinite spin, D309's Caverns->intro freeze) and its "wait"
+ * lands on arg bytes reading Label+EndList (ai() returns without saving the
+ * offset -> Stop re-issued every tick -> guards stand still forever).
+ * Level-local lists (g_CurrentSetup.ailists) embed a NUL-terminated string
+ * after the command byte (e.g. AD 'D' '\n' 00 in Caverns' Trevelyan list),
+ * so the NUL-scan is CORRECT for them -- sizing those at 1 lands mid-string
+ * and corrupts execution (Trevelyan ran circles with glitched anims when a
+ * uniform 1-byte size was tried, live-observed 2026-09-18). Use this
+ * instead of chraiitemsize at AI record-walk sites; it applies the 1-byte
+ * size only for lists confirmed global via chraiGetAIListID. Full-list
+ * decode of m_RunToBondPersistent with the fix walks clean to EndList and
+ * matches chraidata.c line-for-line. Same-engine precedent: PD removed
+ * PRINT and reassigned slot 0xAD (aiChrCopyProperties). See findings D310. */
+static s32 d310ItemSize(u8 *AIList, s32 offset, bool isGlobalAIList)
+{
+    if (isGlobalAIList && AIList[offset] == AI_PRINT)
+    {
+        return 1;
+    }
+
+    return chraiitemsize(AIList, offset);
+}
+#endif
 
 /**
  * Get ID of AIList
@@ -760,8 +777,13 @@ s32 chraiGoToLabel(AIRecord *AIList, s32 Offset, u8 LabelNum)
 {
     s32   listID;
     char *debAIListTypeString;
-    bool  isGlobalAIList;
+    bool  isGlobalAIList = FALSE;
 
+#ifdef PORT
+    /* D310: the record walk below must size PRINT per list origin (global =
+     * 1 byte, local = embedded string); resolve it once up front. */
+    (void)chraiGetAIListID(AIList, &isGlobalAIList);
+#endif
     for (;;)
     {
         if (AIList[Offset].cmd == AI_Label)
@@ -810,7 +832,11 @@ s32 chraiGoToLabel(AIRecord *AIList, s32 Offset, u8 LabelNum)
             return 0;
         }
 
+#ifdef PORT
+        Offset += d310ItemSize((u8 *)AIList, Offset, isGlobalAIList);
+#else
         Offset += chraiitemsize(AIList, Offset);
+#endif
     }
 }
 
@@ -3380,15 +3406,17 @@ void                   ai(PropDefHeaderRecord *Entityp, PROP_TYPE EntityType)
                 case AI_PRINT:
                 {
 #ifdef PORT
-                    /* D309 (diagnosis only, GE_D309=1): every active PRINT in
-                     * the AI data is a 1-byte record (the macro drops its
-                     * string), but chraiitemsize sizes it by NUL-scanning
-                     * forward -- so stepping on one always skips past several
-                     * real records and resumes at whatever byte pattern lands
-                     * there. Log each step-on with the landing command byte:
-                     * landcmd==0x00 (AI_GotoNext) is the D309 spin variant;
-                     * a harmless no-op landing is the suspected "guard stands
-                     * still" variant (Caverns, user report 2026-09-18). */
+                    bool d310global = FALSE;
+
+                    /* D310: size the PRINT per list origin (see d310ItemSize). */
+                    (void)chraiGetAIListID(AiListp, &d310global);
+                    /* D309 (diagnosis only, GE_D309=1): log each step on a
+                     * PRINT record with the size actually used and the
+                     * command byte we land on. A repeating line (same
+                     * chr/list/off) means ai() re-executes the same path every
+                     * tick without advancing -- the standing-still signature;
+                     * landcmd==0x00 (AI_GotoNext) is the D309 spin variant.
+                     * Capped so a stuck loop can't flood stderr. */
                     {
                         static int s_d309p = -1;
                         static int s_d309pn = 0;
@@ -3396,12 +3424,13 @@ void                   ai(PropDefHeaderRecord *Entityp, PROP_TYPE EntityType)
                         if (s_d309p < 0) { s_d309p = getenv("GE_D309") != NULL; }
                         if (s_d309p && s_d309pn < 400)
                         {
-                            s32 sz = chraiitemsize(AiListp, Offset);
+                            s32 sz = d310ItemSize(AiListp, Offset, d310global);
 
-                            osSyncPrintf("D309: PRINT chr=%d list=%p off=%d size=%d landcmd=0x%02x\n",
+                            osSyncPrintf("D309: PRINT chr=%d list=%p off=%d size=%d landcmd=0x%02x global=%d\n",
                                          ChrEntityp ? (int)ChrEntityp->chrnum : -1,
                                          (void *)AiListp, (int)Offset, (int)sz,
-                                         (int)(AiListp[Offset + sz].cmd & 0xff));
+                                         (int)(AiListp[Offset + sz].cmd & 0xff),
+                                         (int)d310global);
                             s_d309pn++;
                         }
                     }
@@ -3420,7 +3449,11 @@ void                   ai(PropDefHeaderRecord *Entityp, PROP_TYPE EntityType)
                     }
         #endif
     #endif
+#ifdef PORT
+                    Offset += d310ItemSize(AiListp, Offset, d310global);
+#else
                     Offset += chraiitemsize(AiListp, Offset);
+#endif
                     break;
                 }
                 case AI_MyTimerStart:

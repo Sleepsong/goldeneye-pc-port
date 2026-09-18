@@ -3225,7 +3225,20 @@ void modelSetAnimFrame2WithChrStuff(Model *model, f32 framea, f32 frameb, f32 fr
              * NaN. */
             if (!(frameb > -1.0e6f && frameb < 1.0e6f))
             {
-                frameb = framea;
+                frameb = (framea > -1.0e6f && framea < 1.0e6f) ? framea : 0.0f;
+            }
+            /* D311: the original guard only validated frameb. If framea
+             * (model->animframe1) is ALREADY poisoned, "frameb = framea" left
+             * both garbage and floorFloatToInt saturated the two near-equal
+             * huge floats to far-apart ints -- observed live in Caverns:
+             * framea=frameb=-1.67e31 -> curframe=-966612173, endframe=INT_MAX,
+             * ~3.1e9 loop iterations = permanent hang (D156 guard had fired
+             * upstream but passed the poison through). Validate framea too;
+             * with both snapped to 0 the loop does ~0 iterations and the
+             * animframe1 rewrite at :3447 heals the stored state next tick. */
+            if (!(framea > -1.0e6f && framea < 1.0e6f))
+            {
+                framea = (frameb > -1.0e6f && frameb < 1.0e6f) ? frameb : 0.0f;
             }
 #endif
 
@@ -3850,7 +3863,20 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
                     (void *)model->anim);
                 fflush(stderr);
             }
+            /* D311: heal the stored state BEFORE falling back to it -- if
+             * animframe1 is the poison source, "frame = animframe1" would just
+             * re-derive garbage every tick and pin the anim forever. Snapping
+             * it to 0 (a valid frame; modelConstrainOrWrapAnimFrame clamps
+             * further) lets normal accumulation resume next tick. */
+            if (!(model->animframe1 > -1.0e6f && model->animframe1 < 1.0e6f))
+            {
+                model->animframe1 = 0.0f;
+            }
             frame = model->animframe1;
+        }
+        if (!(model->animframe2 > -1.0e6f && model->animframe2 < 1.0e6f))
+        {
+            model->animframe2 = 0.0f;
         }
         if (!(frame2 > -1.0e6f && frame2 < 1.0e6f))
         {

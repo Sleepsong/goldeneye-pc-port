@@ -753,6 +753,26 @@ s32 chraiGoToLabel(AIRecord *AIList, s32 Offset, u8 LabelNum)
         }
         else if (AIList[Offset].cmd == AI_EndList)
         {
+#ifdef PORT
+            /* D309 (diagnosis only, GE_D309=1): label scan ran off the end of
+             * the list -- the decomp's own comment says the restart-PC-to-0
+             * return "causes infinite loop outside of debug". This is the
+             * spin signature; logging it catches any AI list (not just
+             * m_RunToBondPersistent) whose mis-sized skip produced a phantom
+             * GotoNext to a nonexistent label. */
+            {
+                static int s_d309g = -1;
+                static int s_d309gn = 0;
+
+                if (s_d309g < 0) { s_d309g = getenv("GE_D309") != NULL; }
+                if (s_d309g && s_d309gn < 400)
+                {
+                    osSyncPrintf("D309: LABEL-NOT-FOUND list=%p off=%d label=%d\n",
+                                 (void *)AIList, (int)Offset, (int)LabelNum);
+                    s_d309gn++;
+                }
+            }
+#endif
             // restart ai list PC if next label not found - causes infinite loop outside of debug
             listID = chraiGetAIListID(AIList, &isGlobalAIList);
 #ifdef DEBUG
@@ -3338,6 +3358,33 @@ void                   ai(PropDefHeaderRecord *Entityp, PROP_TYPE EntityType)
                 }
                 case AI_PRINT:
                 {
+#ifdef PORT
+                    /* D309 (diagnosis only, GE_D309=1): every active PRINT in
+                     * the AI data is a 1-byte record (the macro drops its
+                     * string), but chraiitemsize sizes it by NUL-scanning
+                     * forward -- so stepping on one always skips past several
+                     * real records and resumes at whatever byte pattern lands
+                     * there. Log each step-on with the landing command byte:
+                     * landcmd==0x00 (AI_GotoNext) is the D309 spin variant;
+                     * a harmless no-op landing is the suspected "guard stands
+                     * still" variant (Caverns, user report 2026-09-18). */
+                    {
+                        static int s_d309p = -1;
+                        static int s_d309pn = 0;
+
+                        if (s_d309p < 0) { s_d309p = getenv("GE_D309") != NULL; }
+                        if (s_d309p && s_d309pn < 400)
+                        {
+                            s32 sz = chraiitemsize(AiListp, Offset);
+
+                            osSyncPrintf("D309: PRINT chr=%d list=%p off=%d size=%d landcmd=0x%02x\n",
+                                         ChrEntityp ? (int)ChrEntityp->chrnum : -1,
+                                         (void *)AiListp, (int)Offset, (int)sz,
+                                         (int)(AiListp[Offset + sz].cmd & 0xff));
+                            s_d309pn++;
+                        }
+                    }
+#endif
     #ifdef ENABLE_LOG
                     AIRecord *ai = AiListp + Offset;
                     osSyncPrintf("AI_PRINT: %s\n", ai->val);

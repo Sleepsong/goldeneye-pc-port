@@ -680,6 +680,26 @@ s32 chraiitemsize(u8 *AIList, s32 offset)
         case AI_ObjectRocketLaunch:
             return sizeof(AiObjectRocketLaunchRecord);
         case AI_PRINT:
+#ifdef PORT
+            /* D310 / RULE-2-SIGNOFF (2026-09-18, grant: "I want to proceed
+             * with your implementation plan here"): the PRINT() macro emits
+             * a 1-byte record (its string is discarded at list-build time),
+             * but the original sizer below NUL-scans forward, so stepping on
+             * a PRINT skips ~20 bytes into whatever follows. Both active
+             * PRINTs in the data are in m_RunToBondPersistent: "no go!" mis-
+             * lands on 00 00 (phantom GotoNext(0) -> label-not-found -> PC
+             * restart -> infinite spin, D309's Caverns->intro freeze), and
+             * "wait" mis-lands on arg bytes reading Label+EndList -> ai()
+             * returns without saving the offset -> Stop re-issued every tick
+             * (guards stand still forever, user report 2026-09-18). Sizing
+             * the record at its true 1-byte size resumes at the next real
+             * record, exactly as the list source intends (full-list decode
+             * verified clean to EndList; post-"wait" sequence matches
+             * chraidata.c line-for-line). Same-engine precedent: PD removed
+             * PRINT and reassigned slot 0xAD (aiChrCopyProperties).
+             * See docs/dev/findings.md D310. */
+            return 1;
+#else
         {
             s32 pos = offset + 1;
             while (AIList[pos] != 0)
@@ -688,6 +708,7 @@ s32 chraiitemsize(u8 *AIList, s32 offset)
             }
             return (pos - offset) + 1;
         }
+#endif
         default:
 #if defined(ENABLE_LOG)
             osSyncPrintf("chraiitemsize: unknown type %d!\n", *AIList);

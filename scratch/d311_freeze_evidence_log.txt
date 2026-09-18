@@ -1,0 +1,611 @@
+[INFO ] GoldenEye 007 PC port starting (ntsc-final, 0c700852 larkspur) -- https://github.com/jkdansereau/goldeneye-pc-port
+[INFO ] config: loaded data\ge007.ini
+[INFO ] all-unlocked: RAM unlock flags seeded (Game.AllUnlocked=1)
+[INFO ] romdataInit: ge007.ntsc-final.z64 (12582912 bytes) mapped at 0x10000000 (cart base), + model sidecars, + bg/stan sidecars
+[INFO ] pcmodels: 512 sidecars (1315680 bytes) at 0x10C00000
+[INFO ] pccg: 73 sidecars (3604378 bytes) at 0x10D41360
+[INFO ] romdataInit: D230 byte-swapped 1 RAW16 wavetable range(s) in place
+[NOTE ] SDL: created GL3.0 context
+[NOTE ] GL: using GLSL version 130
+[INFO ] video: 2979x1705 window (native 640x480)
+[INFO ] audioInit: opened SDL audio device at 22050 Hz
+[INFO ] input: ready (mask=0x1, 1 controller(s), aimSpeed=16)
+[INFO ] ROM mapped at 0x10000000 (12582912 bytes); starting game
+[NOTE ] first block on mq=00000001402864e0 from 0000000140109952 (rel 0000000000109952)
+[INFO ] pcmodels: table patched (512 model entries)
+[INFO ] pccg: table patched (73 bg/stan entries)
+[NOTE ] timer set: t=000000006631fdc0 start=100000us period=0us mq=000000006631fd90
+[NOTE ] first block on mq=000000006631fd90 from 000000014010ff65 (rel 000000000010ff65)
+[NOTE ] D51 vi post #1 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] timer fire: t=000000006631fdc0 mq=000000006631fd90
+[NOTE ] timer set: t=000000006631fdc0 start=100000us period=0us mq=000000006631fd90
+[NOTE ] timer fire: t=000000006631fdc0 mq=000000006631fd90
+[NOTE ] first block on mq=0000000140288920 from 000000014010d659 (rel 000000000010d659)
+[NOTE ] first block on mq=00000001402888a0 from 000000014010d687 (rel 000000000010d687)
+[NOTE ] timer set: t=000000006631fdc0 start=100000us period=0us mq=000000006631fd90
+[NOTE ] timer fire: t=000000006631fdc0 mq=000000006631fd90
+[NOTE ] timer set: t=000000006631fdc0 start=100000us period=0us mq=000000006631fd90
+[NOTE ] timer fire: t=000000006631fdc0 mq=000000006631fd90
+[NOTE ] romdataFixupMusicSeqTable: partial decode, seqCount 63 > capacity 1 (full table follows)
+[NOTE ] first block on mq=0000000140287cd0 from 000000014010a3c1 (rel 000000000010a3c1)
+[NOTE ] first block on mq=0000000140287d38 from 000000014010a4b8 (rel 000000000010a4b8)
+[NOTE ] first block on mq=0000000140285c20 from 00000001401104c2 (rel 00000000001104c2)
+[NOTE ] frame 1 rendered in 44332 us
+[NOTE ] frame 2 rendered in 40 us
+[NOTE ] frame 3 rendered in 484 us
+[NOTE ] frame 4 rendered in 27576 us
+[INFO ] eeprom: loaded data\ge007.eep
+[NOTE ] frame 5 rendered in 11471 us
+[NOTE ] D51 vi post #61 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 300 rendered in 81 us
+[NOTE ] D51 vi post #361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 600 rendered in 217 us
+[NOTE ] D51 vi post #661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 900 rendered in 45 us
+[NOTE ] D51 vi post #961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 1200 rendered in 59 us
+[NOTE ] D51 vi post #1261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 1500 rendered in 203 us
+[NOTE ] D51 vi post #1561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 1800 rendered in 62 us
+[NOTE ] D51 vi post #1861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #1981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 2100 rendered in 173 us
+[NOTE ] D51 vi post #2161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 2400 rendered in 96 us
+[NOTE ] D51 vi post #2461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 2700 rendered in 93 us
+[NOTE ] D51 vi post #2761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #2941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 3000 rendered in 91 us
+[NOTE ] D51 vi post #3061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 3300 rendered in 78 us
+[NOTE ] D51 vi post #3361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 3600 rendered in 82 us
+[NOTE ] D51 vi post #3661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #3901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 3900 rendered in 86 us
+[NOTE ] D51 vi post #3961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 4200 rendered in 2123 us
+[NOTE ] D51 vi post #4261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 4500 rendered in 143 us
+[NOTE ] D51 vi post #4561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 4800 rendered in 78 us
+[NOTE ] D51 vi post #4861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #4981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 5100 rendered in 84 us
+[NOTE ] D51 vi post #5161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 5400 rendered in 33 us
+[NOTE ] D51 vi post #5521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 5700 rendered in 211 us
+[NOTE ] D51 vi post #5821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #5941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 6000 rendered in 31 us
+[NOTE ] D51 vi post #6121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 6300 rendered in 103 us
+[NOTE ] D51 vi post #6421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 6600 rendered in 89 us
+[NOTE ] D51 vi post #6721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #6961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 6900 rendered in 96 us
+[NOTE ] D51 vi post #7021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 7200 rendered in 98 us
+[NOTE ] D51 vi post #7321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 7500 rendered in 82 us
+[NOTE ] D51 vi post #7621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 7800 rendered in 153 us
+[NOTE ] D51 vi post #7921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #7981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 8100 rendered in 96 us
+[NOTE ] D51 vi post #8221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] frame 8400 rendered in 108 us
+[D156] bad anim frame guarded: frame=-1.6708e+31 animframe1=-1.6708e+31 speed=0.220735 playspeed=1 newspeed=-3.23355e+07 oldspeed=-1.75136e+18 timespeed=0 elapsespeed=-3.72072e-26 unkb0=0 unk88=12 anim=00000000706af530
+[NOTE ] D51 vi post #8521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #8941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[ERROR] kernel heartbeat: no frame rendered for 8014 ms (frames=8424); state:
+[ERROR]   T0(id=3) os=0000000140285e20 entry_rel=0000000000108b00 started=1 exited=0
+[ERROR]   T1(id=1) os=0000000140285fe0 entry_rel=00000000001087e0 started=1 exited=1
+[ERROR]   T2(id=0) os=00000001402861a0 entry_rel=00000000000e0be0 started=1 exited=1
+[ERROR]   T3(id=2) os=0000000140285c60 entry_rel=0000000000109920 started=1 exited=0
+[ERROR]   T4(id=4) os=0000000140287b10 entry_rel=000000000010a360 started=1 exited=0
+[ERROR]   mq=0000000140285c20 valid=32/32 first=22
+[ERROR]   mq=00000001402864e0 valid=0/8 first=2
+[ERROR]   mq=0000000140286548 valid=1/8 first=2
+[ERROR]   mq=00000001402983c0 valid=0/1 first=0
+[ERROR]   mq=0000000140288960 valid=0/1 first=0
+[ERROR]   mq=0000000140288920 valid=0/1 first=0
+[ERROR]   mq=00000001402888e0 valid=0/1 first=0
+[ERROR]   mq=00000001402888a0 valid=0/1 first=0
+[ERROR]   mq=00000001402889a0 valid=1/10 first=1
+[ERROR]   mq=000000006631fd90 valid=0/0 first=0
+[ERROR]   mq=00000001401f8700 valid=0/8 first=0
+[ERROR]   mq=0000000140287d38 valid=0/8 first=2
+[ERROR]   mq=0000000140287cd0 valid=0/8 first=3
+[ERROR]   mq=0000000140286840 valid=1/64 first=10
+[ERROR]   viRetraceMQ=00000001402864e0 msg=666 tickInterval=16666 us
+[ERROR]   [thread 32268 'mainThread']
+[ERROR]     #0 0000000140130942 ?
+[ERROR]     #1 000000014008497e ?
+[ERROR]     #2 0000000140085497 ?
+[ERROR]     #3 000000014000aaf0 ?
+[ERROR]     #4 0000000140014b24 ?
+[ERROR]     #5 000000014001be69 ?
+[ERROR]     #6 000000014001f60e ?
+[ERROR]     #7 000000014007cca1 ?
+[ERROR]   [thread 10432 'shedThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 0000000140109952 ?
+[ERROR]   [thread 39316 'audioThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 000000014010a4b8 ?
+[NOTE ] D51 vi post #9001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[ERROR] kernel heartbeat: no frame rendered for 13020 ms (frames=8424); state:
+[ERROR]   T0(id=3) os=0000000140285e20 entry_rel=0000000000108b00 started=1 exited=0
+[ERROR]   T1(id=1) os=0000000140285fe0 entry_rel=00000000001087e0 started=1 exited=1
+[ERROR]   T2(id=0) os=00000001402861a0 entry_rel=00000000000e0be0 started=1 exited=1
+[ERROR]   T3(id=2) os=0000000140285c60 entry_rel=0000000000109920 started=1 exited=0
+[ERROR]   T4(id=4) os=0000000140287b10 entry_rel=000000000010a360 started=1 exited=0
+[ERROR]   mq=0000000140285c20 valid=32/32 first=22
+[ERROR]   mq=00000001402864e0 valid=0/8 first=6
+[ERROR]   mq=0000000140286548 valid=1/8 first=6
+[ERROR]   mq=00000001402983c0 valid=0/1 first=0
+[ERROR]   mq=0000000140288960 valid=0/1 first=0
+[ERROR]   mq=0000000140288920 valid=0/1 first=0
+[ERROR]   mq=00000001402888e0 valid=0/1 first=0
+[ERROR]   mq=00000001402888a0 valid=0/1 first=0
+[ERROR]   mq=00000001402889a0 valid=1/10 first=9
+[ERROR]   mq=000000006631fd90 valid=0/0 first=0
+[ERROR]   mq=00000001401f8700 valid=0/8 first=0
+[ERROR]   mq=0000000140287d38 valid=0/8 first=6
+[ERROR]   mq=0000000140287cd0 valid=0/8 first=7
+[ERROR]   mq=0000000140286840 valid=3/64 first=29
+[ERROR]   viRetraceMQ=00000001402864e0 msg=666 tickInterval=16666 us
+[ERROR]   [thread 32268 'mainThread']
+[ERROR]     #0 00000001400812b0 ?
+[ERROR]     #1 00000001400848ff ?
+[ERROR]     #2 0000000140085497 ?
+[ERROR]     #3 000000014000aaf0 ?
+[ERROR]     #4 0000000140014b24 ?
+[ERROR]     #5 000000014001be69 ?
+[ERROR]     #6 000000014001f60e ?
+[ERROR]     #7 000000014007cca1 ?
+[ERROR]   [thread 10432 'shedThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 0000000140109952 ?
+[ERROR]   [thread 39316 'audioThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 000000014010a4b8 ?
+[NOTE ] D51 vi post #9301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[ERROR] kernel heartbeat: no frame rendered for 18025 ms (frames=8424); state:
+[ERROR]   T0(id=3) os=0000000140285e20 entry_rel=0000000000108b00 started=1 exited=0
+[ERROR]   T1(id=1) os=0000000140285fe0 entry_rel=00000000001087e0 started=1 exited=1
+[ERROR]   T2(id=0) os=00000001402861a0 entry_rel=00000000000e0be0 started=1 exited=1
+[ERROR]   T3(id=2) os=0000000140285c60 entry_rel=0000000000109920 started=1 exited=0
+[ERROR]   T4(id=4) os=0000000140287b10 entry_rel=000000000010a360 started=1 exited=0
+[ERROR]   mq=0000000140285c20 valid=32/32 first=22
+[ERROR]   mq=00000001402864e0 valid=0/8 first=2
+[ERROR]   mq=0000000140286548 valid=1/8 first=2
+[ERROR]   mq=00000001402983c0 valid=0/1 first=0
+[ERROR]   mq=0000000140288960 valid=0/1 first=0
+[ERROR]   mq=0000000140288920 valid=0/1 first=0
+[ERROR]   mq=00000001402888e0 valid=0/1 first=0
+[ERROR]   mq=00000001402888a0 valid=0/1 first=0
+[ERROR]   mq=00000001402889a0 valid=1/10 first=8
+[ERROR]   mq=000000006631fd90 valid=0/0 first=0
+[ERROR]   mq=00000001401f8700 valid=0/8 first=0
+[ERROR]   mq=0000000140287d38 valid=0/8 first=2
+[ERROR]   mq=0000000140287cd0 valid=0/8 first=3
+[ERROR]   mq=0000000140286840 valid=2/64 first=4
+[ERROR]   viRetraceMQ=00000001402864e0 msg=666 tickInterval=16666 us
+[ERROR]   [thread 32268 'mainThread']
+[ERROR]     #0 0000000140081029 ?
+[ERROR]     #1 00000001400811f3 ?
+[ERROR]     #2 0000000140081288 ?
+[ERROR]     #3 00000001400848ff ?
+[ERROR]     #4 0000000140085497 ?
+[ERROR]     #5 000000014000aaf0 ?
+[ERROR]     #6 0000000140014b24 ?
+[ERROR]     #7 000000014001be69 ?
+[ERROR]   [thread 10432 'shedThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 0000000140109952 ?
+[ERROR]   [thread 39316 'audioThread']
+[ERROR]     #0 00007ffb4fb4e104 NtWaitForMultipleObjects+14
+[ERROR]     #1 00007ffb4d580d10 WaitForMultipleObjectsEx+f0
+[ERROR]     #2 00007ffb4d580c0e WaitForMultipleObjects+e
+[ERROR]     #3 00007ffb4776242a pthread_cond_init+18a
+[ERROR]     #4 00007ffb477626ed pthread_cond_init+44d
+[ERROR]     #5 00007ffb47762ec7 pthread_cond_wait+217
+[ERROR]     #6 00000001400de2db ?
+[ERROR]     #7 000000014010a4b8 ?
+[NOTE ] D51 vi post #9601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #9961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #10981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #11941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #12961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #13981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #14941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #15961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #16981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #17941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #18961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #19981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D204: audio queue full (2928/2880 frames), dropped block #1
+[NOTE ] D51 vi post #20101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #20941 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21001 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21061 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21121 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21181 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21241 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21301 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21361 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21421 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21481 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21541 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21601 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21661 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21721 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21781 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21841 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21901 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #21961 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22021 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22081 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22141 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22201 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22261 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22321 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22381 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22441 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22501 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22561 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22621 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22681 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22741 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22801 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22861 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22921 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #22981 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23041 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23101 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23161 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23221 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23281 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23341 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23401 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23461 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23521 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23581 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23641 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23701 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23761 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23821 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23881 mq=00000001402864e0 msg=666 valid=1/8 ret=0
+[NOTE ] D51 vi post #23941 mq=00000001402864e0 msg=666 valid=1/8 ret=0

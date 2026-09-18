@@ -1,0 +1,217 @@
+[New Thread 35936.0x9b30]
+[New Thread 35936.0xac8c]
+[New Thread 35936.0xaea4]
+[New Thread 35936.0x63cc]
+[New Thread 35936.0x7e0c]
+[New Thread 35936.0x23e4]
+[New Thread 35936.0x3ecc]
+[New Thread 35936.0xb1a8]
+[New Thread 35936.0xb390]
+[New Thread 35936.0xa984]
+[New Thread 35936.0xa1ec]
+[New Thread 35936.0xb190]
+[New Thread 35936.0xa500]
+[New Thread 35936.0x51b4]
+  Id   Target Id                        Frame 
+  1    Thread 35936.0x8228              0x00007ffb4facd781 in ntdll!RtlFindCharInUnicodeString () from C:\Windows\SYSTEM32\ntdll.dll
+  2    Thread 35936.0x9b30              0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+  3    Thread 35936.0xac8c              0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+  4    Thread 35936.0xaea4              0x00007ffb4d88a124 in win32u!NtUserMsgWaitForMultipleObjectsEx () from C:\Windows\System32\win32u.dll
+  5    Thread 35936.0x63cc "SDLAudioP2" 0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+  6    Thread 35936.0x7e0c              0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+  7    Thread 35936.0x23e4              0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+  8    Thread 35936.0x3ecc              0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+  9    Thread 35936.0xb1a8              0x000000014003a4dd in chraiitemsize (AIList=AIList@entry=0x14014f360 <m_RunToBondPersistent> "\002((\033­\002\033\003<\006/\002\001\033\002\001\003x\006-Ÿ", offset=offset@entry=133) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chrai.c:162
+  10   Thread 35936.0xb390              0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+  11   Thread 35936.0xa984              0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+  12   Thread 35936.0xa1ec              0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+  13   Thread 35936.0xb190              0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+  14   Thread 35936.0xa500              0x00007ffb4fb51044 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+* 15   Thread 35936.0x51b4              0x00007ffb4fb510e1 in ntdll!DbgBreakPoint () from C:\Windows\SYSTEM32\ntdll.dll
+
+Thread 15 (Thread 35936.0x51b4):
+#0  0x00007ffb4fb510e1 in ntdll!DbgBreakPoint () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4fb7cb3e in ntdll!DbgUiRemoteBreakin () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+
+Thread 14 (Thread 35936.0xa500):
+#0  0x00007ffb4fb51044 in ntdll!ZwWaitForWorkViaWorkerFactory () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4fafd407 in ntdll!TpReleaseCleanupGroupMembers () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#3  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#4  0x0000000000000000 in ?? ()
+
+Thread 13 (Thread 35936.0xb190):
+#0  0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d54b6ae in WaitForSingleObjectEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ff96823cd8a in nvoglv64!DrvValidateVersion () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#3  0x00007ff967fc0daa in ?? () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#4  0x00007ff967fc079e in ?? () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#5  0x00007ff96823ecc8 in nvoglv64!DrvValidateVersion () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#6  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#7  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#8  0x0000000000000000 in ?? ()
+
+Thread 12 (Thread 35936.0xa1ec):
+#0  0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d580d10 in WaitForMultipleObjectsEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffb4d580c0e in WaitForMultipleObjects () from C:\Windows\System32\KernelBase.dll
+#3  0x00007ffb3070242a in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#4  0x00007ffb307026ed in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#5  0x00007ffb30702ec7 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#6  0x00000001400e001b in osRecvMesg (mq=mq@entry=0x140289d18 <g_AudioManager+600>, msg=msg@entry=0x654afe18, flag=flag@entry=1) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:700
+#7  0x000000014010c1f8 in amMain (arg=<optimized out>) at C:/Users/james/Source/Repos/gh-fullhist/src/audi.c:472
+#8  0x00000001400e0de4 in portThreadWrapper (arg=0x140229f00 <g_pt+224>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:386
+#9  portThreadWrapper (arg=0x140229f00 <g_pt+224>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:367
+#10 0x00007ffb30706dad in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#11 0x00007ffb4e35af5a in msvcrt!_beginthreadex () from C:\Windows\System32\msvcrt.dll
+#12 0x00007ffb4e35b02c in msvcrt!_endthreadex () from C:\Windows\System32\msvcrt.dll
+#13 0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#14 0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#15 0x0000000000000000 in ?? ()
+
+Thread 11 (Thread 35936.0xa984):
+#0  0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d580d10 in WaitForMultipleObjectsEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffb4d580c0e in WaitForMultipleObjects () from C:\Windows\System32\KernelBase.dll
+#3  0x00007ffb3070242a in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#4  0x00007ffb307026ed in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#5  0x00007ffb30702ec7 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#6  0x00000001400e001b in osRecvMesg (mq=mq@entry=0x1402884c0 <os_scheduler+64>, msg=msg@entry=0x65cafe18, flag=flag@entry=1) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:700
+#7  0x000000014010b692 in __scMain (arg=0x140288480 <os_scheduler>) at C:/Users/james/Source/Repos/gh-fullhist/src/sched.c:254
+#8  0x00000001400e0de4 in portThreadWrapper (arg=0x140229ec8 <g_pt+168>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:386
+#9  portThreadWrapper (arg=0x140229ec8 <g_pt+168>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:367
+#10 0x00007ffb30706dad in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#11 0x00007ffb4e35af5a in msvcrt!_beginthreadex () from C:\Windows\System32\msvcrt.dll
+#12 0x00007ffb4e35b02c in msvcrt!_endthreadex () from C:\Windows\System32\msvcrt.dll
+#13 0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#14 0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#15 0x0000000000000000 in ?? ()
+
+Thread 10 (Thread 35936.0xb390):
+#0  0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d5762de in SleepEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00000001400e0e2a in portThreadWrapper (arg=0x140229e58 <g_pt+56>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:382
+#3  0x00007ffb30706dad in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#4  0x00007ffb4e35af5a in msvcrt!_beginthreadex () from C:\Windows\System32\msvcrt.dll
+#5  0x00007ffb4e35b02c in msvcrt!_endthreadex () from C:\Windows\System32\msvcrt.dll
+#6  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#7  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#8  0x0000000000000000 in ?? ()
+
+Thread 9 (Thread 35936.0xb1a8):
+#0  0x000000014003a4dd in chraiitemsize (AIList=AIList@entry=0x14014f360 <m_RunToBondPersistent> "\002((\033­\002\033\003<\006/\002\001\033\002\001\003x\006-Ÿ", offset=offset@entry=133) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chrai.c:162
+#1  0x000000014003d89a in chraiGoToLabel (AIList=0x14014f360 <m_RunToBondPersistent>, Offset=133, LabelNum=0 '\000') at C:/Users/james/Source/Repos/gh-fullhist/src/game/chrai.c:772
+#2  ai (Entityp=Entityp@entry=0x701d0f60, EntityType=EntityType@entry=PROP_TYPE_CHR) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chrai.c:928
+#3  0x0000000140038799 in chrlvActionTick (self=self@entry=0x701d0f60) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chraction.c:9445
+#4  0x0000000140038a92 in chrlvActionTick (self=self@entry=0x701d0f60) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chraction.c:9428
+#5  0x0000000140026200 in chrTick (prop=prop@entry=0x1401ee680 <g_Props+23136>) at C:/Users/james/Source/Repos/gh-fullhist/src/game/chr.c:2504
+#6  0x0000000140044450 in propsTick () at C:/Users/james/Source/Repos/gh-fullhist/src/game/chrprop.c:1946
+#7  0x000000014007d60b in lvlRender (DL=DL@entry=0x700922e0) at C:/Users/james/Source/Repos/gh-fullhist/src/game/lv.c:791
+#8  0x00000001401123da in bossMainloop () at C:/Users/james/Source/Repos/gh-fullhist/src/boss.c:633
+#9  0x00000001401128ec in bossEntry () at C:/Users/james/Source/Repos/gh-fullhist/src/boss.c:315
+#10 0x00000001400e0de4 in portThreadWrapper (arg=0x140229e20 <g_pt>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:386
+#11 portThreadWrapper (arg=0x140229e20 <g_pt>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:367
+#12 0x00007ffb30706dad in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#13 0x00007ffb4e35af5a in msvcrt!_beginthreadex () from C:\Windows\System32\msvcrt.dll
+#14 0x00007ffb4e35b02c in msvcrt!_endthreadex () from C:\Windows\System32\msvcrt.dll
+#15 0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#16 0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#17 0x0000000000000000 in ?? ()
+
+Thread 8 (Thread 35936.0x3ecc):
+#0  0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d5762de in SleepEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00000001400dfe1f in portTickThread (arg=<optimized out>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/libultra.c:305
+#3  0x00007ffb30706dad in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\libwinpthread-1.dll
+#4  0x00007ffb4e35af5a in msvcrt!_beginthreadex () from C:\Windows\System32\msvcrt.dll
+#5  0x00007ffb4e35b02c in msvcrt!_endthreadex () from C:\Windows\System32\msvcrt.dll
+#6  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#7  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#8  0x0000000000000000 in ?? ()
+
+Thread 7 (Thread 35936.0x23e4):
+#0  0x00007ffb4fb4dc34 in ntdll!ZwDelayExecution () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d5762de in SleepEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffb4265d6e7 in Windows.Gaming.Input!DllGetClassObject () from C:\Windows\System32\Windows.Gaming.Input.dll
+#3  0x00007ffb4265d54c in Windows.Gaming.Input!DllGetClassObject () from C:\Windows\System32\Windows.Gaming.Input.dll
+#4  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#5  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#6  0x0000000000000000 in ?? ()
+
+Thread 6 (Thread 35936.0x7e0c):
+#0  0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d580d10 in WaitForMultipleObjectsEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffb46fa7ebf in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#3  0x00007ffb46fa7ba9 in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#4  0x00007ffb46fa7331 in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#5  0x00007ffb46fa65b4 in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#6  0x00007ffb46fa9d34 in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#7  0x00007ffb46fa6a98 in CreateDispatcherQueueController () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#8  0x00007ffb46fde515 in CoreUICreateEx () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#9  0x00007ffb46fdd39b in CoreUICreateEx () from C:\Windows\SYSTEM32\CoreMessaging.dll
+#10 0x00007ffb3fb625da in SetInputFocus () from C:\Windows\SYSTEM32\InputHost.dll
+#11 0x00007ffb3fb66829 in InputHost!DllGetActivationFactory () from C:\Windows\SYSTEM32\InputHost.dll
+#12 0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#13 0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#14 0x0000000000000000 in ?? ()
+
+Thread 5 (Thread 35936.0x63cc "SDLAudioP2"):
+#0  0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d54b6ae in WaitForSingleObjectEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffaa98bf65d in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#3  0x00007ffaa9754ddf in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#4  0x00007ffaa980a777 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#5  0x00007ffaa98d2e6e in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#6  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#7  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#8  0x0000000000000000 in ?? ()
+
+Thread 4 (Thread 35936.0xaea4):
+#0  0x00007ffb4d88a124 in win32u!NtUserMsgWaitForMultipleObjectsEx () from C:\Windows\System32\win32u.dll
+#1  0x00007ffb4edf0c8e in USER32!MsgWaitForMultipleObjectsEx () from C:\Windows\System32\user32.dll
+#2  0x00007ff96823528f in nvoglv64!DrvValidateVersion () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#3  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#4  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#5  0x0000000000000000 in ?? ()
+
+Thread 3 (Thread 35936.0xac8c):
+#0  0x00007ffb4fb4d634 in ntdll!ZwWaitForSingleObject () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d54b6ae in WaitForSingleObjectEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ff96823cd8a in nvoglv64!DrvValidateVersion () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#3  0x00007ff967fc0daa in ?? () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#4  0x00007ff967fc079e in ?? () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#5  0x00007ff96823ecc8 in nvoglv64!DrvValidateVersion () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#6  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#7  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#8  0x0000000000000000 in ?? ()
+
+Thread 2 (Thread 35936.0x9b30):
+#0  0x00007ffb4fb4e104 in ntdll!ZwWaitForMultipleObjects () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4d580d10 in WaitForMultipleObjectsEx () from C:\Windows\System32\KernelBase.dll
+#2  0x00007ffb4d580c0e in WaitForMultipleObjects () from C:\Windows\System32\KernelBase.dll
+#3  0x00007ff968271597 in nvoglv64!DrvPresentBuffers () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#4  0x00007ff968270b18 in nvoglv64!DrvPresentBuffers () from C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_b20cc8aeaed64fc2\nvoglv64.dll
+#5  0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#6  0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#7  0x0000000000000000 in ?? ()
+
+Thread 1 (Thread 35936.0x8228):
+#0  0x00007ffb4facd781 in ntdll!RtlFindCharInUnicodeString () from C:\Windows\SYSTEM32\ntdll.dll
+#1  0x00007ffb4fb1a7b2 in ntdll!ApiSetQueryApiSetPresenceEx () from C:\Windows\SYSTEM32\ntdll.dll
+#2  0x00007ffb4d59751f in KERNELBASE!IsApiSetImplemented () from C:\Windows\System32\KernelBase.dll
+#3  0x00007ffb4edf13d2 in USER32!GetSystemMetrics () from C:\Windows\System32\user32.dll
+#4  0x00007ffaa98f42a3 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#5  0x00007ffaa97a624d in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#6  0x00007ffaa978a185 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#7  0x00007ffaa978a8a5 in ?? () from C:\Users\james\Desktop\ge007-v0.3.0-playtest\SDL2.dll
+#8  0x00000001400e99c8 in videoPumpEvents () at C:/Users/james/Source/Repos/gh-fullhist/port/src/video.c:537
+#9  0x00000001400e15d5 in SDL_main (argc=<optimized out>, argv=<optimized out>) at C:/Users/james/Source/Repos/gh-fullhist/port/src/main.c:244
+#10 0x0000000140115c9c in main_getcmdline ()
+#11 0x0000000140001157 in __tmainCRTStartup () at D:/W/B/src/mingw-w64/mingw-w64-crt/crt/crtexe.c:266
+#12 0x00007ffb4ed17384 in KERNEL32!BaseThreadInitThunk () from C:\Windows\System32\kernel32.dll
+#13 0x00007ffb4fafcc91 in ntdll!RtlUserThreadStart () from C:\Windows\SYSTEM32\ntdll.dll
+#14 0x0000000000000000 in ?? ()
+[Inferior 1 (process 35936) detached]

@@ -186,3 +186,4 @@ D305,FIXED,"Steam Deck SIGSEGV on the v0.3.0 pre-release build (Cavern, early in
 D306,OPEN,"Dam intro/truck wheels render with odd transparent-looking areas, possibly z-fighting (user QA, 2026-09-18).","OPEN — reported only, not investigated."
 D307,OPEN,"In-level security camera entities can be flipped facing the wrong direction (backwards) on some levels, e.g.","OPEN — reported only, not investigated."
 D308,OPEN,"Occasional z-fighting confirmed on some levels' geometry, general/broader than the D306 truck-wheel instance (user QA, 2026-09-18).","OPEN — reported/confirmed by the user, not investigated."
+D309,OPEN,Complete non-self-recovering freeze (Windows) returning from Caverns to the intro screen —,OPEN — root cause fully identified and evidenced (mechanism below); no fix made.

@@ -594,6 +594,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D306 | **Dam intro/truck wheels render with odd transparent-looking areas, possibly z-fighting (user QA, 2026-09-18).** — full `## D306` entry at file tail | OPEN — reported only, not investigated. Explicitly not for v0.3.0. |
 | D307 | **In-level security camera entities can be flipped facing the wrong direction (backwards) on some levels, e.g. Bunker (user QA, 2026-09-18) — NOT the player's view camera.** — full `## D307` entry at file tail | OPEN — reported only, not investigated. Explicitly not for v0.3.0. |
 | D308 | **Occasional z-fighting confirmed on some levels' geometry, general/broader than the D306 truck-wheel instance (user QA, 2026-09-18).** — full `## D308` entry at file tail | OPEN — reported/confirmed by the user, not investigated. Explicitly not for v0.3.0; D306 may be one instance of this. |
+| D309 | **Complete non-self-recovering freeze (Windows) returning from Caverns to the intro screen — boss thread spins forever in `ai()` on `m_RunToBondPersistent` via a phantom `GotoNext(lblZero)` created by `chraiitemsize`'s `AI_PRINT` NUL-scan mis-sizing a stringless PRINT record (user report + live GDB diagnosis, 2026-09-18).** — full `## D309` entry at file tail | OPEN — root cause fully identified and evidenced (mechanism below); no fix made. Latent original N64 bug exposed by PC teardown ordering; fix bucket undetermined (port-side teardown ordering vs rule-2 sign-off). User decision owed: fix before v0.3.0 tag or log as known issue. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -11878,6 +11879,27 @@ do {
 **Reported/confirmed by the user, not investigated, explicitly not for v0.3.0.** User: "Confirmed occasional z-fighting in some levels due to the level geometry and current state of code" — framed as a general, known-class issue (overlapping/coincident geometry at the current renderer's precision) rather than a single specific bug site. D306 (Dam truck wheels) may be one visible instance of this broader class, not confirmed as the same mechanism.
 
 **Status:** OPEN — logged, no investigation started. Deferred past v0.3.0 by user instruction.
+
+## D309 — Complete non-self-recovering freeze (Windows) returning from Caverns to the intro screen — boss thread spins forever in `ai()` on `m_RunToBondPersistent` via a phantom `GotoNext(lblZero)` (user report + live GDB diagnosis, 2026-09-18).
+
+**Repro (user):** played through Caverns, then returned to the intro screen (Bond's intro circles); game locked up completely, no self-recovery. Process left alive for live diagnosis (PID 35936 at capture time).
+
+**Live evidence (GDB attach, frozen process):**
+- Boss/game thread (T9) stack: `bossMainloop` → `lvlRender` → `chrlvActionTick` → `ai()` (`src/game/chrai.c:928`) → `chraiGoToLabel(AIList=m_RunToBondPersistent, Offset=133 [mid-scan], LabelNum=0)` → `chraiitemsize`. Main thread idle in the SDL event pump. Stacks: `scratch/freeze_caverns_stacks.txt`.
+- The AI list's live memory was dumped (`x/160bzx m_RunToBondPersistent`, `scratch/freeze_ailist_dump.txt`) and compared byte-for-byte against the compiled object (`objcopy` of `chraidata.c.obj` `.data`): **IDENTICAL** — no runtime corruption, and since the decomp is byte-matched to ROM, no data-side explanation. ABI/pointer-width drift was also ruled out structurally: every AI record type is `#pragma pack(1)` small-int (no pointer fields), so `chraiitemsize`'s `sizeof`s match N64 widths exactly.
+
+**Root-cause chain (all verified against source + live bytes):**
+1. `m_RunToBondPersistent` (`src/game/chraidata.c:551`) begins `Label(lblRun)` / `TRYRunToBond(lblRunning)` / `PRINT("no go!\n")` / `DO(lblRunning)` … The decompiled `PRINT` macro (`src/aicommands2.h:4913`) expands to **only the one command byte** — no string is stored in the stream.
+2. `chraiitemsize()`'s `AI_PRINT` case (`src/game/chrai.c:682`) sizes the record by scanning forward until a NUL byte. With no embedded string, it runs 18 bytes past the PRINT at offset +4 (through eight real records) to the first NUL at +21 (inside an `IFMychrflagsHas` record).
+3. Execution resumes at +22 = bytes `00 00`, which decode as `AI_GotoNext` with `GOTOLABEL=0` (`lblZero`). A full named decode of the list (decoder: `scratch/decode_ailist.c`, command table: `scratch/ai_cmd_vals.txt`) confirms the stream is otherwise perfectly coherent — `Label(40=lblRun)`, `TRYRunToBond(27=lblRunning)`, `PRINT`, `Label(27)`+`Yield`, … all matching the source exactly — and that **no `Label(0)` exists anywhere in the list**.
+4. `chraiGoToLabel` scans forward from +22 for label 0, reaches `AI_EndList`, and returns 0 — the decomp's own comment: "restart ai list PC if next label not found - causes infinite loop outside of debug" (`src/game/chrai.c:753`).
+5. `ai()` sets `Offset=0` and its `for(;;)` restarts: `TRYRunToBond` fails **immediately without yielding** (`chrGoToBond` false → plain fall-through, `src/game/chrai.c:1534`) → PRINT → 18-byte mis-skip → phantom `GotoNext(0)` → scan → 0 → repeat. Tight infinite loop inside a single `ai()` call — matches the observed stack exactly.
+
+**Why PC and not N64:** code and data are ground truth, so given this state the N64 would spin identically — this is a **latent original bug** requiring a guard on this list to tick AI while Bond is unreachable ("guard can't reach bond"). The repro (level teardown back to the intro screen) is exactly such a window: on PC the boss thread still ticks a guard whose level/Bond state is already invalid, and the state never recovers so the spin is permanent. Same freeze class as D287 (Windows, non-self-recovering) / D286 (Deck). Not yet established *why* the N64 scheduler never presents this state (teardown ordering / single-threaded timing) — that's the open question for any fix.
+
+**Fix bucket:** NOT an ABI/layout exception (no pointer-width involvement at all). The decomp's code+data are faithful; the divergence is in *when* the state occurs, i.e. PC teardown/scheduling. A port-side fix (ensure guards stop ticking AI before/while Bond+level state goes invalid on level exit) is the natural home and needs its own investigation of the teardown ordering (`gesched.c` / boss-thread vs level-unload race). Any `src/game` edit would require rule-2 sign-off.
+
+**Status:** OPEN — root cause identified with full evidence; no fix made. **Release impact:** user decision owed — fix before the v0.3.0 tag, or ship with a known-issue note (complete freeze on Caverns→intro transition).
 
 ## D173/D292 — user confirmation, 2026-09-18: mostly fixed as a side effect of D243's root cause.
 

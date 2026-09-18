@@ -45,6 +45,7 @@
 #include "video.h"
 #include "input.h"
 #include "optionsoverlay.h"
+#include "../fast3d/gfx_api.h"
 
 /* ---- game symbols (rendering/UI only; see input.c for the same pattern) ---- */
 struct font;
@@ -62,11 +63,24 @@ extern s16   viGetY(void);
 
 /* ------------------------------------------------------------------------ */
 
-enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION };
+enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION, ROW_FPSCAP };
 
 static const char *const kOnOff[]     = { "OFF", "ON", NULL };
 static const char *const kTexFilter[] = { "NEAREST", "BILINEAR", "3-POINT", NULL };
 static const int         kMsaaSeq[]   = { 1, 2, 4, 8 };
+/* D186: the sim's own tick pacemaker is hardcoded to the console's native VI
+ * rate (60Hz NTSC / 50Hz PAL, port/src/libultra.c) -- Video.FpsCap can only
+ * throttle down from there, never past it, and throttling it below 30
+ * throttles game logic itself (video.c already force-uncaps anything under
+ * 30). A free 0-360 slider therefore had a huge dead zone (every value above
+ * the console rate is a no-op, every value 1-29 silently snaps to 0) with
+ * only two states that actually do anything. Exposed as a plain 30/60 toggle
+ * instead (user ask, 2026-09-18). A third "uncapped" (0, skip the port's own
+ * frame-pacing wait) state exists at the config level and old inis may still
+ * have it, but it's dropped from the menu: with VSync on (the default) it's
+ * indistinguishable from 60, and with VSync off it just burns GPU time
+ * re-presenting the same simulated frame -- confusing for no real benefit. */
+static const int         kFpsCapSeq[] = { 30, 60 };
 
 /* Windowed-mode resolution presets. Filtered at init to those that fit the
  * desktop; the Resolution row cycles the surviving list. */
@@ -107,7 +121,7 @@ static struct Row rows[] = {
     { "Video.Fullscreen",         "Fullscreen",       ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
     { "__Resolution",             "Resolution",       ROW_RES,    0,    NULL,       0, 0, 0,   0,0,0,0,0 },
     { "Video.VSync",              "VSync",            ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
-    { "Video.FpsCap",             "Frame cap",        ROW_SLIDER, 10,   NULL,       0, 0, 360, 0,0,0,0,0 },
+    { "Video.FpsCap",             "Frame cap",        ROW_FPSCAP, 0,    NULL,       0, 0, 0,   0,0,0,0,0 },
     { "Video.MSAA",               "MSAA",             ROW_MSAA,   0,    NULL,       1, 0, 0,   0,0,0,0,0 },
     { "Video.TextureFilter",      "Texture filter",   ROW_ENUM,   1,    kTexFilter, 0, 0, 0,   0,0,0,0,0 },
     { "Video.Anisotropy",         "Anisotropic",      ROW_SLIDER, 1,    NULL,       0, 0, 0,   0,0,0,0,0 },
@@ -271,13 +285,18 @@ static void sliderBarSpan(s32 *x0, s32 *x1)
  * instead -- reported as "I clicked unlock all and I think it crashed"
  * (user, 2026-09-18): the game didn't crash, __QuitToDesktop's ROW_ACTION
  * fired and closed it via the game's normal exit path. Fix: bound the scan
- * to the same [s_scroll, pLast] range the draw loop actually renders. */
+ * to the same [s_scroll, pLast] range the draw loop actually renders.
+ *
+ * D316 fix: the band used to be [Y-3, Y+12) -- 3 units above OV_ROW_Y but
+ * 12 below it, a systematic downward bias baked in independent of the
+ * mouse-mapping bug above. Centered here on OV_ROW_Y so a borderline click
+ * no longer favors the row below. */
 static int overlayRowAtY(double oy)
 {
     int maxV = maxVisibleRows();
     int pLast = (s_visN - s_scroll < maxV) ? s_visN - 1 : s_scroll + maxV - 1;
     for (int p = s_scroll; p <= pLast; p++) {
-        double top = OV_ROW_Y(p - s_scroll) - 3;
+        double top = OV_ROW_Y(p - s_scroll) - OV_LINE / 2;
         if (oy >= top && oy < top + OV_LINE) {
             return p;
         }
@@ -550,6 +569,15 @@ static void rowAdjust(struct Row *r, int dir)
         rowSet(r, v);
         break;
     }
+    case ROW_FPSCAP: {
+        int idx = 0;
+        for (int i = 0; i < 2; i++) {
+            if (kFpsCapSeq[i] == (int)lround(v)) idx = i;
+        }
+        idx = (idx + dir + 2) % 2;
+        rowSet(r, (double)kFpsCapSeq[idx]);
+        break;
+    }
     case ROW_RES: {
         if (s_resFitN <= 0 || videoIsFullscreen()) {
             break;   /* resolution is windowed-only */
@@ -629,6 +657,15 @@ static void sliderSetFromX(struct Row *r, double ox)
     rowSet(r, v);
 }
 
+/* D314 (findings.md): F10 menu items flicker/mis-land on the file-select
+ * screen, mechanism unpinned. Ruled out: viGetX/viGetY (stable per-screen,
+ * set once by front.c) and non-determinism in the display list. This logs
+ * the remaining suspects -- viGetY(), s_visN, s_scroll, s_sel -- once per
+ * frame while the overlay is open, to catch whichever one oscillates during
+ * a file-select repro. Env-gated, cached once (not re-queried per frame --
+ * see D302: a hot-path getenv() regression cost a real bug before). */
+static int s_d314Enabled = -1;   /* -1 = not yet resolved */
+
 void optionsOverlayHandleInput(void)
 {
     static int prevUp, prevDn, prevLf, prevRt, prevLmb, prevRmb;
@@ -638,6 +675,14 @@ void optionsOverlayHandleInput(void)
         prevUp = prevDn = prevLf = prevRt = prevLmb = prevRmb = 0;
         dragRow = -1;
         return;
+    }
+
+    if (s_d314Enabled < 0) {
+        s_d314Enabled = getenv("GE_D314") ? 1 : 0;
+    }
+    if (s_d314Enabled) {
+        fprintf(stderr, "GE_D314 viGetY=%d visN=%d scroll=%d sel=%d\n",
+                (int)viGetY(), s_visN, s_scroll, s_sel);
     }
 
     /* The overlay owns the mouse while it is open: force the OS cursor free +
@@ -687,12 +732,19 @@ void optionsOverlayHandleInput(void)
     if (lf && !prevLf) rowAdjust(&rows[s_visIdx[s_sel]], -1);
     if (rt && !prevRt) rowAdjust(&rows[s_visIdx[s_sel]], +1);
 
-    /* ---- mouse ---- */
-    int ww = 0, wh = 0;
-    videoGetWindowSize(&ww, &wh);
-    if (ww > 0 && wh > 0) {
-        double ox = (double)mx * (double)viGetX() / ww;
-        double oy = (double)my * (double)viGetY() / wh;
+    /* ---- mouse ----
+     * D316: mx/my are raw window pixels, but the overlay's own 2D content
+     * is drawn into whatever on-window rect the safe-area crop currently
+     * maps the logical (viGetX() x viGetY()) canvas to -- NOT the full
+     * window whenever that rect is inset (default-on: any in-game "Full"
+     * viewport insets it). Map through the real forward transform's rect
+     * (gfx_get_ui_screen_rect) instead of a naive window-size scale so a
+     * click lands on the same row it visually appears over. */
+    int32_t rx = 0, ry = 0, rw = 0, rh = 0;
+    gfx_get_ui_screen_rect(&rx, &ry, &rw, &rh);
+    if (rw > 0 && rh > 0) {
+        double ox = (double)(mx - rx) * (double)viGetX() / rw;
+        double oy = (double)(my - ry) * (double)viGetY() / rh;
         int hoverVis = overlayRowAtY(oy);
         int onClose  = overlayInCloseBox(ox, oy);
 
@@ -795,9 +847,10 @@ static void valueText(const struct Row *r, char *out, int n)
         snprintf(out, n, "%.2f", v);
         return;
     }
-    if (r->kind == ROW_SLIDER && (int)lround(v) == 0 &&
-        strcmp(r->key, "Video.FpsCap") == 0) {
-        snprintf(out, n, "OFF");
+    if (r->kind == ROW_FPSCAP) {
+        int fps = (int)lround(v);
+        if (fps <= 0) snprintf(out, n, "Uncapped");
+        else          snprintf(out, n, "%d FPS", fps);
         return;
     }
     snprintf(out, n, "%d", (int)lround(v));

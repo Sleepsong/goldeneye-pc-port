@@ -566,7 +566,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D261 | **v0.2.1 (user request: "fix watch menu sensitivity for wasd/controller buttons"): holding W/S (or a fully-pressed stick axis) on the watch inventory page…** — full `## D261` entry at file tail | FIXED — feel-check received; W/S sensitivity follow-up logged above. |
 | D262 | **v0.2.1 (user report): "3D models missing on watch menu screen item select" — the selected-item 3D preview does not appear on the watch inventory page.** — full `## D262` entry at file tail | FIXED (primary cause, D264) — pixel-level confirmation pending user run. |
 | D264 | **D262's root cause (ABI/layout class, cf. D140/D52): the watch item preview's `ModelRenderData` template is read across two adjacent globals that no longer sit…** — full `## D264` entry at file tail | FIXED — build green, probes removed; visual confirmation pending. |
-| D263 | **v0.2.1 (user report): Facility — "Ourumov not shooting Trevelyan"; the scripted opening beat never triggers. RESOLVED: not a port bug — the beat is…** — full `## D263` entry at file tail | RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —… |
+| D263 | **v0.2.1 (user report): Facility — "Ourumov not shooting Trevelyan"; the scripted opening beat never triggers. RESOLVED: not a port bug — the beat is…** — full `## D263` entry at file tail | RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —… **⚠ RE-OPENED via D318 (2026-09-18): user re-reported the beat failing on the regular play path after Objective C; treat "not a bug" as unproven for the authored path.** |
 | D265 | **D236 investigation (port-layer, `port/fast3d/gfx_pc.cpp`): the tree cards are IA8/IA4, not IA16 — and `import_texture_ia4` decoded the RDP's I2:A2 texel as…** — full `## D265` entry at file tail | PARKED — reverted to baseline; evidence + suspect list above. |
 | D258 | **PAL/JP asset conversion is broken at the source-data level — `scripts/filelist.e.csv` and `filelist.j.csv` carry naming defects, so `gen_romassets.py e/j` (and…** — full `## D258` entry at file tail | OPEN — repair path verified, not applied (out of v0.2.0 scope). |
 | D284 | **`port/src/random.c`'s MIPS64 `dsll32`/`dsrl32` shift helpers were backwards — PC PRNG desynced from the N64's from draw 1, in every release to date (M-138 review; fix M-139b).** — full `## D284` entry at file tail | FIXED, 21-level sweep clean, no crashes — RNG stream changes from every prior build; existing replays will diverge. **"Savegames unaffected" was FALSE (M-148): `fileGenerateCRC` runs off a local constant seed via `randomGetNextFrom`, so the fix invalidates every stored slot CRC — v0.3.0 silently wipes all pre-fix saves on first launch (release-blocker candidate, see D295 M-148)** |
@@ -597,6 +597,14 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D309 | **Complete non-self-recovering freeze (Windows) returning from Caverns to the intro screen — boss thread spins forever in `ai()` on `m_RunToBondPersistent` via a phantom `GotoNext(lblZero)` created by `chraiitemsize`'s `AI_PRINT` NUL-scan mis-sizing a stringless PRINT record (user report + live GDB diagnosis, 2026-09-18).** — full `## D309` entry at file tail | **FIXED via D310 — user-playtest-confirmed 2026-09-18** (Caverns→intro clean; the spin record itself observed resuming correctly in the post-fix probe log). The teardown-ordering open question (why PC presents the unreachable-Bond state) remains documented but is now harmless. |
 | D310 | **RULE-2-SIGNOFF: `chraiitemsize()` mis-sizes 1-byte `AI_PRINT` records (NUL-scans forward), corrupting AI execution for any list containing an active PRINT — fixes D309's freeze mechanism and the Caverns standing-still guards (`Stop`+`PRINT("wait")` mis-lands on EndList, re-executed every tick; user report 2026-09-18).** — full `## D310` entry at file tail | **FIXED — user-playtest-confirmed 2026-09-18** (v2: global-list-only sizing via `d310ItemSize`; guards resume, Trevelyan pathing intact, Caverns→intro clean; probe log verified both list classes). PD precedent: PRINT removed, slot 0xAD reassigned. |
 | D311 | **Complete freeze in `modelSetAnimFrame2WithChrStuff` root-motion loop — D156 guard hole: poisoned `framea` (`model->animframe1`) passes the frameb-only clamp and saturates to a ~3.1e9-iteration spin (Caverns, live GDB diagnosis, 2026-09-18).** — full `## D311` entry at file tail | GUARDED (`#ifdef PORT`, D156-guard extension in the same file) — freeze class neutralized; upstream speed/frame poison source OPEN (level reload clears displaced model state). No AI involvement — distinct from D309/D310. |
+| D312 | **Throwable items (mines, grenades, etc.) can clip through walls in certain spots (user report, v0.3.0 pre-release playtest, 2026-09-18).** — full `## D312` entry at file tail | OPEN — reported only, not investigated. Explicitly not for v0.3.0; queued for v0.3.1. |
+| D313 | **Bullet impacts do not appear on some walls/surfaces — the projectile appears to pass through them; impacts DO work on some surfaces such as doors/windows (user report, v0.3.0 pre-release playtest, 2026-09-18).** — full `## D313` entry at file tail | OPEN — reported only, not investigated. Explicitly not for v0.3.0; queued for v0.3.1. Possibly related to D312 (same wall class). |
+| D314 | **F10 menu items flicker randomly/intermittently (reported on the main-menu context, user report, v0.3.0 playtest build, 2026-09-18).** — full `## D314` entry at file tail | OPEN — confirmed still present post-D316 fix (2026-09-18); user deprioritized chasing it further for now. Diagnostic probe (`GE_D314=1`) landed in `optionsOverlayHandleInput()` if revisited. |
+| D315 | **Menu scaling differs between main menu and in-game — main menu scales OK, in-game menu "seems kinda big sometimes" (user report, v0.3.0 playtest build, 2026-09-18).** — full `## D315` entry at file tail | OPEN — disclosed as a known issue, deferred to v0.3.1 (bigger design question, not a mechanical fix). |
+| D316 | **Mouse-clicking some menu items glitches and lands on the item below instead (user report, v0.3.0 playtest build, 2026-09-18).** — full `## D316` entry at file tail | FIXED — root-caused to two compounding bugs (naive mouse->logical mapping ignoring the safe-area crop; asymmetric row hit-test band) in `port/src/optionsoverlay.c` + `port/fast3d/gfx_pc.cpp`. Build-verified (golden diff PASS, worst_cell=0); interactive click verification owed. |
+| D317 | **Crash when toggling Game.AllUnlocked back and forth in-game (user report, v0.3.0 playtest build, 2026-09-18) — no dump left behind.** — full `## D317` entry at file tail | CLOSED — symptom of D316 (confirmed instant window close, no WER report; the D316 hit-band bias let a click on "All unlocked" fall through to the adjacent "Quit to desktop" row). Same fix resolves it. |
+| D318 | **Facility (regular play path): after Objective C (destroying the bottling tanks) completes, Ourumov freezes and does not shoot Trevelyan as he should (user report, 2026-09-18).** — full `## D318` entry at file tail | OPEN — reported only, not investigated. Supersedes D263's "not a bug" closure for this repro path (D263 verified via teleport probe, not the authored path). Rule out interaction with same-day D310/D311 AI-executor changes first. |
+| D319 | **Frame cap slider was mostly a dead zone; replaced with a plain 30/60 toggle (user ask, 2026-09-18).** — full `## D319` entry at file tail | FIXED — new `ROW_FPSCAP` cycle (30/60 only) in `port/src/optionsoverlay.c`; default changed to 60 in `port/src/video.c`. Root cause was D186 (sim tick ceiling + low-cap guard); this just fixes the menu's exposure of it. Build-verified; interactive confirmation owed. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -11959,3 +11967,112 @@ This confirms the M-160/M-164/M-165 hypothesis (`## D173`'s own consolidated-nex
 **Open question (deeper root cause, NOT fixed):** what wrote `-1.75e18` into `oldspeed` / poisoned `animframe1` in the first place? `oldspeed = model->speed` at transition start (`model.c:2975`) means `speed` was already garbage upstream; `timespeed = 0` and `unkb0 = 0` at the guarded tick are suspicious division denominators (D156's original note flagged `/ unkb0` and `/ timespeed` as guarded `> 0` but not against tiny values). Also, the model's persistent root-motion header (`header->unk34/unk24`) is poisoned to ~1e30–1e32 in this instance, so **Bond's rendered model may be displaced even after the freeze is prevented** — a level reload clears it. Needs its own investigation (dump speed-field write sites during the triggering transition) before any further fix.
 
 **Status:** GUARDED (freeze class neutralized; upstream poison source OPEN). Disclosed to user in-thread as a D156-guard extension following the already-accepted D156 precedent in this same file; if the project wants formal rule-2 sign-off for `src/game` edits, this is the entry to reference — revert is two small blocks. Cross-refs: D156 (original guard + Facility outro hang), D309/D310 (ruled out for this freeze — no AI involvement).
+
+## D312 — Throwable items (mines, grenades, etc.) can clip through walls in certain spots (user report, v0.3.0 pre-release playtest, 2026-09-18).
+
+**Reported:** user's last-minute v0.3.0 playtest: thrown/placed throwable items — mines, grenades, "etc." — can pass through wall geometry in certain spots rather than colliding with it. Spot-dependent ("certain spots"), not universal.
+
+**Not investigated.** No diagnosis attempted; nothing below is evidence, only starting pointers for whoever picks it up:
+- First fidelity question: does the N64 original collide correctly at the same spots? If yes, this is a port-side divergence (collision-query path); if the ROM does the same thing, it's faithful original behavior and the "fix" bucket changes entirely (rule 2).
+- Port-side suspects to check in order: the collision/raycast query shims the port provides for whatever `src/game` calls during throwable flight/settling; whether the affected spots correlate with D249's distant-geometry dropout/culling regions (a culled wall would be invisible AND non-colliding if the collider derives from the same culling state); and the standard §A1 ABI catalogue for any 32-bit-fixed-size struct crossed by the query path.
+- Repro ask for the next session: which level(s), which throwable, roughly where (the user's "certain spots" should be pinnable to one or two walls/architectural features).
+
+**Status:** OPEN — reported only. Explicitly not for v0.3.0; queued for v0.3.1. Possibly related to D313 (bullet impacts missing on what may be the same wall class).
+
+## D313 — Bullet impacts do not appear on some walls/surfaces — the projectile appears to pass through them; impacts DO work on some surfaces such as doors/windows (user report, v0.3.0 pre-release playtest, 2026-09-18).
+
+**Reported:** user's last-minute v0.3.0 playtest: firing at some walls/surfaces produces no bullet-impact effect — visually it looks like the projectile goes through them — while other surfaces (doors, windows named specifically) show impacts correctly. So the impact system works; its trigger is surface-dependent.
+
+**Not investigated.** Starting pointers only, nothing below is evidence:
+- The surface-dependence is the key clue: impacts likely gate on a hit-surface property (surface type / imagetable entry / material class). The first step is finding where `src/game` decides "this hit spawns an impact" and what surface field it reads — then checking whether that field is being misread on PC (§A1 ABI catalogue: a 32-bit-era offset or width in the surface/imagetable record would produce exactly this "works on some surfaces, not others" shape).
+- D172 (impact-particle color, FIXED) is the nearest prior art for the impact-effect path itself; D266/D271 show this codebase has a history of texture-format-dependent misreads — worth checking whether the no-impact surfaces correlate with a particular authored surface/texture class.
+- Cross-check D312: if throwables clip through the SAME walls that don't show impacts, one shared wall/collider class is the likely root and the two findings should be merged during investigation.
+
+**Status:** OPEN — reported only. Explicitly not for v0.3.0; queued for v0.3.1. Cross-refs: D312 (possible common wall class), D172 (impact-effect path, fixed).
+
+## D314 — F10 menu items flicker randomly/intermittently (reported on the main-menu context, user report, v0.3.0 playtest build, 2026-09-18).
+
+**Reported:** "F10 menu glitches on main menu, the menu items flicker randomly/intermittently." **Repro detail (user, 2026-09-18):** it happens when F10 opens the settings menu while on the **file-select / level-select screen**, and also when the settings menu is open in-game and the user is then **returned to file-select/level-select** (i.e. the overlay outlives a context switch). The playtest build is the current-tip exe (includes D310/D311 fixes). So this is specifically an overlay-vs-mission-select-screen interaction, not the plain title screen.
+
+**Not investigated.** Pointers only:
+- **Prime suspect by recency: D304 (fixed TODAY) changed exactly this overlay's code** — collapsed the mouse-sensitivity rows to a single menu row (changing the total item count) and fixed `overlayUpdateScroll()`'s unconditional bottom-anchor. The in-game F10 playtest confirmed the *collapsed sensitivity section* worked, but flicker is a row-layout symptom and the main-menu context was not tested. If row positions are re-derived per frame from a list-height/anchor that assumes the old item count, intermittent flicker + mis-landing clicks (D316) would both fall out of the same bug.
+- D251 (bottom-row duplication, fixed) and D304's click-jump fix are the sibling bugs in this exact code path — check `overlayUpdateScroll()` and the row hit-test/height math for any count assumption that D304's row collapse invalidated in a context with fewer/more items.
+- Likely one root cause shared with D316; investigate together.
+
+**Triage update (2026-09-18):** ruled out `viGetX()`/`viGetY()` instability (stable per-screen, set once by `front.c`) and non-determinism in the overlay display list construction; no shared fixed-buffer overflow found. The D316 mouse-mapping/hit-band bugs are fixed (see D316) but do not explain a *flicker* (those were click-accuracy bugs, not a rendering instability), so D314 likely has an independent mechanism — probably front-end-context specific (the text/font layer, or file-select's own mouse handling racing the overlay's input-suspend). Added a cheap, cached, env-gated diagnostic probe (`GE_D314=1`) in `optionsOverlayHandleInput()` (`port/src/optionsoverlay.c`) logging `viGetY()`/`s_visN`/`s_scroll`/`s_sel` once per frame while the overlay is open — diagnosis only, no behavior change when unset. A ~30s file-select repro run with it enabled should show which value oscillates (or prove none do, pointing at the text layer).
+
+**Confirmed still present post-D316 fix (user, 2026-09-18):** the D316 mouse-mapping/hit-band fix did not resolve this — as expected, since D314 is a rendering-instability symptom (flicker), not a click-accuracy one. **User call: not worth chasing down currently** — deprioritized, left OPEN with the probe in place for whenever it's revisited.
+
+**Status:** OPEN — deprioritized by user request (2026-09-18); probe landed, repro run not currently planned.
+
+## D315 — Menu scaling differs between main menu and in-game — main menu scales OK, in-game menu "seems kinda big sometimes" (user report, v0.3.0 playtest build, 2026-09-18).
+
+**Reported:** "Menu scaling can change between main menu / game — main menu scales OK, game seems kinda big sometimes." The "sometimes" is the key word: it tracks some state (video mode? window size? level?) rather than being constant.
+
+**Not investigated.** Pointers only:
+- Check how the in-game overlay derives its scale factor vs the main-menu UI — if one uses a fixed design resolution and the other tracks the current render/window size, any video-mode change between contexts (resolution switch at level load) would produce exactly "fine on main menu, big in game".
+- Widescreen FOV phase 4 landed recently and touches the in-game letterbox/FOV path — check whether it changed any shared scale constant the overlay reads. D246/D247 (overscan crop) is the adjacent video-mode work.
+- Repro ask: which resolution/video mode, and does resizing the window change the in-game menu size live?
+
+**Triage update (2026-09-18):** confirmed distinct from D316 (D316 was a click-accuracy bug in the overlay's *input* mapping; D315 is about the overlay's *rendered* size differing between contexts) — not a shared root cause. This is a bigger design question (whether/how the safe-area crop and the front-end/in-game logical-canvas size difference — 320x240 in-game vs 440x330 on front-end screens, `viSetXY` — should both feed into overlay scale) than a mechanical fix. Disclosing as a known issue and deferring to v0.3.1 rather than fixing in this pass.
+
+**Status:** OPEN — disclosed as a known issue, deferred to v0.3.1. Lower urgency than D314/D316/D317.
+
+## D316 — Mouse-clicking some menu items glitches and lands on the item below instead (user report, v0.3.0 playtest build, 2026-09-18).
+
+**Reported:** "On some menu items when you try to click with mouse, it glitches and forces you onto the item below." **Repro detail (user, 2026-09-18):** possible on any item, but specifically noticed on the **crop overscan bars** setting; not currently reproducible on demand — intermittent.
+
+**Root-caused and FIXED (2026-09-18), two compounding port-side bugs, both in `port/src/optionsoverlay.c`:**
+
+1. **Mouse→logical mapping ignored the safe-area crop.** `optionsOverlayHandleInput()` mapped a click with a naive `ox = mx * viGetX() / ww` / `oy = my * viGetY() / wh` — a linear scale against the raw SDL window size. But the overlay's own 2D content is drawn into whatever on-window rect the safe-area crop (`Video.SafeAreaCrop`, default ON) currently maps the logical `viGetX() x viGetY()` canvas to, via `gfx_adjust_viewport_or_scissor` (`port/fast3d/gfx_pc.cpp`) — and that rect is inset below the full window whenever the last-set gameplay viewport was inset (NTSC "Full" removes ~8% top+bottom; this is why "the crop overscan bars setting" specifically was the noticed repro — it sits low in the list, where the growing offset between the naive scale and the real inset rect is largest). Fix: added `gfx_get_ui_screen_rect()` (`gfx_pc.cpp`, declared in `gfx_api.h`) which *reuses* `gfx_adjust_viewport_or_scissor` itself (not a hand-derived inverse) against the full VI canvas rect to get the real on-window rect, then `optionsOverlayHandleInput()` inverts the click against that rect instead of the raw window size.
+2. **Asymmetric row hit-test band.** `overlayRowAtY()`'s band was `[OV_ROW_Y(p)-3, OV_ROW_Y(p)+12)` on 15px rows (`OV_LINE`) — 3 units above the row anchor but 12 below, a systematic downward bias independent of bug 1. Fixed to `[OV_ROW_Y(p) - OV_LINE/2, OV_ROW_Y(p) + OV_LINE/2)`, centered on the row anchor.
+
+Verified: build clean (`build-pc`, MSYS2 MINGW64/ninja); `tools_pc/verify.sh bunker1` — PASS, `worst_cell=0` (pixel-identical to golden, confirming the new `gfx_get_ui_screen_rect()` accessor is a true no-op for normal 3D rendering, as intended — it only reads existing state). Interactive click-accuracy verification (varying window size/aspect, `SafeAreaCrop` on and off) still owed — headless/non-interactive here, mouse-driven UI needs a live session.
+
+**Status:** FIXED (pending interactive click verification). Cross-ref: D304 (fixed the same file's out-of-scan-range scroll-boundary bug, a separate root cause from both bugs above — see the comment trail in `overlayRowAtY()`/`overlayUpdateScroll()`).
+
+## D317 — Crash when toggling Game.AllUnlocked back and forth in-game (user report, v0.3.0 playtest build, 2026-09-18) — no dump left behind.
+
+**Reported:** "Toggling unlock all back and forth in game causes a crash." Reproduced by the user on the current-tip playtest exe (the one at `C:\Users\james\Desktop\ge007-v0.3.0-playtest`, includes D310/D311 fixes). **Repro detail (user, 2026-09-18):** level = **Runway**. **No crash dump or log was left in that folder** — hard exit, so Windows Event Viewer is the only system-side artifact to check.
+
+**Closed as a symptom of D316, not a real crash.** Evidence:
+- No WER report exists for the playtest exe; every `ge007` AppCrash in Windows Error Reporting traces to this repo's own `build-pc` dev runs, none after 12:00 that day, while the playtest session was ~13:15 — a real crash would have logged one.
+- `Game.AllUnlocked` and `__QuitToDesktop` are the last two rows in the overlay's `rows[]` table (adjacent, `Game.AllUnlocked` directly above `__QuitToDesktop`).
+- User confirmed (2026-09-18, asked directly) the exit was an **instant window close, not a hang/freeze** — consistent with `__QuitToDesktop`'s `ROW_ACTION` firing via the game's normal exit path, not a fault.
+- The D316 fix's downward hit-test bias explains it directly: a toggle-off click on "All unlocked" (last visible row in most layouts) landing low enough would resolve to the row below it, `__QuitToDesktop`, producing a clean exit that reads as "it crashed."
+
+Same fix as D316 resolves this (no separate code change). Verification: toggle `Game.AllUnlocked` on Runway ~5x post-fix, confirm it never falls through to Quit — owed as part of D316's interactive verification, not yet run (headless here).
+
+(Separately noted, not part of this fix: Windows Error Reporting history does show 39 genuine heap-corruption crashes from this repo's own `build-pc` dev runs, latest dated 2026-09-13 — unrelated to the user's playtest exe/session, flagged here as a latent finding worth a future look, not a v0.3.0 blocker.)
+
+**Status:** CLOSED — symptom of D316; the D316 fix resolves it. Re-open if a post-fix Runway toggle test still exits unexpectedly.
+
+## D318 — Facility (regular play path): after Objective C (destroying the bottling tanks) completes, Ourumov freezes and does not shoot Trevelyan as he should (user report, 2026-09-18).
+
+**Reported (user, 2026-09-18):** on Facility (`-level_34`), following the **regular play path**, Ourumov **freezes up and will not shoot Trevelyan when Objective C — destroying the bottling tanks — is completed**. The user states this is **definitely a bug** despite prior agent conclusions to the contrary.
+
+**Contradicts D263's resolution.** D263 (v0.2.1) closed the same surface symptom as "not a port bug — proximity/LOS-triggered exactly as on N64", verified via a *teleport probe* that dropped Bond 65 units from Trevelyan and confirmed the full chain incl. the execution shot firing. But that verification was **synthetic** (teleport, not the authored play path), and D263's own refinement already noted the trigger is "significantly sensitive to Bond's precise location" and "not confirmed byte-identical to N64 for every approach". This report reaches the beat via the **authored objective sequence** (Objective C = bottling tanks destroyed) and sees Ourumov frozen with no shot — a materially different entry point than D263 tested. **Do not re-assert the "not a bug / finicky trigger" conclusion from D263 without fresh evidence from this specific path.**
+
+**Not investigated yet.** Pointers only:
+- The D263 static decode of `UsetuparkZ.c` maps the beat: Trevelyan (chr 67, ai_18) vision-gated → objective bit → BG list ai_41 spawns Ourumov (body 7, pad 88, ai_23→ai_22) + 6-soldier squad; ai_22 runs to pad 123, waits for Trevelyan within 0x1400, dialogue cascade, then `HitChrWithItem` execution shot. Check whether **Objective C completion** is one of the objective bits in ai_22's OR-gate early-exit conditions or in the spawn gate — i.e., does the *authored* path hand the beat to a different state than the teleport path did?
+- "Freezes up" (as opposed to "never spawns" or "shoots late") suggests Ourumov **did** spawn and reach ai_22 but is stuck on a wait condition — prime suspects: the Trevelyan-within-0x1400-of-pad-123 gate (Trevelyan missing his pad 124 walk, cf. D193-family locomotion history), or an objective-bit state that the teleport path set implicitly but the authored path leaves unset.
+- Recent AI-executor changes in this exact area: **D310** (`chraiitemsize()` PRINT sizing) and **D311** (root-motion freeze guard) — both 2026-09-18, both touched AI/animation execution; a regression interaction is worth ruling out first since the report lands on the same day.
+- D263's probes were removed; re-instrument ai_22's gate conditions + the objective bits under `GE_INPUTSCRIPT` or a scripted run of the regular path to see which condition Ourumov stalls on.
+
+**Status:** OPEN — reported only, not investigated. Supersedes D263's "not a bug" closure for this repro path; D263 remains valid as the mechanism map.
+
+## D319 — Frame cap slider was mostly a dead zone; replaced with a plain 30/60 toggle (user ask, 2026-09-18).
+
+**Reported:** user noticed `Video.FpsCap` "does not work below 30fps, it also does not go above 60fps" and asked whether that's a toggle-vs-refactor question.
+
+**Not a bug — the slider just exposed a huge dead zone.** Per D186, the port's own frame-pacing wait runs inline on the game's scheduler thread, so:
+- Below 30, `video.c` already force-uncaps the value (D186 guard) — the sim would otherwise be throttled, not just presentation.
+- Above 60 (50 PAL), the sim's own tick pacemaker (`port/src/libultra.c`, hardcoded to the console's native VI rate) never produces a new frame faster than that anyway, so any slider value there was a silent no-op.
+
+Only 30, 60, and 0 (uncapped: skip the port's frame-pacing wait entirely) ever did anything. Uncapped was considered as a third UI state but dropped after discussion: with `Video.VSync` on (the default) it's indistinguishable from 60, and with VSync off it just burns GPU re-presenting the same simulated frame — a confusing option with no real player benefit.
+
+**Fix:** `port/src/optionsoverlay.c` — new `ROW_FPSCAP` row kind (mirrors the existing `ROW_MSAA` fixed-cycle pattern) cycling `Video.FpsCap` between exactly 30 and 60; the free 0-360 `ROW_SLIDER` and its fill-bar are gone for this row. `port/src/video.c` — default changed from `0` (uncapped) to `60` so a fresh install shows a real, reachable menu value instead of a state the toggle can no longer select. The `0`/uncapped value still works at the config level (old inis, hand-edits) — `valueText` still labels it "Uncapped" if seen — it's just not reachable from the menu any more.
+
+Verified: build clean (MSYS2 MINGW64/ninja); `tools_pc/verify.sh bunker1` — PASS, `worst_cell=0`. Interactive check (toggle Frame cap in the F10 menu, confirm it reads 30/60 and only those two) still owed.
+
+**Status:** FIXED (pending interactive confirmation). Cross-ref: D186 (root cause of both dead zones, this just fixes the UI's exposure of it).

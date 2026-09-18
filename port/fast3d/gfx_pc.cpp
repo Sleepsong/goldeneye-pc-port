@@ -2646,6 +2646,27 @@ static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_as
     }
 }
 
+/* D316: the on-window pixel rect the full VI canvas (0,0)-(SCREEN_WIDTH,
+ * SCREEN_HEIGHT) currently maps to, i.e. exactly the rect gfx_draw_rectangle's
+ * default_viewport (below) resolves to once the safe-area crop above is
+ * applied. Reuses gfx_adjust_viewport_or_scissor itself (not a hand-derived
+ * inverse) so this can never drift from the real forward transform: port-side
+ * mouse-to-logical-2D-space mapping (port/src/optionsoverlay.c) needs this to
+ * invert clicks correctly when the crop shrinks that mapped rect below the
+ * full window (D316 -- the overlay's own click math previously assumed the
+ * logical canvas always fills the whole window, which is false whenever the
+ * last-set gameplay viewport was inset, e.g. NTSC "Full" removes ~8% top and
+ * bottom). Top-left origin, window pixel units -- matches SDL mouse coords
+ * and gfx_current_game_window_viewport's documented convention. */
+extern "C" void gfx_get_ui_screen_rect(int32_t *outX, int32_t *outY, int32_t *outW, int32_t *outH) {
+    struct XYWidthHeight area = { 0, (int16_t)SCREEN_HEIGHT, (uint32_t)SCREEN_WIDTH, (uint32_t)SCREEN_HEIGHT };
+    gfx_adjust_viewport_or_scissor(&area, false);
+    *outX = area.x;
+    *outY = area.y;
+    *outW = (int32_t)area.width;
+    *outH = (int32_t)area.height;
+}
+
 static void gfx_calc_and_set_viewport(const Vp_t* viewport) {
     // 2 bits fraction
     float width = 2.0f * viewport->vscale[0] / 4.0f;

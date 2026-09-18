@@ -50,6 +50,11 @@ void gfx_set_fix_mip_textures(int on);
 void gfx_set_wrap_fix(int on);
 void gfx_set_anisotropy_level(int level);  /* 1 = off; clamped to GL max */
 void gfx_set_safe_area_crop(int on);       /* crop the N64 TV-overscan safe-area margin instead of showing it as black bars */
+/* On-window pixel rect (top-left origin) the full VI logical canvas (0,0)-
+ * (SCREEN_WIDTH, SCREEN_HEIGHT) currently maps to, honoring the safe-area
+ * crop above -- for inverting a window mouse click into logical 2D UI space
+ * (see port/src/optionsoverlay.c, D316). */
+void gfx_get_ui_screen_rect(int32_t *outX, int32_t *outY, int32_t *outW, int32_t *outH);
 void gfx_texture_cache_clear(void);
 void gfx_texture_cache_delete(const uint8_t *orig_addr);
 void gfx_texture_cache_delete_range(const uint8_t *start, const uint8_t *end);

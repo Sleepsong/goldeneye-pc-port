@@ -54,7 +54,7 @@ static int initDone = 0;
  * behaviour, so a fresh config or a missing [Video] section changes nothing.
  */
 static int cfgVSync         = 1;   /* swap interval: 0 = off, 1 = on            */
-static int cfgFpsCap        = 0;   /* frame cap in fps; 0 = uncapped (vsync)    */
+static int cfgFpsCap        = 60;  /* frame cap in fps; 0 = uncapped (vsync); menu only exposes 30/60 */
 static int cfgMSAA          = 4;   /* 1/2/4/8 samples; default 4 (modern ports ship AA on; snaps down to the highest supported level) */
 static int cfgTexFilter     = 1;   /* 0 = nearest, 1 = bilinear (default), 2 = N64 3-point + trilinear */
 static int cfgFixMipTex     = 1;   /* RC2: clip mip-contaminated texture uploads to base height */

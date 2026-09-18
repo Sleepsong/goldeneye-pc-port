@@ -158,7 +158,7 @@ D260,FIXED,v0.2.1 (user request):,"FIXED — build green; one-line branch swap, 
 D261,FIXED,v0.2.1 (user request:,FIXED — feel-check received; W/S sensitivity follow-up logged above.
 D262,FIXED,v0.2.1 (user report):,"FIXED (primary cause, D264) —"
 D264,FIXED,"D262's root cause (ABI/layout class, cf.","FIXED — build green, probes removed; visual confirmation pending."
-D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —…"
+D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 further user testing, 2026-09-15) —… ⚠ RE-OPENED via D318 (2026-09-18):"
 D265,?,"D236 investigation (port-layer, port/fast3d/gfx_pc.cpp):",PARKED — reverted to baseline; evidence + suspect list above.
 D258,OPEN,PAL/JP asset conversion is broken at the source-data level —,"OPEN — repair path verified, not applied (out of v0.2.0 scope)."
 D284,FIXED,port/src/random.c's MIPS64 dsll32/dsrl32 shift helpers were backwards —,"FIXED, 21-level sweep clean, no crashes —"
@@ -189,3 +189,11 @@ D308,OPEN,"Occasional z-fighting confirmed on some levels' geometry, general/bro
 D309,FIXED,Complete non-self-recovering freeze (Windows) returning from Caverns to the intro screen —,FIXED via D310 — user-playtest-confirmed 2026-09-18 (Caverns→intro clean; the spin record itself observed resuming correctly in the post-fix probe log).
 D310,FIXED,"RULE-2-SIGNOFF: chraiitemsize() mis-sizes 1-byte AI_PRINT records (NUL-scans forward), corrupting AI execution for any list containing an active PRINT —",FIXED — user-playtest-confirmed 2026-09-18 (v2:
 D311,PARTIAL,Complete freeze in modelSetAnimFrame2WithChrStuff root-motion loop —,"GUARDED (#ifdef PORT, D156-guard extension in the same file) —"
+D312,OPEN,"Throwable items (mines, grenades, etc.) can clip through walls in certain spots (user report, v0.3.0 pre-release playtest, 2026-09-18).","OPEN — reported only, not investigated."
+D313,OPEN,Bullet impacts do not appear on some walls/surfaces —,"OPEN — reported only, not investigated."
+D314,OPEN,"F10 menu items flicker randomly/intermittently (reported on the main-menu context, user report, v0.3.0 playtest build, 2026-09-18).",OPEN — confirmed still present post-D316 fix (2026-09-18); user deprioritized chasing it further for now.
+D315,OPEN,Menu scaling differs between main menu and in-game —,"OPEN — disclosed as a known issue, deferred to v0.3.1 (bigger design question, not a mechanical fix)."
+D316,FIXED,"Mouse-clicking some menu items glitches and lands on the item below instead (user report, v0.3.0 playtest build, 2026-09-18).",FIXED — root-caused to two compounding bugs (naive mouse->logical mapping ignoring the safe-area crop; asymmetric row hit-test band) in port/src/optionsoverlay.c + port/fast3d/gfx_pc.cpp.
+D317,?,"Crash when toggling Game.AllUnlocked back and forth in-game (user report, v0.3.0 playtest build, 2026-09-18) —","CLOSED — symptom of D316 (confirmed instant window close, no WER report; the D316 hit-band bias let a click on ""All unlocked"" fall through to the adjacent ""Quit to desktop"" row)."
+D318,OPEN,Facility (regular play path):,"OPEN — reported only, not investigated."
+D319,FIXED,"Frame cap slider was mostly a dead zone; replaced with a plain 30/60 toggle (user ask, 2026-09-18).",FIXED — new ROW_FPSCAP cycle (30/60 only) in port/src/optionsoverlay.c; default changed to 60 in port/src/video.c.

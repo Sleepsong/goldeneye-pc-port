@@ -1812,6 +1812,58 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
         }
     }
 
+    /* D236 pass 12 (M-191, TEMP): new angle, not tried by passes 1-11 (all of
+     * which focused on the tree-card class's z/w and instantiation counts).
+     * Both the noise "wall" (oml=0xc81049d8) and the discrete tree-card class
+     * (oml=0x0c184b50) decode to Z_CMP=1/Z_UPD=0/ZMODE=DEC (checked offline
+     * against both full oml words) -- NEITHER writes the depth buffer. Two
+     * no-z-write decals drawn against the same static (z-writing) background
+     * never actually depth-test against EACH OTHER: each is tested only
+     * against the background's z, so on-screen precedence between the two
+     * decals is decided purely by which one is submitted LAST in the frame's
+     * draw list, not by which one's own z/w is smaller (the z/w comparisons
+     * all 11 prior passes made are therefore not conclusive either way about
+     * visual winner). This probe tests that directly: track a per-frame
+     * submission-order counter (reset whenever num_dls changes, i.e. once
+     * per frame) and log the min/max order index seen for each of the two
+     * classes whenever num_dls changes and at least one of them appeared
+     * that frame -- if the noise class's order index is consistently HIGHER
+     * (drawn later) than the tree class's in frames where both appear, that
+     * directly explains "wall painted over trees" regardless of geometric
+     * depth, and points at a draw-order (not depth) bug. Remove once D236
+     * pass 12 concludes. */
+    if (getenv("GE_D236ORDER")) {
+        static uint32_t d236o_last_dl = 0xFFFFFFFFu;
+        static uint32_t d236o_seq = 0;
+        static uint32_t d236o_noise_min = 0, d236o_noise_max = 0, d236o_noise_n = 0;
+        static uint32_t d236o_tree_min = 0, d236o_tree_max = 0, d236o_tree_n = 0;
+        extern uint32_t num_dls;
+        if (num_dls != d236o_last_dl) {
+            if (d236o_noise_n != 0 || d236o_tree_n != 0) {
+                fprintf(stderr,
+                        "D236ORDER dl=%u noise_n=%u noise_order=[%u,%u] tree_n=%u tree_order=[%u,%u] "
+                        "tree_last_after_noise_last=%d\n",
+                        d236o_last_dl, d236o_noise_n, d236o_noise_min, d236o_noise_max,
+                        d236o_tree_n, d236o_tree_min, d236o_tree_max,
+                        (d236o_tree_n != 0 && d236o_noise_n != 0) ? (int) (d236o_tree_max > d236o_noise_max) : -1);
+            }
+            d236o_last_dl = num_dls;
+            d236o_seq = 0;
+            d236o_noise_min = d236o_noise_max = d236o_noise_n = 0;
+            d236o_tree_min = d236o_tree_max = d236o_tree_n = 0;
+        }
+        if (rdp.other_mode_l == 0xc81049d8u) {
+            if (d236o_noise_n == 0) d236o_noise_min = d236o_seq;
+            d236o_noise_max = d236o_seq;
+            d236o_noise_n++;
+        } else if (rdp.other_mode_l == 0x0c184b50u) {
+            if (d236o_tree_n == 0) d236o_tree_min = d236o_seq;
+            d236o_tree_max = d236o_seq;
+            d236o_tree_n++;
+        }
+        d236o_seq++;
+    }
+
     if ((rsp.geometry_mode & G_CULL_BOTH) != 0) {
         float dx1 = v1->x / (v1->w) - v2->x / (v2->w);
         float dy1 = v1->y / (v1->w) - v2->y / (v2->w);
@@ -1850,6 +1902,23 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
     bool depth_test = ((rsp.geometry_mode & G_ZBUFFER) == G_ZBUFFER || (rdp.other_mode_l & G_ZS_PRIM) == G_ZS_PRIM) &&
                       ((rdp.other_mode_h & G_CYC_1CYCLE) == G_CYC_1CYCLE || (rdp.other_mode_h & G_CYC_2CYCLE) == G_CYC_2CYCLE);
     bool depth_update = (rdp.other_mode_l & Z_UPD) == Z_UPD;
+    /* D236 pass 12 (M-191, TEMP, diagnostic-only): both the noise "wall"
+     * (oml=0xc81049d8) and the discrete tree-card class (oml=0x0c184b50) are
+     * Z_CMP=1/Z_UPD=0 decals, and GE_D236ORDER above shows the noise class is
+     * ALWAYS submitted after the tree class in every sampled frame -- with
+     * neither writing depth, later-submitted always wins the color buffer
+     * regardless of which is geometrically closer. This experiment forces
+     * depth_update=true for the tree-card class ONLY, so it writes real
+     * depth; if the noise class (submitted later, same depth_compare=LEQUAL)
+     * now correctly fails its depth test against the tree cards' nearer z
+     * instead of overwriting them, that confirms draw-order+no-z-write is
+     * the actual visual-precedence mechanism. NOT a proposed fix (forcing
+     * z-write for a decal-mode class is not decomp-faithful either) -- purely
+     * to test the mechanism cheaply before deciding what a real fix looks
+     * like. Remove once D236 pass 12 concludes. */
+    if (getenv("GE_D236ZFIX") && rdp.other_mode_l == 0x0c184b50u) {
+        depth_update = true;
+    }
     bool depth_compare = (rdp.other_mode_l & Z_CMP) == Z_CMP;
     bool depth_source_prim = (rdp.other_mode_l & G_ZS_PRIM) == G_ZS_PRIM /* && gDP.primDepth.z == 1.0f */;
     uint16_t zmode = rdp.other_mode_l & ZMODE_DEC;

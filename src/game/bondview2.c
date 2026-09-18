@@ -379,6 +379,22 @@ int d243mProbeActive(void)
 
 int d243mGetFrameCounter(void) { return g_d243mFrameCounter; }
 
+/* D243 M-187: the scripted-camera-mode test alone, WITHOUT the GE_D243M
+ * getenv gate -- originally added for the always-on M-183/M-185 sanity
+ * clamps in model.c (playspeed/endframe), which must fire for every real
+ * player regardless of whether the diagnostic env var happens to be set
+ * (before this, both clamps were mistakenly gated on d243mProbeActive(),
+ * env-var AND camera-mode, so they only ever fired during a diagnostic
+ * capture). Renamed from d243mCutsceneActive (M-190): the same "is the
+ * game in a scripted/no-control camera state" test is also the missing
+ * gate port/src/input.c's hipDirectCompute() documented but never
+ * implemented -- see that function's comment and M-190 in findings.md. */
+int gameScriptedCameraActive(void)
+{
+    return (g_CameraMode == CAMERAMODE_POSEND) || (g_CameraMode == CAMERAMODE_INTRO) ||
+           (g_CameraMode == CAMERAMODE_SWIRL) || (g_CameraMode == CAMERAMODE_FADESWIRL);
+}
+
 /* D243 M-169: the "real signal" named as next-step (b) in findings.md's
  * D243 CONSOLIDATED NEXT STEPS -- a monotonic epoch counter bumped by
  * chrai.c's AI_TRYTeleportingChrToPad case (the exact decomp call, chrai.c
@@ -582,7 +598,36 @@ void solo_char_load(void)
                 load_object_fill_header(headheader, (u8 *)c_item_entries[head].filename, weaponbuf0 + cursor, size0 - cursor, &pool);
                 cursor = ALIGN64_V3(get_pc_buffer_remaining_value((u8 *)c_item_entries[head].filename) + cursor + 0x3f);
                 model  = (Model *)(weaponbuf0 + cursor);
+#ifdef PORT
+                /* D243 M-188: root cause of the Bond cutscene/positioning
+                 * family. The literal 0xfb below is 0xbc+0x3f -- the exact
+                 * same "sizeof(X) + 0x3f, then ALIGN64_V3" idiom used one
+                 * line up for ModelFileHeader (line 591), just pre-computed
+                 * as a constant for N64's 32-bit sizeof(Model) (0xbc = 188
+                 * bytes). On PC, widened pointer fields (attachedto,
+                 * attachedto_objinst, anim, anim2, plus alignment padding)
+                 * grow sizeof(Model) to 232 (0xe8) bytes -- confirmed by a
+                 * standalone compile with the real build flags, see
+                 * scratch/sizeof_model.c. The stale 0xfb under-reserves by
+                 * ~40 bytes, so `animdata` below gets placed INSIDE the
+                 * tail of the just-allocated Model struct instead of after
+                 * it -- corrupting exactly playspeed/animrate/unkac/unkb0/
+                 * unkb4 (this Model's own last ~5 fields) with whatever
+                 * animInit() and the animation-node data first write there.
+                 * This is a live match for the D243 investigation's own
+                 * captured symptom (findings.md D243 M-187/M-188): a freshly
+                 * created third-person body Model's playspeed/animrate read
+                 * back as this exact chr's own prop->pos.y/pos.z the moment
+                 * modelSetAnimPlaySpeed first touches it. Fix: use the real
+                 * sizeof(Model) instead of the stale 32-bit-derived literal,
+                 * completing the same idiom the surrounding code already
+                 * uses -- ABI/layout-only, no logic change, no game-code
+                 * behavior difference on N64 (this branch didn't exist
+                 * there). */
+                cursor = ALIGN64_V3(cursor + sizeof(Model) + 0x3f);
+#else
                 cursor = ALIGN64_V3(cursor + 0xfb);
+#endif
                 modelCalculateRwDataLen(bodyheader);
                 modelCalculateRwDataLen(headheader);
 
@@ -635,14 +680,16 @@ void solo_char_load(void)
         setsubroty(g_CurrentPlayer->bodyModel, yaw);
 #ifdef PORT
         if (d243mEnabled()) {
-            osSyncPrintf("D243M: CREATE frame=%d model=%p prop=%p pos=%.1f,%.1f,%.1f cam=%d subcam=%d\n",
+            osSyncPrintf("D243M: CREATE frame=%d model=%p prop=%p pos=%.1f,%.1f,%.1f cam=%d subcam=%d "
+                         "sizeofModel=%zu\n",
                          g_d243mFrameCounter,
                          (void *) g_CurrentPlayer->bodyModel,
                          (void *) g_CurrentPlayer->prop,
                          (double) g_CurrentPlayer->prop->pos.f[0],
                          (double) g_CurrentPlayer->prop->pos.f[1],
                          (double) g_CurrentPlayer->prop->pos.f[2],
-                         (int) g_CameraMode, (int) dword_CODE_bss_80079A18);
+                         (int) g_CameraMode, (int) dword_CODE_bss_80079A18,
+                         sizeof(Model));
         }
 #endif
 #ifndef VERSION_US
@@ -10551,47 +10598,68 @@ s32 playerTick(PropRecord *prop)
                  * conflated) + the same POSEND-active gate. THIS IS A TEST,
                  * NOT A FIX -- revert once it reports (see docs/dev/findings.md
                  * D243 M-167). */
-                /* D243 M-170: permanent fix for the Dam abseil camera shake.
-                 * The camera's look-at filter reads field_488.pos, which is
-                 * derived from render_pos (the model's animated-skeleton
-                 * transform). During scripted cutscenes, chrTick's normal
-                 * animation dispatch continues running, advancing whatever
-                 * animation is attached and reading the model's root-joint
-                 * position back into the render path every tick. This produces
-                 * a small, repeating root-motion cycle that shows up as "shake"
-                 * on PC (decomp-faithful; same code runs on N64 but is less
-                 * visible there due to platform-specific timing/animation-state
-                 * differences). Fix: freeze field_488.pos during POSEND camera
-                 * mode, re-baselining only when a legitimate shot-change teleport
-                 * fires (detected via the d243TeleportEpoch counter incremented
-                 * by d243NotifyTeleport() in chrai.c's AI_TRYTeleportingChrToPad
-                 * handler). This eliminates the shake while allowing legitimate
-                 * inter-shot repositioning. */
-                static int s_d243x3WasActive = 0;
-                static u32 s_d243x3LastEpoch = 0;
+                /* D243 M-170 (superseded by M-190 below): the original "fix"
+                 * unconditionally froze field_488.pos during POSEND, only
+                 * letting a write through on the tick a shot-change teleport
+                 * fired. That killed the shake but also killed legitimate
+                 * camera tracking of Bond's real per-tick motion within a
+                 * shot -- the M-189 buffer-overlap fix that landed this same
+                 * session removed the actual cause of the shake (corrupted
+                 * render-skeleton data), so freezing is no longer needed and
+                 * was actively wrong (user-reported: "camera angles do not
+                 * follow bond"). */
+                /* D243 M-190: write field_488.pos every tick unconditionally
+                 * (real tracking restored), and instead re-seed the look-at
+                 * filter's leaky-integrator accumulator (field_3B8, read by
+                 * bondviewUpdatePlayerCollisionPositionFields) the instant a
+                 * legitimate shot-change teleport fires, rather than letting
+                 * it slowly converge over ~20 ticks (M-143's original shake
+                 * mechanism, confirmed PC-only vs N64 in M-144). Detected via
+                 * the same d243TeleportEpoch counter M-170 already used
+                 * (bumped by d243NotifyTeleport() in chrai.c's
+                 * AI_TRYTeleportingChrToPad handler) -- only the response to
+                 * an epoch change is different now: reset the filter to the
+                 * new position instead of freezing the input to it. */
                 extern u32 d243GetTeleportEpoch(void);
-                int wantFreeze;
+                static u32 s_d243LastEpoch = 0;
+                static int s_d243HaveEpoch = 0;
                 u32 epoch;
-                int justRebaselined;
-                int skipWrite;
-                wantFreeze = (g_CameraMode == CAMERAMODE_POSEND);
+                int justTeleported;
                 epoch = d243GetTeleportEpoch();
-                justRebaselined = (!s_d243x3WasActive) || (epoch != s_d243x3LastEpoch);
-                skipWrite = wantFreeze && !justRebaselined;
-                if (wantFreeze) { s_d243x3LastEpoch = epoch; }
-                s_d243x3WasActive = wantFreeze;
-                if (!skipWrite)
-                {
+                justTeleported = (!s_d243HaveEpoch) || (epoch != s_d243LastEpoch);
+                s_d243LastEpoch = epoch;
+                s_d243HaveEpoch = 1;
 #endif
                 g_playerPointers[index]->field_488.pos.x = mtx[12] + (mtx[4] * 7.0f);
                 g_playerPointers[index]->field_488.pos.y = mtx[13] + (mtx[5] * 7.0f);
                 g_playerPointers[index]->field_488.pos.z = mtx[14] + (mtx[6] * 7.0f);
 #ifdef PORT
+                if ((g_CameraMode == CAMERAMODE_POSEND) && justTeleported)
+                {
+                    f32 fx = g_playerPointers[index]->field_488.pos.x;
+                    f32 fy = g_playerPointers[index]->field_488.pos.y;
+                    f32 fz = g_playerPointers[index]->field_488.pos.z;
+                    /* Re-seed so the filter's steady state (field_3C4/8/C =
+                     * field_3B8 * FACTOR_2) already equals the new position,
+                     * instead of a fresh ~20-tick geometric decay toward it
+                     * (bondviewUpdatePlayerCollisionPositionFields, the
+                     * FACTOR_1/FACTOR_2 pair). field_3B8 is the PRE-scale
+                     * accumulator, so it must be seeded at pos/FACTOR_2, not
+                     * pos itself -- field_3C4/8/C (what the camera actually
+                     * reads) are set directly to the real position so it's
+                     * correct even before the next tick's filter update. */
+                    g_playerPointers[index]->field_3B8.f[0] = fx / S7F081478_FACTOR_2;
+                    g_playerPointers[index]->field_3B8.f[1] = fy / S7F081478_FACTOR_2;
+                    g_playerPointers[index]->field_3B8.f[2] = fz / S7F081478_FACTOR_2;
+                    g_playerPointers[index]->field_3C4 = fx;
+                    g_playerPointers[index]->field_3C8 = fy;
+                    g_playerPointers[index]->field_3CC = fz;
                 }
                 if (d243mEnabled()) {
-                    osSyncPrintf("D243M: f488write frame=%d idx=%d x3active=%d x3skip=%d epoch=%u f488pos=%.1f,%.1f,%.1f\n",
+                    osSyncPrintf("D243M: f488write frame=%d idx=%d cam=%d reseed=%d epoch=%u f488pos=%.1f,%.1f,%.1f\n",
                                  g_d243mFrameCounter, index,
-                                 (int) wantFreeze, (int) skipWrite, (unsigned) epoch,
+                                 (int) g_CameraMode, (int) (justTeleported && g_CameraMode == CAMERAMODE_POSEND),
+                                 (unsigned) epoch,
                                  (double) g_playerPointers[index]->field_488.pos.x,
                                  (double) g_playerPointers[index]->field_488.pos.y,
                                  (double) g_playerPointers[index]->field_488.pos.z);

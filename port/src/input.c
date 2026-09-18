@@ -1539,6 +1539,23 @@ static int hipDirectCompute(double dxPx, double dyLook)
     if (p->bonddead || !p->outside_watch_menu || p->pause_state != 0)
         return 0;
 
+    /* M-190: the "frozen or scripted-camera state (POSEND/INTRO cutscenes...)
+     * must be checked explicitly" gate this function's own comment above has
+     * always documented, but never actually implemented -- found live: the
+     * mouse could still freely move the camera during the Dam intro flyover
+     * and the abseil-jump cutscene, both CAMERAMODE_INTRO/POSEND, which are
+     * supposed to be camera-locked. bondviewFrozenMoveBond (bondview2.c:7947)
+     * already calls bondviewProcessInput(0,0,0,0) to correctly ignore stick
+     * input during these modes, but that gate lives entirely inside the
+     * stick-based dispatch (MoveBond vs bondviewFrozenMoveBond,
+     * bondview2.c:8268) -- this function writes p->vv_theta/vv_verta
+     * directly, bypassing that dispatch entirely. Reuses the same
+     * scripted-camera test D243's clamps use (bondview2.c, gameScriptedCameraActive,
+     * formerly d243mCutsceneActive -- renamed since this isn't D243-specific). */
+    extern int gameScriptedCameraActive(void);
+    if (gameScriptedCameraActive())
+        return 0;
+
     f32 fov = viGetFovY();
     f32 scale = (fov > 0.0f) ? fov / GEPD_BASE_FOV : 1.0f;
     double sens = (mouseTurnSpeed / 100.0) * (mouseSensitivity / 100.0);

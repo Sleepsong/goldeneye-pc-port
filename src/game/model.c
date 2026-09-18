@@ -3530,9 +3530,14 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
     extern int d243mGetFrameCounter(void);
     if (d243mProbeActive() && model != NULL)
     {
-        osSyncPrintf("D243M: tickstart frame=%d model=%p playspeed=%.3f animrate=%.3f "
+        /* D243 M-187: numticks added -- this is the D193 multi-tick
+         * catch-up burst size for this call; >1 here at the moment of a
+         * scripted restart is the leading PC-specific candidate for why
+         * unkb0/unkb4 could be stale in a way N64's single-tick-per-frame
+         * execution would never produce (see findings.md D243). */
+        osSyncPrintf("D243M: tickstart frame=%d model=%p numticks=%d playspeed=%.3f animrate=%.3f "
                      "unkb0=%.1f unkb4=%.1f unkac=%.3f endframe=%.1f\n",
-                     d243mGetFrameCounter(), (void *) model,
+                     d243mGetFrameCounter(), (void *) model, (int) numticks,
                      (double) model->playspeed, (double) model->animrate,
                      (double) model->unkb0, (double) model->unkb4,
                      (double) model->unkac, (double) model->endframe);
@@ -3619,18 +3624,32 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
 
 #ifdef PORT
             /* D243 M-183: clamp playspeed to a sane range during scripted
-             * camera modes when it exceeds a threshold. This works around
-             * a struct layout/punning issue where playspeed is read from
-             * the wrong location in memory due to 32→64-bit pointer widening
-             * (D100/D140 pun family). The huge playspeed values (~388-410)
-             * cause rapid animation advancement (~97 frames/tick) that makes
-             * Bond appear "stuck" or "duplicated" during cutscenes.
+             * camera modes when it exceeds a threshold. M-186 correction:
+             * this is NOT a D100/D140 struct-punning/pointer-widening issue
+             * -- Model is accessed everywhere by named field, no raw-offset
+             * alias exists here. The actual mechanism (still not fully root-
+             * caused, see findings.md D243): modelSetAnimation2 (line ~2720,
+             * unmodified decomp) never resets unkb0/unkb4/unkac/animrate on
+             * a scripted animation restart; a restart landing while unkb0 is
+             * stale-nonzero divides by it using a mismatched unkac/animrate
+             * pair from the previous animation, producing huge playspeed
+             * spikes (~388-410, vs. a legitimate max of ~2.0). This clamp is
+             * a stopgap for the symptom, not the root-cause fix.
+             * M-187: was mistakenly gated on d243mProbeActive() (requires
+             * GE_D243M=1), so it never fired for a real player -- only during
+             * a diagnostic capture. Fixed to gate on the camera-mode test
+             * alone (gameScriptedCameraActive()) so it's actually active by
+             * default. Logging stays separately gated on d243mProbeActive().
              * Threshold: 50.0 is way above any legitimate playspeed (normal
              * is ~1.0, max observed in gameplay is ~2.0). */
             extern int d243mProbeActive(void);
-            if (d243mProbeActive() && playspeed > 10.0f)
+            extern int gameScriptedCameraActive(void);
+            if (gameScriptedCameraActive() && playspeed > 10.0f)
             {
-                osSyncPrintf("D243M: clamp playspeed %.3f → 1.0\n", (double) playspeed);
+                if (d243mProbeActive())
+                {
+                    osSyncPrintf("D243M: clamp playspeed %.3f → 1.0\n", (double) playspeed);
+                }
                 playspeed = 1.0f;
             }
 #endif
@@ -3704,16 +3723,27 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
 
 #ifdef PORT
             /* D243 M-185: clamp corrupted endframe values during scripted
-             * camera modes. The endframe field is sometimes read from the
-             * wrong location in memory due to 32→64-bit pointer widening
-             * (D100/D140 pun family), producing huge negative values like
+             * camera modes, producing huge negative values like
              * -604462909807314587353088.0 that cause the animation to loop
              * indefinitely or behave unexpectedly. Clamp to a reasonable
-             * range (0-1000) to prevent this. */
+             * range (0-1000) to prevent this.
+             * M-186 correction: NOT a D100/D140 struct-punning/pointer-
+             * widening issue -- see the M-183 comment above for the
+             * corrected mechanism (stale unkb0/unkb4/unkac/animrate on a
+             * scripted animation restart); this is a stopgap, not the root-
+             * cause fix.
+             * M-187: was mistakenly gated on d243mProbeActive() (requires
+             * GE_D243M=1), so it never fired for a real player. Fixed to
+             * gate on the camera-mode test alone (gameScriptedCameraActive()).
+             * Logging stays separately gated on d243mProbeActive(). */
             extern int d243mProbeActive(void);
-            if (d243mProbeActive() && (endframe < 0.0f || endframe > 1000.0f))
+            extern int gameScriptedCameraActive(void);
+            if (gameScriptedCameraActive() && (endframe < 0.0f || endframe > 1000.0f))
             {
-                osSyncPrintf("D243M: clamp endframe %.1f → 100.0\n", (double) endframe);
+                if (d243mProbeActive())
+                {
+                    osSyncPrintf("D243M: clamp endframe %.1f → 100.0\n", (double) endframe);
+                }
                 endframe = 100.0f;
             }
 #endif

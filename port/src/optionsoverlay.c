@@ -120,10 +120,32 @@ static struct Row rows[] = {
     { "Video.LodDistanceAutoFov", "LOD dist. auto",   ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
     /* Aim row edits Input.AimModeSens -- the knob the default GEPD aim path
      * actually uses (Input.MouseAimSpeed only feeds the legacy velocity-stick
-     * fallback, so it was inert here). */
-    { "Input.AimModeSens",        "Mouse aim speed",  ROW_SLIDER, 1,    NULL,       0, 1, 80,  0,0,0,0,0 },
-    { "Input.MouseTurnSpeed",     "Mouse turn speed", ROW_SLIDER, 1,    NULL,       0, 0, 100, 0,0,0,0,0 },
-    { "Input.SensLink",           "Link aim/turn sens",ROW_TOGGLE, 1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
+     * fallback, so it was inert here). D304: both this row and the turn-speed
+     * row below now use the (0,0) "inherit the registered clamp" sentinel
+     * instead of hardcoded uiMin/uiMax -- they were previously (1,80) and
+     * (0,100), two arbitrary, DIFFERENT, and (for turn speed) outright wrong
+     * ceilings that didn't even match either row's own backing config clamp
+     * (both are actually registered 1..500 in input.c) -- fixed as an earlier
+     * part of this same D304 pass. **Follow-up, same day, user feedback after
+     * trying the widened sliders live:** exposing BOTH per-mode knobs still
+     * let a player decouple them into a bad, hard-to-diagnose state (e.g. aim
+     * mode very slow, hipfire very fast, or vice versa) with no indication
+     * anything was wrong -- worse than a narrow range. Per the user's request,
+     * these two rows and the "Link aim/turn sens" toggle that tried to paper
+     * over the same risk are pulled from the menu entirely; only the single
+     * master `Input.MouseSensitivity` row below remains player-facing, exactly
+     * mirroring the reference GEPD/PD injector model this input was ported
+     * from (`reference/mouse-injector/games/goldeneye.c`) -- ONE user-facing
+     * sensitivity value, with the two per-mode constants staying fixed at
+     * their calibrated (38/50) defaults, never independently player-tunable.
+     * Config vars + SensLink logic stay in `input.c`/`rowSet()` untouched
+     * (ini power users can still hand-edit them; existing ini files with
+     * either key keep working) -- only the menu surface changes, same
+     * established pattern as the D181/D216 pulled rows below. */
+    /* { "Input.AimModeSens",        "Mouse aim speed",  ROW_SLIDER, 5, NULL, 0, 0, 0, 0,0,0,0,0 }, */
+    /* { "Input.MouseTurnSpeed",     "Mouse turn speed", ROW_SLIDER, 5, NULL, 0, 0, 0, 0,0,0,0,0 }, */
+    /* { "Input.SensLink",           "Link aim/turn sens",ROW_TOGGLE,1, kOnOff, 0, 0, 0, 0,0,0,0,0 }, */
+    { "Input.MouseSensitivity",   "Mouse sensitivity",ROW_SLIDER, 5,    NULL,       0, 0, 0,   0,0,0,0,0 },
     { "Input.MouseInvertY",       "Mouse invert Y",   ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
     /* D181/Game.ScreenShakeIntensity: user testing (v0.2.1) found the slider
      * "basically useless" -- viShake() is only called from explosion.c, so it
@@ -233,10 +255,28 @@ static void sliderBarSpan(s32 *x0, s32 *x1)
     }
 }
 
-/* Visible position (0..s_visN-1) the given overlay-space y falls in, or -1. */
+/* Visible position (0..s_visN-1) the given overlay-space y falls in, or -1.
+ *
+ * D304 fix: this used to loop over ALL s_visN entries (0..s_visN-1)
+ * regardless of which ones are actually scrolled into view and drawn this
+ * frame -- OV_ROW_Y(p - s_scroll) is a plain linear function of p, so a row
+ * sitting just past the last visibly-drawn one (pLast, see the emit path)
+ * still produces a geometrically valid, in-range Y band immediately below
+ * the panel's real bottom edge. A click near that boundary (real-pixel-to-
+ * virtual-2D-space rounding in the ox/oy scale-up, or simply a slightly low
+ * click on the last visible row) could therefore resolve to the NEXT,
+ * invisible, scrolled-off-the-bottom row instead of the one actually drawn
+ * there. Concretely: with "All unlocked" sitting in the last visible slot,
+ * this let a click on it silently hit "Quit to desktop" (the very next row)
+ * instead -- reported as "I clicked unlock all and I think it crashed"
+ * (user, 2026-09-18): the game didn't crash, __QuitToDesktop's ROW_ACTION
+ * fired and closed it via the game's normal exit path. Fix: bound the scan
+ * to the same [s_scroll, pLast] range the draw loop actually renders. */
 static int overlayRowAtY(double oy)
 {
-    for (int p = 0; p < s_visN; p++) {
+    int maxV = maxVisibleRows();
+    int pLast = (s_visN - s_scroll < maxV) ? s_visN - 1 : s_scroll + maxV - 1;
+    for (int p = s_scroll; p <= pLast; p++) {
         double top = OV_ROW_Y(p - s_scroll) - 3;
         if (oy >= top && oy < top + OV_LINE) {
             return p;
@@ -265,7 +305,20 @@ static void overlayUpdateVisible(void)
     }
 }
 
-/* Keep the selected row on screen: shift the window when it nears an edge. */
+/* Keep the selected row on screen: shift the window ONLY when the selection
+ * is actually outside it, by the minimum amount needed.
+ *
+ * D304 fix: this used to unconditionally set `s_scroll = s_sel - (maxV-1)`
+ * -- i.e. bottom-anchor the selected row -- on every single call, including
+ * every mouse click. A click on a row already visible (anywhere but the very
+ * last slot) still forced the whole list to re-scroll so that row landed at
+ * the bottom, shifting every row's on-screen position for the rest of that
+ * same frame -- so whatever row the user then saw/clicked at that same
+ * screen position was a DIFFERENT (usually the next, i.e. "below") setting.
+ * Reported as "the F10 menu keeps jumping to the setting below when I left
+ * click" (user, 2026-09-18) -- clicking any row not already at the bottom
+ * slot reproduced it every time. Fix: only move the window when the
+ * selection is above the top or below the bottom of the current view. */
 static void overlayUpdateScroll(void)
 {
     int maxV = maxVisibleRows();
@@ -273,7 +326,11 @@ static void overlayUpdateScroll(void)
         s_scroll = 0;
         return;
     }
-    s_scroll = s_sel - (maxV - 1);
+    if (s_sel < s_scroll) {
+        s_scroll = s_sel;
+    } else if (s_sel > s_scroll + maxV - 1) {
+        s_scroll = s_sel - (maxV - 1);
+    }
     if (s_scroll < 0) {
         s_scroll = 0;
     }
@@ -806,9 +863,19 @@ Gfx *optionsOverlayEmit(void)
     const s32 right = OV_RIGHT;
     const s32 panelTop = OV_TOP - 9;
     /* Last visible position actually drawn (window may be shorter than the
-     * list at small 2D viewports -- the rest is reached by scrolling). */
+     * list at small 2D viewports -- the rest is reached by scrolling).
+     * D304 fix: the "everything fits" branch was `s_visN - s_scroll`, which
+     * is a COUNT, not the last valid 0-based index -- since that branch only
+     * runs when s_scroll==0 (overlayUpdateScroll's own invariant), this
+     * evaluated to `s_visN`, one past the last valid entry, so both draw
+     * loops below (`for (p = s_scroll; p <= pLast; p++)`) read one row past
+     * the end of `s_visIdx[]`/`rows[]` on any 2D viewport large enough to fit
+     * the whole list without scrolling (e.g. the larger front-end 440x330
+     * screen once a couple of rows are pulled from the menu, as just
+     * happened above). Should be `s_visN - 1`, matching overlayRowAtY's
+     * identical fix. */
     const int maxV  = maxVisibleRows();
-    const int pLast = (s_visN - s_scroll < maxV) ? s_visN - s_scroll
+    const int pLast = (s_visN - s_scroll < maxV) ? s_visN - 1
                                                  : s_scroll + maxV - 1;
     const s32 panelBottom = OV_ROW_Y(pLast) + OV_LINE / 2 + 3;
     s32 bx0, bx1;

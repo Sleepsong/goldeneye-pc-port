@@ -993,7 +993,18 @@ Gfx *explosionRenderPart(struct ExplosionPart *arg0, Gfx *gdl, struct coord3d *c
     vertices[1] = spA0;
     vertices[2] = spA0;
     vertices[3] = spA0;
-    vertices[4] = spA0;
+    /* D252 (2026-09-18): dropped a stray vertices[4] = spA0 write here -- this
+     * function only allocates 4 Vtx slots (dynAllocateVertices(4) above) and
+     * only ever uses 4 (gSPVertex(..., 4, 0) / gSP2Triangles(0,1,2,...,2,3,0)
+     * below), so vertices[4] was never part of this quad's own draw -- it was
+     * a genuine one-Vtx-sized out-of-bounds write into whatever the next
+     * dynAllocate* call in the same frame claims from the shared bump-
+     * allocated pool (dyn.c's g_GfxMemPos), corrupting unrelated particle/
+     * matrix/light data. Removing it changes zero bytes of what this
+     * function itself draws. Prime suspect for D252's rainbow-particle
+     * corruption; see docs/dev/findings.md D252 for the full mechanism and
+     * why this required the project owner's explicit go-ahead to touch
+     * (decomp-verified original code, not an ABI/pointer-width artifact). */
 
     sp8C.f[0] = sp9C->m[0][0] * sp54;
     sp8C.f[1] = sp9C->m[0][1] * sp54;

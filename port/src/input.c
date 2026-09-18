@@ -292,7 +292,8 @@ static int mouseGrabbed    = 1;     /* released while the window is unfocused */
 static int captureArmed     = 0;   /* user has clicked to lock (capture mode) */
 static int windowFocused    = 1;
 static int mouseAimSpeed  = 16;     /* aim-mode sensitivity, percent (B3: 50 -> 25 M-29 -> 16; still overshot at 25) */
-static int gepdSens       = 38;     /* D194 Input.GepdSens: GEPD SENSITIVITY setting, range 1..80
+static int gepdSens       = 38;     /* D194 Input.GepdSens: GEPD SENSITIVITY setting, range 1..500
+                                        (D304: widened from 1..80 to match Input.MouseTurnSpeed)
                                         (20 -> 25 "a bit slow" -> 30 user-calibrated match point
                                         -> 38: user asked defaults ~20-35% faster than that) */
 static int aimBand        = 20;     /* aim mode: usable stick range above the 60 gate */
@@ -1586,8 +1587,17 @@ PD_CONSTRUCTOR static void inputConfigInit(void)
      * the RMB aim mode; "GEPD" is internal provenance jargon). The old key
      * stays registered against the same variable as a deprecated alias --
      * if both appear in an ini, the later line wins. */
-    configRegisterInt("Input.AimModeSens", &gepdSens, 1, 80);
-    configRegisterInt("Input.GepdSens",    &gepdSens, 1, 80);   /* deprecated alias */
+    /* D304: widened from the old (1,80) clamp to match Input.MouseTurnSpeed's
+     * (1,500) range exactly -- both are the same underlying "reference SENS
+     * passthrough" unit (see aimGepdCompute/hipDirectCompute), consumed by
+     * two different, intentional per-mode divisor constants (2920 vs the
+     * turn-speed path's /100*0.1), so a shared range lets the two sliders be
+     * directly comparable ("1:1" in the menu) instead of arbitrarily capped
+     * at different, mismatched ceilings. Old 80 cap was well below even this
+     * value's own reference-model native ceiling (100 raw = 500% in the
+     * source GEPD injector's own display convention). */
+    configRegisterInt("Input.AimModeSens", &gepdSens, 1, 500);
+    configRegisterInt("Input.GepdSens",    &gepdSens, 1, 500);   /* deprecated alias */
     configRegisterInt("Input.AimBand", &aimBand, 5, 40);
     configRegisterInt("Input.MouseTurnSpeed", &mouseTurnSpeed, 1, 500);
     configRegisterInt("Input.SensLink", &sensLink, 0, 1);

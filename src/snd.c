@@ -359,6 +359,29 @@ void sndHandleEvent(ALSndPlayer *sndp, ALSndpEvent *event) {
                             OSIntMask d285Mask = osSetIntMask(OS_IM_NONE);
                             ALSoundState *iterState = (ALSoundState *) D_800243E4.node.prev;
 
+                            /* D305 (Steam Deck SIGSEGV, v0.3.0 pre-release, FAULT ADDR 0x62 --
+                             * same exact signature as D285/M-140, reproduced AFTER the M-141
+                             * lock fix was already live-verified crash-free on real hardware
+                             * (v0.2.2 hotfix). That rules out D285's own "unprotected
+                             * concurrent mutation" theory as the sole cause: the lock above
+                             * (d285Mask) prevents another thread from emptying this list
+                             * mid-scan, but does nothing if the list is ALREADY empty
+                             * (D_800243E4.node.prev == NULL) the moment this single-threaded
+                             * scan starts -- which the do-while below dereferences
+                             * unconditionally before its own `iterState != NULL` check ever
+                             * runs (a do-while always executes its body once). The scan is
+                             * gated on `limitReached` (the 8-voice pool believed exhausted),
+                             * which should imply at least one live tracked node -- a NULL
+                             * here means the pool-exhaustion accounting and this list have
+                             * desynced by some still-unidentified mechanism (not proven to be
+                             * the user's "Game.AllUnlocked" report specifically; logged as a
+                             * correlation, not a confirmed cause -- see docs/dev/findings.md
+                             * D305/D285). Same defensive-guard shape as D255's
+                             * skip-and-log-instead-of-dereferencing fix: this only prevents a
+                             * crash in a state that was never valid to scan in the first
+                             * place, and changes nothing when the list is non-empty (the
+                             * normal, intended case). */
+                            if (iterState != NULL)
                             do {
                                 /* D202/M-65 (PORT, experimental): the stock scan refuses to
                                  * preempt any looped or retriggering voice (0x12). That is
@@ -394,6 +417,15 @@ void sndHandleEvent(ALSndPlayer *sndp, ALSndpEvent *event) {
                                 }
                                 iterState = (ALSoundState *) iterState->link.prev;
                             } while (limitReached && iterState != NULL);
+                            else if (getenv("GE_D305")) {
+                                /* D305: log the desync state for a future occurrence --
+                                 * confirms whether Game.AllUnlocked correlates or was
+                                 * coincidental, and whether it recurs at all now that the
+                                 * crash itself can't happen. */
+                                fprintf(stderr,
+                                    "D305: sndHandleEvent preempt-scan found D_800243E4 empty "
+                                    "while limitReached was set -- pool/list desync, scan skipped\n");
+                            }
                             osSetIntMask(d285Mask);
 
                             if (!limitReached) {

@@ -393,6 +393,17 @@ bool fileGetIsCheatUnlocked(save_data *save, s32 cheat)
     s32 bits;
 
 #ifdef PORT
+    /* D225 (dev-tooling QoL): both mission-select gating (file.c) and the
+     * cheat-menu availability check (front.c frontCheckIfCheatIsUnlocked)
+     * route through this single, side-effect-free bitfield read -- a debug
+     * env toggle here unlocks both in one place. Default off, no save-file
+     * mutation (query-time override only, cannot corrupt or leak into a
+     * shipped save). */
+    {
+        static int s_unlockAll = -1;
+        if (s_unlockAll < 0) s_unlockAll = getenv("GE_DEBUG_UNLOCKALL") != NULL;
+        if (s_unlockAll) return TRUE;
+    }
     /* D301 (github #87): callers (front.c mode-select cheat rows, file.c
      * briefing cheat check) pass fileGetSaveForFoldernum(selected_folder_num)
      * straight through with no NULL check. On real N64 that lookup can

@@ -8,7 +8,7 @@ D51-D58,RESOLVED,"font pixeldata, osGetCount tick rate, model RW pools, cseq BE 
 D59-D68,RESOLVED,"intro render: blood-RLE clobber, DMA validate, OSMesgQueue, HEADS/BODIES sentinels, romCopy width, image_entry, Globalimagetable BE→LE",resolved
 D70-D74,RESOLVED,"intro-logo pixels: C-array bswap, UV path, sinf/cosf DVAL(), texture-import truncation",resolved
 D75,OPEN,front-end 3D model transforms (D77 audio split out below —,"OPEN (parked). M-32 triage (see §F ""D75 ADDENDUM""):"
-D76 · D164,PROPOSED,Legal screen only draws line 1 —,fix proposed (not applied —
+D76 · D164,FIXED,Legal screen only draws line 1 —,"FIXED — this row and the ## D164 entry below were stale; the proposed one-line #ifdef PORT fix was actually committed 8dfc578f4 (2026-08-31), well before this correction (2026-09-18)."
 D159,FIXED,"front-end wallet-Bond photo ""interlaced""/combed (RC1 / D149) —",FIXED (#ifdef PORT no-op the swap in image.c)
 D161,FIXED,Depot (-level_30) ceiling = bright-blue speckle + radial rays (B2).,FIXED (port/fast3d/gfx_pc.cpp)
 D165 · D166,FIXED,"Input-layer polish (M-31, port-only):",FIXED
@@ -32,7 +32,7 @@ D221,FIXED,SELECT FILE mouse hit-box offset —,"FIXED (M-91) — explicit {min,
 D222,FIXED,High Video.FovScale breaks culling —,"FIXED, awaiting visual verification (M-121)."
 D223,FIXED,QoL ask: mouse-wheel weapon cycling should be directional like a normal PC shooter —,"FIXED (M-105, port/src/input.c) —…"
 D224,?,"QoL gap (M-87, from a PD-PC-port survey):","DEPRIORITIZED (M-87, user call)."
-D225,OPEN,"Dev-tooling QoL (M-87, user ask):","OPEN — root-caused, not implemented."
+D225,FIXED,"Dev-tooling QoL (M-87, user ask):","FIXED (2026-09-18) — GE_DEBUG_UNLOCKALL=1 short-circuits fileGetIsCheatUnlocked() (src/game/file2.c, #ifdef PORT, cached getenv) to always return TRUE; default off, no save mutation."
 D226,OPEN,"QoL ask: player-adjustable HUD scale for the ammo counter, bottom-left pickup/item status text, and top-of-screen dialogue/subtitle text.","OPEN — root cause / call sites identified, not designed or implemented."
 D227,FIXED,Sky renders as two independently-moving halves —,"FIXED (M-100b, PR #43) —"
 D229,FIXED,"IsWater-level water renders green, pulses blue<->green (M-101; Frigate -level_26).","FIXED (port-layer) — ZLIB+CI8 water image now imports via the CI8 palette path (gfx_pc.cpp); Frigate verified live (""looks better""); sweep + Surface 2 by-eye still owed."
@@ -128,11 +128,11 @@ D155,FIXED,"Facility outro-cutscene end → ""hang"" = unclamped deltaFrames spi
 D153,RESOLVED,"-level_09 frame ~900–1400 0xc0000005 = D117/D134 load flakiness, NOT a bug (M-28).",NOT A BUG — closed. Run anchors on a quiet machine.
 D151,FIXED,Watch data all blank —,"FIXED (src/bondtypes.h, #ifdef PORT —…"
 D130,RESOLVED,"crash class C2 (Facility -level_34, Runway -level_35):",resolved — stage all 6 N64 fields in a local f[6] before writing any.
-D164,PROPOSED,"Disclaimer / legal screen only draws the first line (D76 root cause, M-31).","FIX PROPOSED, NOT APPLIED (front.c is owned by another agent this session).…"
+D164,FIXED,"Disclaimer / legal screen only draws the first line (D76 root cause, M-31).",FIXED — corrected 2026-09-18:
 D165,FIXED,"Front-end menu cursor doesn't feel like a mouse pointer (M-31, user bug B5 follow-up).","FIXED (port/src/input.c; Input.MenuPointerMode, Input.HipfirePitchSpeed added)."
 D166,FIXED,Hipfire mouse pitch is digital while yaw is analog —,FIXED (port/src/input.c).…
 D235,OPEN,Wrong textures load after dying/restarting a level —,OPEN — needs: does it repro on a *fresh* level boot (rules out reload-state) vs only after death/restart (confirms it); which surfaces; a screenshot.…
-D236,OPEN,"Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).","OPEN, thirteenth pass (2026-09-18) —"
+D236,OPEN,"Surface 1: 2D billboard trees render as a wall/sheet of tree texture instead of discrete camera-facing tree sprites (M-106, user QA report).","OPEN, sixteenth pass (2026-09-18) —"
 D237,OPEN,"QoL ask (M-106, user QA):",OPEN — not designed; port-only
 D238,OPEN,"QoL ask (M-106, user QA):",OPEN — not designed; port-only (port/src/input.c + config.c)
 D239,?,"QoL ask (M-106, user QA):",CLOSED — executed in the v0.2.0 prep pass (port-only)…
@@ -147,7 +147,7 @@ D248,FIXED,"Port runs a stable 30 FPS instead of 60 FPS game-wide (M-117, user a
 D249,OPEN,"LOD/culling breaks down on large open levels (Streets, Egyptian named specifically) at *default* FOV —","OPEN — M-142 static review ruled out the unscaled-far-clip and LOD-multiplier suspects (both already correct); narrowed to the portal/room-visibility BFS, needs a live screenshot+location, not more c…"
 D250,FIXED,"FPS is inconsistent/low on many levels after 60 Hz shipped (M-119, user QA; D248 follow-on).","FIXED — per-call getenv() cost was the bottleneck; rock-steady 60-61 fps after, user re-tested 1440p/4K clean."
 D251,FIXED,F10 options overlay QoL pass:,"FIXED (port-only, port/src/optionsoverlay.c)."
-D252,FIXED,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).","CLOSED as a duplicate of D219 (M-188, 2026-09-18) —"
+D252,FIXED,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).","FIXED, VISUALLY CONFIRMED (2026-09-18)."
 D253,FIXED,Facility (and any level with a FORCECROUCH/LADDER linked special tile) SIGSEGV on Linux/Steam Deck —,FIXED — Deck-verified:
 D254,FIXED,Linux crash handler destroyed its own logs:,FIXED — field-verified.
 D255,FIXED,Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle; D253 fix confirmed working).,"FIXED (M-140) — D3x-class 32-bit pointer truncation (vtxstore_fix_refs read Model* through the mistyped ChrRecord.chrflags 4-byte-enum alias instead of ObjectRecord.model), not the destroy-path race…"
@@ -162,7 +162,7 @@ D263,RESOLVED,v0.2.1 (user report):,"RESOLVED (not a bug), but refined (v0.2.1 f
 D265,?,"D236 investigation (port-layer, port/fast3d/gfx_pc.cpp):",PARKED — reverted to baseline; evidence + suspect list above.
 D258,OPEN,PAL/JP asset conversion is broken at the source-data level —,"OPEN — repair path verified, not applied (out of v0.2.0 scope)."
 D284,FIXED,port/src/random.c's MIPS64 dsll32/dsrl32 shift helpers were backwards —,"FIXED, 21-level sweep clean, no crashes —"
-D285,FIXED,Steam Deck SIGSEGV during D255 live-testing = SEPARATE bug:,"FIXED (M-141, src/snd.c) —"
+D285,PARTIAL,Steam Deck SIGSEGV during D255 live-testing = SEPARATE bug:,"PARTIALLY FIXED, RECURRED PAST THE FIX (see D305, 2026-09-18)."
 D286,OPEN,"User-confirmed real ~8s frame freeze on Caverns, Steam Deck —","OPEN — one confirmed occurrence, no repro trigger identified, not root-caused; distinct from D255/D285."
 D287,OPEN,"User-confirmed real, non-self-recovering freeze on Windows (M-141, 2026-09-15/16) after ~15-20 minutes with no input, triggered by clicking back into the… —","OPEN — one confirmed occurrence, real (not self-recovering), not root-caused; gfxFrameMsgQ full is a lead, not a confirmed cause."
 D288,OPEN,"Silo intro: a huge, flat-shaded, untextured brown/tan triangle sweeps across the frame during the camera pan down the missile shaft (M-141, user report —… —","OPEN — visually confirmed and precisely bounded (frames ~562-741 of a bare -level_20 boot), root cause not yet identified; promoted from the long-parked GRAP… |"
@@ -179,3 +179,7 @@ D298,?,Full HUD (not just the aim-mode crosshair) missing in a v0.3.0 dev build 
 D299,FIXED,Game.SkipIntro crashed selecting any save slot except one —,"FIXED — fileValidateSaves() (only called from the skipped legal screen) never ran under SkipIntro, leaving saves[] all-zero; added the missing call to the SkipIntro shortcut (src/game/lv.c, #ifdef PO…"
 D300,FIXED,Hipfire look feels non-uniform (issue #89):,"FIXED, user-confirmed live —"
 D301,FIXED,"fileGetIsCheatUnlocked() NULL-deref, unguarded on every call site, not just the D299/SkipIntro one (GitHub #87, two reports with an identical crash PC/fault ad…",FIXED locally on release/v0.3.0 (not pushed) —
+D302,FIXED,"Render FPS regression to ~40-45fps on release/v0.3.0 (user QA on the local v0.3.0 pre-release build, 2026-09-18) —","FIXED — 4 uncached getenv() calls added by D236 passes 10/12/14/16 directly inside gfx_sp_tri1 (port/fast3d/gfx_pc.cpp, per-triangle) cached with the same static int x = -1 pattern D250 established e…"
+D303,OPEN,"Some muzzle flashes (M16 named specifically, ""and some others"") draw wrong —","OPEN — reported only, not yet investigated."
+D304,FIXED,"Mouse sensitivity menu overhaul (user request, 2026-09-18):","FIXED — see full entry for both the range/parity pass and the same-day follow-up (collapsed to a single Input.MouseSensitivity menu row + fixed overlayUpdateScroll()'s unconditional bottom-anchor, th…"
+D305,FIXED,"Steam Deck SIGSEGV on the v0.3.0 pre-release build (Cavern, early in the level, Game.AllUnlocked previously enabled on the session/save) —",FIXED (defensive guard) —

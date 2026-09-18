@@ -139,6 +139,12 @@ static struct RSP {
     const struct NormalColor *vertex_colors; //[MAX_VERTEX_COLORS];
 } rsp;
 
+/* D236 pass 16 (TEMP): segment byte (top byte of the raw segmented address)
+ * of the most recent G_VTX load, so a later triangle-time probe can report
+ * which segment the tree class's vertices actually came from. See the
+ * G_VTX case comment below for why. Remove once D236 pass 16 concludes. */
+static uint8_t g_d236_last_vtx_seg = 0xFF;
+
 struct RawTexMetadata {
     uint16_t width, height;
     float h_byte_scale = 1, v_pixel_scale = 1;
@@ -1796,7 +1802,9 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
      * same way twice, not at true per-frame nondeterminism)? Log the
      * count once per display list (frame) while it's nonzero. Remove
      * once D236 pass 10 concludes. */
-    if (getenv("GE_D236RM")) {
+    static int s_d236rm = -1;
+    if (s_d236rm < 0) s_d236rm = getenv("GE_D236RM") != NULL;
+    if (s_d236rm) {
         static uint32_t d236rm_last_dl = 0xFFFFFFFFu;
         static uint32_t d236rm_count = 0;
         extern uint32_t num_dls;
@@ -1832,7 +1840,9 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
      * directly explains "wall painted over trees" regardless of geometric
      * depth, and points at a draw-order (not depth) bug. Remove once D236
      * pass 12 concludes. */
-    if (getenv("GE_D236ORDER")) {
+    static int s_d236order = -1;
+    if (s_d236order < 0) s_d236order = getenv("GE_D236ORDER") != NULL;
+    if (s_d236order) {
         static uint32_t d236o_last_dl = 0xFFFFFFFFu;
         static uint32_t d236o_seq = 0;
         static uint32_t d236o_noise_min = 0, d236o_noise_max = 0, d236o_noise_n = 0;
@@ -1862,6 +1872,46 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
             d236o_tree_n++;
         }
         d236o_seq++;
+    }
+
+    /* D236 pass 14 (M-19x, TEMP): pass 13's live capture ruled out draw
+     * order as the dominant cause even in the favorable (tree-after-noise,
+     * high tri count) zone -- redirecting to whether the tree class's own
+     * per-vertex alpha (D280's "gfog=0, CPU-baked bimodal 25/255" census)
+     * is actually LOW (near-transparent) for the close/high-count trees the
+     * live capture walked through. This render mode's blend equation is a
+     * standard alpha-blend decal (FORCE_BL, GBL c1/c2 = CLR_IN,A_IN ->
+     * CLR_MEM,1-A_IN -- see include/PR/gbi.h RM_AA_ZB_XLU_DECAL), so if the
+     * combiner's alpha output tracks vertex/SHADE alpha directly, a card
+     * baked near 25/255 (~10%) would blend almost invisibly over whatever
+     * was drawn under it -- looking exactly like "the noise wall shows
+     * through" even with correct geometry and correct draw order. Logs,
+     * once per triangle of this class: each vertex's raw color.a, the
+     * combine_mode word (to see which alpha slot actually feeds the
+     * blend), and 1/w (a cheap camera-distance proxy) so alpha can be
+     * correlated against "close" vs "far" the same way pass 13's live
+     * capture was read. Zero cost unset. Remove once D236 pass 14
+     * concludes. */
+    static int s_d236alpha = -1;
+    if (s_d236alpha < 0) s_d236alpha = getenv("GE_D236ALPHA") != NULL;
+    if (s_d236alpha && rdp.other_mode_l == 0x0c184b50u) {
+        static uint32_t d236a_hits = 0;
+        static uint64_t d236a_last_combine = 0xFFFFFFFFFFFFFFFFull;
+        if (d236a_hits < 4000) {
+            if (rdp.combine_mode != d236a_last_combine) {
+                fprintf(stderr, "D236ALPHA combine_mode=0x%016llx\n",
+                        (unsigned long long)rdp.combine_mode);
+                d236a_last_combine = rdp.combine_mode;
+            }
+            fprintf(stderr,
+                    "D236ALPHA a=(%u,%u,%u) invw=(%.4f,%.4f,%.4f) vtxseg=0x%02x\n",
+                    v1->color.a, v2->color.a, v3->color.a,
+                    (v1->w != 0.f) ? 1.f / v1->w : 0.f,
+                    (v2->w != 0.f) ? 1.f / v2->w : 0.f,
+                    (v3->w != 0.f) ? 1.f / v3->w : 0.f,
+                    g_d236_last_vtx_seg);
+            d236a_hits++;
+        }
     }
 
     if ((rsp.geometry_mode & G_CULL_BOTH) != 0) {
@@ -1916,7 +1966,9 @@ static void gfx_sp_tri1(uint8_t vtx1_idx, uint8_t vtx2_idx, uint8_t vtx3_idx, bo
      * z-write for a decal-mode class is not decomp-faithful either) -- purely
      * to test the mechanism cheaply before deciding what a real fix looks
      * like. Remove once D236 pass 12 concludes. */
-    if (getenv("GE_D236ZFIX") && rdp.other_mode_l == 0x0c184b50u) {
+    static int s_d236zfix = -1;
+    if (s_d236zfix < 0) s_d236zfix = getenv("GE_D236ZFIX") != NULL;
+    if (s_d236zfix && rdp.other_mode_l == 0x0c184b50u) {
         depth_update = true;
     }
     bool depth_compare = (rdp.other_mode_l & Z_CMP) == Z_CMP;
@@ -3306,6 +3358,18 @@ static void gfx_run_dl(Gfx* cmd) {
                 gfx_sp_texture(C1(16, 16), C1(0, 16), C0(11, 3), C0(8, 3), C0(0, 8));
                 break;
             case G_VTX:
+                /* D236 pass 16 (TEMP): pass 15's GE_D236RAW dump proved every
+                 * room-background Vtx (g_BgRoomInfo[].vertices) is alpha=255
+                 * on load -- so the tree class's <=36/255 alpha measured at
+                 * draw time (GE_D236ALPHA) can't be coming from that static
+                 * table. Record which segment (top byte of the raw segmented
+                 * address) the most recent G_VTX load came from, so the next
+                 * triangle-time probe can report it -- distinguishes "still
+                 * room background, something else touches it after load" from
+                 * "not room background at all" (a different segment, e.g. a
+                 * model/CPU-built-quad source) without guessing from source
+                 * review alone. Remove once D236 pass 16 concludes. */
+                g_d236_last_vtx_seg = (uint8_t)(cmd->words.w1 >> 24);
                 gfx_sp_vertex(C0(0, 16) / sizeof(Vtx), C0(16, 4), (const Vtx*)seg_addr(cmd->words.w1));
                 break;
             case G_DL: {

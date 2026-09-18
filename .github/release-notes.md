@@ -1,7 +1,7 @@
 ## GoldenEye 007 PC Port <version>
 
 <p align="center">
-  <img src="https://github.com/jkdansereau/goldeneye-pc-port/raw/v0.2.1/docs/media/goldeneye-gh-preview.gif" width="480"
+  <img src="https://github.com/jkdansereau/goldeneye-pc-port/raw/v0.3.0/docs/media/goldeneye-gh-preview.gif" width="480"
        alt="~32 s gameplay montage from live play sessions (no audio track)">
 </p>
 
@@ -15,116 +15,106 @@
 > [README's Roadmap section](https://github.com/jkdansereau/goldeneye-pc-port#roadmap)
 > for where this is headed.
 
-### What's new since v0.2.0
+### What's new since v0.2.2
 
-Small hotfix batch from user playtest feedback on v0.2.0:
-
-- **Partially fixed: `All unlocked` + a completely fresh EEPROM produced
-  silent music/SFX** (D259). A brand-new save slot now seeds max volume the
-  same way the N64 does. **However, user testing after this fix still found
-  audio (and occasionally right-mouse aim) break when `All unlocked` is
-  turned on *before* a save has ever been written** — see the Known Issues
-  note below; do not enable it on a fresh install until you've completed at
-  least one level normally.
-- **Mouse wheel weapon cycling now matches the on-screen wheel-menu order**:
-  scroll up = previous weapon, scroll down = next (D260).
-- **Watch menu: holding a direction now auto-repeats** instead of crawling
-  one item per key press/notch (D261).
-- **Fixed: the watch menu's item-preview 3D model wasn't rendering** —
-  weapons now show their model when selected on the watch inventory page
-  (D264).
-- Investigated the Facility report of Ourumov never executing Trevelyan:
-  confirmed it's proximity/line-of-sight-triggered exactly as on the N64
-  (walk toward the room), not a port bug — the full scripted beat, including
-  the execution shot, fires correctly (D263).
-- **Removed the `Skip intro` F10 toggle** — user testing found it breaks
-  audio. It was already off by default; it's now also pulled from the menu
-  entirely until root-caused (D216).
-- **Removed the `Screen shake` F10 slider** — it only scaled explosion/effect
-  camera shake, not the always-on walking head-bob or any getting-shot
-  reaction, so it read as broken/useless. Pulled from the menu until it
-  covers all screen-shake/view-bob sources (D181).
-
-### What's new since v0.1.0
-
-- **Drop-in ROM, no tooling**: unpack the bundle, drop your NTSC-U (US) ROM
-  in `data/`, launch; the first run generates the derived assets
-  automatically. No Python, no installer, nothing to set up.
-- **Steady 60 fps** in normal play (the software RSP runs off the presentation
-  critical path); `Video.DisplayFPS` in the F10 overlay shows it.
-- **Audio**: in-level music and sound effects throughout (the alpha was
-  silent). A previous wrong-sounding-instrument bug (bad bass synth on
-  Control/Cavern/Runway) is fixed as of v0.2.0.
-- **Mouse**: click-to-lock capture (click to grab, ESC to release) with a
-  proportional GEPD-style aim mode; sensitivity / Y-inversion / aim-turn split
-  tunable in `ge007.ini` or the F10 overlay. The legacy always-grab mode is
-  gone.
-- **Rendering**: outdoor skies render correctly; water no longer renders
-  green/pulsing; reflective surfaces (glass, chrome weapon skins) work.
-- **Crash fixes**: the two v0.1.0-era crashing levels (Bunker ii, Statue) and
-  the AI-pacing bug that broke Cradle are fixed and playtest-verified: all 21
-  solo missions load and run crash-free. Also fixed: the Steam Deck / Linux
-  Facility crash triggered by walking into the crouch-forcing spot at the
-  level's opening (D253); this also revives the auto-crouch and ladder
-  signals, which were dead on PC before.
-- **QoL**: F10 in-game options overlay (fullscreen, resolution, frame cap,
-  MSAA, texture filtering, FOV/draw distance, sensitivity), F12 screenshot.
-- **Sharper defaults out of the box**: draw distance and LOD swap distance now
-  default to 150% of the authored N64 values, so props no longer fade in just
-  before they become visible (Dam's alarms and wall switches being the tell);
-  F10 → *Draw distance* / *LOD distance* set back to 100 restores the
-  console-authentic look. MSAA now defaults to 4× instead of off.
-- **All-unlocked toggle** *(experimental — see Known Issues before using)*:
-  F10 → *All unlocked* makes all 21 solo levels selectable at every
-  difficulty, adds 007 mode, and fully populates the cheat menu. It is off by
-  default (faithful N64
-  progression). No *active* cheats are enabled either way (weapons remain
-  per-mission pickups, as on N64).
-- **Steam Deck first-run preset**: on SteamOS the first launch seeds
-  Deck-friendly defaults (native 1280×800 fullscreen, VSync, MSAA 4, 150%
-  draw/LOD distance); an existing `ge007.ini` always wins. **If you first
-  launch it in Desktop Mode (e.g. to add it via Steam) before ever running
-  it in Game Mode, the preset can be skipped** — an ini gets created before
-  Game Mode's Deck-specific environment is detected, and once an ini exists
-  it always wins over the preset on every later launch. If your resolution
-  isn't 1280×800 on first Game Mode boot, just set it manually: F10 →
-  *Resolution* (D283). One more F10 row: *No hit flash* (suppresses the
-  damage-flash overlay).
-- **Modern dual-stick controller layout** (the scheme used by the console
-  re-releases): left stick move/strafe, right stick look, right trigger fire,
-  left trigger aim, A/X use, B/Y crouch/cancel, **RB/LB cycle weapons**.
-- **Linux / Steam Deck**: the Linux bundle now ships its own SDL2, so it runs
-  as-is on any distro, and sideloads onto a Steam Deck with nothing
-  installed. Saves and F10 settings now persist no matter which directory you
-  launch from (previously Linux wrote them relative to the launch directory
-  only, so they silently failed elsewhere; D256); the options overlay is
-  fully gamepad-driven on the Deck.
+- **The Dam end-of-level cutscene is fixed** — the most visible remaining
+  glitch in prior releases: Bond's animation no longer breaks or repeats,
+  and the camera correctly tracks him through all three scripted abseil
+  shots (D243). Root cause: a 32-bit-era struct-size constant in the
+  cutscene body-model setup never accounted for 64-bit pointer widening,
+  corrupting the model's own animation-timing fields on creation. Fixing
+  that also fixed the associated camera shake, which had previously been
+  worked around with a camera-freeze hack that's no longer needed. **Two
+  related reports also cleared up as a side effect**: Bond's third-person
+  model floating above the ground at level start, and death animations
+  sinking him into the floor, both shared an underlying mechanism with this
+  bug — Bond now ends up in the right place the large majority of the time,
+  with only a small positional drift on the rare occasion he's off (D173/
+  D292).
+- **Mouse can no longer move the camera during locked cutscenes** — a
+  separate bug found while verifying the fix above: the intro flyover and
+  the Dam abseil-jump sequence are meant to be camera-locked, but mouse-look
+  was never actually gated during those states.
+- **Particle colors mostly fixed**: bullet-impact sparks and lingering
+  smoke/explosion residue no longer cycle through a rainbow palette (D219) —
+  root cause was a hardcoded raw-memory-offset read into the spark's stored
+  color that landed on the wrong bytes once the containing struct grew from
+  64-bit pointer widening. A second, separate cause was found and fixed in
+  explosion rendering itself (an out-of-bounds vertex-buffer write
+  corrupting adjacent particle data). This fix is real and stays in, but the
+  rainbow effect can still occur intermittently on any platform, not every
+  time and not on every level — a second cause hasn't been found yet; see
+  Known Issues.
+- **Automatic widescreen FOV scaling**: the game now scales its field of
+  view to match your display's aspect ratio automatically, instead of
+  requiring the old manual FOV-scale slider. Toggle off in the F10 overlay
+  (`Widescreen Auto`) if you prefer the original 4:3 framing. (This is FOV
+  scaling, not a native 16:9 world/HUD re-render — see Known Issues.)
+- **TV overscan artifacts removed**: the black bars top/bottom and the thin
+  pixel strips left/right of the gameplay view are gone (D247/D246) — both
+  were the original N64 TV-safe-area margin, invisible on a CRT under real
+  overscan but visible on a PC monitor. New `Video.SafeAreaCrop` toggle
+  (default on) if you want the original framing back.
+- **Hipfire mouse-look feels dramatically better**: slow mouse motion is no
+  longer barely recognized and fast motion no longer saturates almost
+  immediately — mouse look now writes the camera angle directly instead of
+  being routed through the N64 analog stick's turn curve (D300,
+  `Input.MouseDirectLook`, on by default).
+- **Two more crash fixes**: a campaign-halting crash at the end of Control
+  Center on 00 Agent difficulty, which would then crash on every subsequent
+  relaunch until the save was reset (D295); and a crash selecting most save
+  slots with `Skip Intro` enabled (D299).
+- **A NULL-pointer guard was added** around a save-data lookup that two
+  players hit with an identical crash address (GitHub #87, D301) — this
+  should close that crash, though we weren't able to reproduce the exact
+  trigger condition ourselves to confirm it end-to-end.
+- **A Steam Deck crash is fixed**: an audio-thread bug could crash the game
+  early in a level (`sndHandleEvent`'s sound-preemption scan could
+  dereference a pointer without checking it was valid first). Live-verified
+  crash-free on real Steam Deck hardware, including with `All unlocked`
+  toggled on.
+- **F10 mouse sensitivity simplified**: the separate aim-speed and turn-speed
+  sliders — which could be set to inconsistent values against each other —
+  are now a single `Mouse sensitivity` control with a wider range. Also
+  fixed three F10 menu bugs found along the way: clicking a row could
+  unexpectedly scroll the whole list, a click near certain rows could
+  silently activate a different option than the one you clicked (most
+  noticeably, clicking `All unlocked` could instead trigger `Quit to
+  desktop`), and the panel's bottom row no longer duplicates whatever item
+  is currently selected (D251).
+- **Random-number generation now matches the N64 original exactly** (D284) —
+  a shift-operation bug in the PRNG had desynced the PC's random stream from
+  N64's since the very first release, affecting loot placement, AI variance,
+  and other randomized elements. **This changes the random sequence from
+  every prior build**, so old input recordings/replays will diverge, but
+  your save files are unaffected: **a migration shim automatically upgrades
+  any save written by an older build the first time you load it** (D297) —
+  no manual action needed.
+- **Assorted texture/rendering fixes**: an incorrect IA4 texture-format
+  decode and an overly-tight near-plane portal-culling guard were both
+  corrected (D266/D271) — reduces some texture-edge and visibility artifacts
+  on affected levels.
 
 ### Known issues
 
-- **Cutscenes still glitch, mostly with James Bond**: in scripted sequences
-  Bond is the one who gets misplaced, hovers, or spins; the other actors are
-  fine for the most part now. The Dam level-end cutscene is racy (D243).
-  Still the most visible gap in this release.
-- **Particle colours cycle through a rainbow palette**: bullet-impact sparks
-  and lingering smoke/explosion residue drift through the hues over time
-  instead of holding their intended grey/orange palette (D252).
-- Water on `IsWater` levels shows a moving seam between two patterns (D245);
-  thin pixel strips at the left/right screen edges at non-integer window
-  scales (D246).
 - The front-end **Nintendo logo renders as two white blobs**, and the
   Rareware logo is close but its texture filtering looks off (D75).
-- The F10 overlay's **bottom row duplicates whatever item is currently
-  selected** (e.g. the MSAA value appears both on its own row and again at
-  the panel bottom); earlier builds showed it as an intermittent 4K-
-  fullscreen ghost of the top row.
+- **Particle colors: a real fix landed this release, but the rainbow effect
+  can still occur intermittently.** One genuine, reproducible cause (an
+  out-of-bounds vertex-buffer write in explosion rendering) is fixed. A
+  second, still-unidentified cause remains, on both Windows and Steam Deck —
+  it doesn't reproduce every time or on every level, so treat this as
+  improved, not fully resolved (D252).
+- **Some muzzle flashes draw an extra, erroneous long flash straight up from
+  the gun** (seen on the M16, among others), on top of the normal, correctly
+  drawn flash. Cosmetic only (D303).
 - **Surface 1: the 2D billboard trees near the start render as a solid wall
   of tree texture** instead of discrete sprites (D236). Under active
-  investigation; no fix in this release.
-- **No true widescreen support**: at 16:9 the game stretches the
-  4:3-authored view (world geometry and HUD) rather than properly expanding
-  the horizontal field of view. The F10 *FOV scale %* slider is a manual,
-  imperfect workaround for the resulting distortion, not real widescreen.
+  investigation across ten+ passes; no fix yet.
+- **No native widescreen render**: v0.3.0's automatic FOV scaling (above)
+  expands the *field of view* for 16:9+ displays, but the world geometry and
+  HUD are still authored/laid out for 4:3 — this is not yet a true
+  edge-to-edge 16:9 render.
 - **No controller rebinding UI, and no macOS or ARM builds.**
 - **Distant geometry can drop out on the biggest open levels** (Streets,
   Egyptian) at default FOV — a culling/LOD issue that sometimes
@@ -137,24 +127,18 @@ Small hotfix batch from user playtest feedback on v0.2.0:
   at least one save written.** Complete a level normally first (e.g. Dam on
   Agent), then turn the toggle on. Enabling it on a brand-new install with
   no prior save can still cause silent audio and odd right-mouse-aim
-  behavior even after the D259 fix above. We recommend leaving it off unless
-  you specifically want the unlock goodies and are willing to accept an
-  experimental feature (D259/D257).
-- ~~Linux / Steam Deck: an intermittent SIGSEGV, reproducible by destroying
-  Facility's computer terminals or other exploding objects~~ **FIXED
-  (D255).** Root cause: a 32-bit pointer read through a mistyped field
-  (`ChrRecord.chrflags`, a 4-byte enum aliased onto a real 8-bit pointer
-  field) silently truncated the pointer on 64-bit builds — harmless on the
-  original 32-bit N64, broken on PC. Verified live on real Steam Deck
-  hardware: held through the entire Facility level (including repeated
-  terminal destruction) and through Caverns' radio-objective terminals
-  with zero crashes. Please still report any other Deck/Linux-specific
-  faults.
-- **Steam Deck / gamepad: the right analog stick currently navigates the
-  main menu, file select, and mission-select map** — not the left stick.
-  This matches the N64 default but is unintuitive on a modern controller;
-  moving front-end menu navigation to the left stick is a planned QoL fix,
-  not done in this release.
+  behavior (D259/D257). (The Steam Deck crash fix above addresses a
+  separate, now-fixed symptom that had also been associated with `All
+  unlocked` use; this audio/aim caveat is unrelated and still open.)
+- Water on `IsWater` levels shows a moving seam between two patterns (D245).
+- **Occasional z-fighting on some levels' geometry** (D308) — a Dam intro/
+  truck-wheel instance showing odd transparent-looking areas has also been
+  seen and may be related (D306). Minor, cosmetic; not investigated for
+  this release.
+- **In-level security camera props can occasionally end up facing backwards**
+  (the wrong direction) on some levels, seen on Bunker — this is the
+  gameplay security-camera object, not the player's own view (D307). Not
+  investigated for this release.
 
 ### Downloads
 

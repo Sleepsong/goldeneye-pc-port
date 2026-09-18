@@ -12,7 +12,7 @@ in a dedicated `port/` layer, following the architecture of the
 [Perfect Dark PC port](https://github.com/fgsfdsfgs/perfect_dark), the same
 Rare "Indy" engine family, one hardware generation apart.
 
-**v0.2.1** is out for Windows and Linux (including Steam Deck, where the
+**v0.3.0** is out for Windows and Linux (including Steam Deck, where the
 Linux bundle sideloads as-is) and runs the full campaign at a steady 60 fps
 with known rough edges ([Status](#status)). Free to download, build on and
 modify (you bring the ROM).
@@ -53,8 +53,8 @@ account of what worked and what didn't.
 
 Both bundles contain **no ROM and no game assets**: you supply your own
 (see [Requirements](#requirements)), which keeps the release legal to
-distribute. Earlier builds: v0.2.0 and v0.1.0 alpha, same page. You can also build it
-yourself; see [Building](#building).
+distribute. Earlier builds: v0.2.2, v0.2.1, v0.2.0, and v0.1.0 alpha, same
+page. You can also build it yourself; see [Building](#building).
 
 ### Quick start
 
@@ -67,46 +67,61 @@ included or distributed. Then:
 2. Make a `data/` folder next to the executable and drop the ROM in as `ge007.ntsc-final.z64`.
 3. Launch the executable from that folder. The first run takes a few extra seconds: it detects the ROM and generates the derived asset folders once (no Python or other tooling needed).
 
-Read the [Status](#status) caveats first: v0.2.1 has known rough edges,
+Read the [Status](#status) caveats first: v0.3.0 has known rough edges,
 listed plainly there.
 
 ## Status
 
-**v0.2.1 - playable, with known rough edges.** The full single-player
+**v0.3.0 - playable, with known rough edges.** The full single-player
 campaign is completable end to end (all 21 missions, Agent difficulty,
 playtested), at a steady 60 fps; all 21 solo missions load, render and run
 crash-free, verified on Windows, Linux and real Steam Deck hardware. Feedback
 is very welcome.
 
+What a release actually installs (no networking, no telemetry, no ROM or
+game assets shipped) and how faithfully the port tracks the original N64
+game's logic: [Security & fidelity status](docs/security-and-fidelity-status.md).
+
 **Working:** boot sequence and front end (menu → mission select → briefing →
 start); all 21 solo missions load, render and are crash-free (full campaign
 playtested end to end at Agent difficulty); steady 60 fps
-(software RSP off the presentation critical path); full audio: in-level music and SFX; keyboard + mouse (click-to-lock, proportional aim mode) and a modern
-dual-stick controller layout; file-backed saves; faithful N64 progression by default
-(F10 → *All unlocked* opens every level, 007 mode and the full cheat menu); F10 in-game
-options overlay (resolution, frame cap, MSAA, filtering, FOV, sensitivity);
-Windows and Linux.
+(software RSP off the presentation critical path); full audio: in-level music and SFX; keyboard + mouse (click-to-lock, proportional aim mode, a single
+simplified sensitivity control) and a modern dual-stick controller layout;
+automatic widescreen FOV scaling; the Dam end-of-level cutscene, and Bond's
+third-person model positioning generally, are fixed (right the large
+majority of the time now, at most a small drift when off — no more floating
+or spin-glitching); file-backed saves; faithful N64 progression
+by default (F10 → *All unlocked* opens every level, 007 mode and the full
+cheat menu); F10 in-game options overlay (resolution, frame cap, MSAA,
+filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.
 
 **Known issues:**
 
-- **Cutscenes still glitch, mostly with James Bond**: in scripted sequences
-  Bond is the one who gets misplaced, hovers, or spins; the other actors are
-  fine for the most part now. The Dam level-end cutscene is racy (D243).
-  Still the most visible gap in this release.
-- Particle colours drift through a rainbow palette instead of holding their
-  grey/orange intent (bullet sparks, lingering smoke/explosion residue) (D252).
-- Water levels show a moving seam between two water patterns (D245); thin
-  pixel strips at the left/right screen edges at non-integer window scales
-  (D246).
+- Particle colours: a real fix landed (a corrupted-vertex-buffer bug), but
+  the rainbow effect can still occur intermittently on either platform, not
+  every time or on every level — a second cause hasn't been found yet
+  (D252).
+- Some muzzle flashes draw an extra, erroneous long flash straight up from
+  the gun (seen on the M16, among others), overlaid on the normal, correctly
+  drawn flash. Cosmetic only (D303).
+- Water levels show a moving seam between two water patterns (D245).
+- Occasional z-fighting on some levels' geometry (D308) — a Dam intro/
+  truck-wheel instance showing odd transparent-looking areas may be related
+  (D306). Minor and cosmetic.
+- In-level security camera props (not the player's own view) can
+  occasionally end up facing backwards on some levels, seen on Bunker
+  (D307).
 - Some front-end 3D models are off: the spinning Nintendo logo renders as two
   white blobs and the Rareware logo's texture filtering looks wrong (D75).
-- The F10 overlay's bottom row duplicates whatever item is currently selected
-  (D251).
 - Surface 1's 2D billboard trees render as a solid wall of tree texture
   instead of discrete sprites (D236). Under active investigation.
-- No true widescreen: 16:9 stretches the 4:3-authored view (world + HUD)
-  rather than properly expanding the horizontal FOV; the F10 *FOV scale %*
-  slider is a manual workaround, not real widescreen.
+- **Widescreen is stretched, not native**: on non-4:3 windows the whole
+  frame (world and HUD) is stretched horizontally to fill your display —
+  about 33% wider than original at 16:9, like a 4:3 video in a TV's "stretch"
+  mode. Automatic FOV scaling keeps the framing comfortable and gameplay is
+  completely unaffected (all game logic runs in world space), but shapes are
+  subtly wider than on the N64 — most visible on round objects (barrels, the
+  radar). A distortion-free native widescreen render is on the roadmap.
 - Distant geometry can drop out on the biggest open levels (Streets,
   Egyptian) at default FOV — a culling/LOD issue that sometimes
   self-corrects as you keep moving (D249).
@@ -117,16 +132,6 @@ Windows and Linux.
   at least one save written** (complete a level normally first, e.g. Dam on
   Agent). Enabling it on a brand-new install with no prior save can still
   cause silent audio and odd right-mouse-aim behavior (D257/D259/D281).
-- **Linux / Steam Deck:** an intermittent SIGSEGV remains, with a reliable
-  repro found this release — Facility's computer terminals (the ones you
-  activate to open a door for level progression) consistently crash the
-  game on activation (D255; seen on Linux generally, not Deck-hardware
-  specific). Combat-related crashes reported earlier (Bunker, Frigate) may
-  be the same bug via a different trigger; current builds capture full
-  faulting registers in `ge007.crash.log`.
-- Steam Deck / gamepad: front-end menu navigation (main menu, file select,
-  mission-select map) currently requires the right analog stick, not the
-  left (D282) — a planned QoL fix, not done in this release.
 - Assorted further cosmetic defects are tracked in
   [`docs/dev/GRAPHICS-BACKLOG.md`](docs/dev/GRAPHICS-BACKLOG.md).
 - No macOS or ARM support; no controller rebinding UI.
@@ -152,8 +157,9 @@ Game Mode boot, just set it manually: F10 → *Resolution*. The renderer is
 CPU-bound (software RSP); expect original N64-era
 performance at 60 fps rather than more. This release was playtested on real
 Deck hardware; the v0.1.0-era Facility crash (D203) did not recur: its root
-cause was identified and fixed (D253), verified on the Deck; one intermittent
-SIGSEGV in heavy firefights remains open (D255).
+cause was identified and fixed (D253), and a separate intermittent SIGSEGV
+in heavy firefights/terminal destruction (D255) and an audio-thread crash
+(D305) are both fixed and live-verified on real hardware as of this release.
 
 **In-game settings on the Deck.** The options overlay is fully gamepad-driven:
 it opens with **Select**, the D-pad or left stick (up/down) moves between
@@ -170,8 +176,9 @@ directionally, on the way to v1.0:
 - Working through the [known issues](#status) above and the fuller list in
   [`docs/dev/findings.md`](docs/dev/findings.md).
 - **PAL and JP ROM support** ([issue #85](https://github.com/jkdansereau/goldeneye-pc-port/issues/85)); NTSC-U is the only supported region today.
-- **Real widescreen** (properly expanding the field of view at 16:9, rather
-  than today's 4:3-stretch).
+- **Native widescreen** — a distortion-free render at your display's aspect
+  (correct-aspect projection and a wide-frame HUD), replacing today's
+  stretched 4:3 frame + FOV compensation.
 - **Controller rebinding UI**, and macOS/ARM builds.
 - **LAN multiplayer**: reviving GoldenEye's original split-screen/deathmatch
   netplay across multiple PCs on a local network. Genuinely under
@@ -230,7 +237,7 @@ code with this one.
 | **How** | Decompilation-based source port: human-reconstructed C, compiled for the host; game logic runs as written | Static binary recompilation: the shipped machine code is auto-translated to C; no source-level understanding |
 | **Lineage** | [GoldenEye 007 decompilation](https://github.com/n64decomp/007) + [Perfect Dark PC port](https://github.com/fgsfdsfgs/perfect_dark) engine family | Xbox 360 "…Recompiled" static-recompilation family |
 | **Renderer** | Software RSP → OpenGL | Hardware (Vulkan) |
-| **Status** | v0.2.1 public release; full campaign playable at 60 fps (see [Status](#status)) | Playable full game with online multiplayer |
+| **Status** | v0.3.0 public release; full campaign playable at 60 fps (see [Status](#status)) | Playable full game |
 | **Why it exists** | To run the *original* N64 game from source, and as a [case study in AI-agent collaboration](#background) on a hard low-level codebase | To get a playable PC release of the remaster |
 
 They answer a different question: how to get the *remaster* onto PC by

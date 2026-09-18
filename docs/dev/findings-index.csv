@@ -61,7 +61,7 @@ D177,FIXED,Ladders non-functional —,FIXED (M-36) — high confidence; interact
 D172,FIXED,"Bullet-impact / blood / spark particles render magenta or cyan instead of dark red (M-82, ROOT CAUSE FOUND + FIXED).",FIXED (port/fast3d/gfx_pc.cpp gfx_lod_tile_offset)…
 D174,OPEN,"""No blood effect"" (user QA report).",OPEN — observed; first step = BUNKER1 firefight with regenerated sidecars
 D183,OPEN,"M-36 Family A (""texture line/pitch shear"") is DISPROVEN for the Surface repro (-level_36).",Hypothesis DISPROVEN + diagnostics shipped; D176(b)/D182(2) still OPEN
-D173,OPEN,Third-person Bond model spawns too high —,"OPEN — observed, not investigated.…"
+D173,FIXED,Third-person Bond model spawns too high —,"MOSTLY FIXED as a side effect of D243 (2026-09-18, user-confirmed)."
 D179,FIXED,Packaged build crashes after the logos —,"Diagnosed, not fixed —"
 D180,PARTIAL,"Native-PC input pass (M-XX QoL run, qol/native-pc-input-menu, port-only).","LANDED, port-only, no #ifdef PORT.…"
 D181,?,Game.ScreenShakeIntensity —,"Menu row pulled (v0.2.1, user testing)."
@@ -91,9 +91,9 @@ D117,OPEN,"Frame nondeterminism root-caused; GE_DETERM attempted, not achieved."
 D118,RESOLVED,"SDL input layer; M-24 mouse-look rework (mode-aware map, real INI); D118b/c FIXED.",resolved (D118a residual)
 D150,FIXED,watch OBJECTIVES / BRIEF page crash:,FIXED (src/str.c #ifdef PORT); interactive re-verify pending
 D260-D265,PARTIAL,"v0.2.1 hotfix batch: D260 wheel direction swap (fixed) · D261 watch-menu nav auto-repeat (fixed, feel-check owed) · D262 watch item-preview model missing → roo…",partial — see rows
-D266-D269,OPEN,"D236/D265 wall, second pass:","OPEN — probes live in tree (GE_D266/GE_D266W/GE_D267/GE_D268_FORCEA), fixes uncommitted"
+D266-D269,OPEN,"D236/D265 wall, second pass:",OPEN (the wall itself) —
 D270,?,Backfilled (M-132) — this label was never given its own row; only code comments and the HANDOFF archive documented it.,dead-ended into D271/D272; infrastructure kept in tree
-D271,FIXED,"D236 wall, third pass —","FIXED-but-insufficient (src/game/bg.c #ifdef PORT, uncommitted) —"
+D271,FIXED,"D236 wall, third pass —",FIXED-but-insufficient (src/game/bg.c #ifdef PORT) —
 D276,OPEN,"D236 wall, eighth pass —","REFRAMED — oml=0xc81049d8/fmt=3 is the primary suspect now, not D269's CI8 pair; 0x0c184b50 unattributed; wall still open, see D236"
 D279,?,Backfilled — this label was consumed by an undocumented partial session (2026-09-14 ~23:00) that left artifacts in scratch/ (d279_run.log… —,undocumented — artifacts only
 D281,OPEN,"Game.AllUnlocked (D257) still breaks audio, and can also break right-mouse aim, when enabled before any save has ever been written (v0.2.1 user testing… —","OPEN — user-reported regression, not root-caused; mitigation is user-facing guidance only (release notes:"
@@ -147,7 +147,7 @@ D248,FIXED,"Port runs a stable 30 FPS instead of 60 FPS game-wide (M-117, user a
 D249,OPEN,"LOD/culling breaks down on large open levels (Streets, Egyptian named specifically) at *default* FOV —","OPEN — M-142 static review ruled out the unscaled-far-clip and LOD-multiplier suspects (both already correct); narrowed to the portal/room-visibility BFS, needs a live screenshot+location, not more c…"
 D250,FIXED,"FPS is inconsistent/low on many levels after 60 Hz shipped (M-119, user QA; D248 follow-on).","FIXED — per-call getenv() cost was the bottleneck; rock-steady 60-61 fps after, user re-tested 1440p/4K clean."
 D251,FIXED,F10 options overlay QoL pass:,"FIXED (port-only, port/src/optionsoverlay.c)."
-D252,FIXED,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).","FIXED, VISUALLY CONFIRMED (2026-09-18)."
+D252,PARTIAL,"Particle effects cycle through a rainbow palette (M-124, user playtest of the v0.2.0-pre candidate).","PARTIALLY FIXED — a real, distinct manifestation was found and fixed, but the bug family is not fully closed, and is intermittent on BOTH platforms, not Deck-specific (corrected 2026-09-18)."
 D253,FIXED,Facility (and any level with a FORCECROUCH/LADDER linked special tile) SIGSEGV on Linux/Steam Deck —,FIXED — Deck-verified:
 D254,FIXED,Linux crash handler destroyed its own logs:,FIXED — field-verified.
 D255,FIXED,Facility firefight SIGSEGV on Steam Deck (v0.2.0-pre CI bundle; D253 fix confirmed working).,"FIXED (M-140) — D3x-class 32-bit pointer truncation (vtxstore_fix_refs read Model* through the mistyped ChrRecord.chrflags 4-byte-enum alias instead of ObjectRecord.model), not the destroy-path race…"
@@ -169,7 +169,7 @@ D288,OPEN,"Silo intro: a huge, flat-shaded, untextured brown/tan triangle sweeps
 D289,OPEN,"Dam: a crash in the computer room, not reproducible on a second attempt (M-141, Steam Deck user playtest).","OPEN — needs a human re-test specifically on a build with the D255 fix (this session's release/v0.3.0, not any earlier build) to see if it still happens.…"
 D290,OPEN,"Watch's in-game ""controller"" section shows no control-pad graphic (M-141, Steam Deck user playtest).","OPEN — observed, not investigated."
 D291,OPEN,"Dam: texture glitches when the truck drives past (M-141, Steam Deck user playtest).","OPEN — observed, not investigated."
-D292,OPEN,Death animations are glitched —,"OPEN — same status as D173 (observed, not root-caused)."
+D292,FIXED,Death animations are glitched —,"MOSTLY FIXED as a side effect of D243 (2026-09-18, user-confirmed alongside D173) —"
 D293,FIXED,"QoL ask: no discoverable way to quit the game from the UI (M-141, Steam Deck user playtest —","FIXED (M-141) — ""Quit to desktop"" row added to the F10 overlay; build-verified Win+Linux, not yet live-confirmed.…"
 D294,OPEN,"Statue: ground geometry near the large CCCP/hammer-and-sickle monument briefly renders solid black over a wide area, then self-recovers 10-30 seconds later… —",OPEN — not investigated.…
 D295,FIXED,"Campaign-halting crash at the end of Control Center on 00 Agent difficulty, then a crash on every subsequent relaunch/resume (GitHub #87, user campaign playtes…",FIXED (M-149) — M-148 root-caused + reproduced on HEAD; fix landed:
@@ -183,3 +183,6 @@ D302,FIXED,"Render FPS regression to ~40-45fps on release/v0.3.0 (user QA on the
 D303,OPEN,"Some muzzle flashes (M16 named specifically, ""and some others"") draw wrong —","OPEN — reported only, not yet investigated."
 D304,FIXED,"Mouse sensitivity menu overhaul (user request, 2026-09-18):","FIXED — see full entry for both the range/parity pass and the same-day follow-up (collapsed to a single Input.MouseSensitivity menu row + fixed overlayUpdateScroll()'s unconditional bottom-anchor, th…"
 D305,FIXED,"Steam Deck SIGSEGV on the v0.3.0 pre-release build (Cavern, early in the level, Game.AllUnlocked previously enabled on the session/save) —",FIXED (defensive guard) —
+D306,OPEN,"Dam intro/truck wheels render with odd transparent-looking areas, possibly z-fighting (user QA, 2026-09-18).","OPEN — reported only, not investigated."
+D307,OPEN,"In-level security camera entities can be flipped facing the wrong direction (backwards) on some levels, e.g.","OPEN — reported only, not investigated."
+D308,OPEN,"Occasional z-fighting confirmed on some levels' geometry, general/broader than the D306 truck-wheel instance (user QA, 2026-09-18).","OPEN — reported/confirmed by the user, not investigated."

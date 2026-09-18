@@ -283,8 +283,14 @@ expressed in N64 `Gfx`/`Vtx` units is **half-size** on PC.
   N64-semantics `.dma.par` becomes `((u32)gdl->words.w0 >> 16) & 0xff` on PC;
   **`gdl->dma.par` gives bits 0-23 (length), and `& 0xf` on it is always 0**
   because `len == 16*n`. The original D154 port had exactly this bug (vtxoff
-  forced to 0). Same trap latent in `bgBuildRoomVtxBounds` (`gdl.dma.par>>4&0xf`
-  reads PC bits 4-7, not N64 bits 20-23; currently tolerated). Rule: for
+  forced to 0). Same trap in `bgBuildRoomVtxBounds` (`gdl.dma.par>>4&0xf`
+  reads PC bits 4-7 = `n&0xf`, not N64 bits 20-23 = `n-1`): for n ≤ 15 it
+  happened to read the whole block (+1 vertex), but for n = 16 (the common
+  authored size) it collapsed to `numvertices=1` → single-point batch bounds
+  → the per-batch AABB pre-test in `bgTestBulletHitBackground` rejected the
+  batch → its wall triangles were never ray-tested: D312 projectile
+  pass-through + D313 missing bullet impacts (FIXED 2026-09-18, recover the
+  params byte via `((u32)gdl->words.w0 >> 20) & 0xf`). Rule: for
   anything but the opcode, extract the bit-field explicitly from
   `(u32)gdl->words.w0` / `.w1`, don't trust the named `.dma.*` sub-fields.
   Also: a `words.w0 << k >> m` bit-extract idiom that relied on 32-bit

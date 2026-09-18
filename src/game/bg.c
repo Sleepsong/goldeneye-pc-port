@@ -3122,7 +3122,21 @@ void bgBuildRoomVtxBounds(s32 roomID)
                 points[numpoints].max[i] = -0x8000;
             }
 
+#ifdef PORT
+            /* D312: on N64 `dma.par` IS the G_VTX params byte ((n-1)<<4|v0),
+             * but the PC Gfx_le shim packs w0 = (cmd<<24)|(par<<16)|len and
+             * Gdma_le.par spans bits 0-23 -- so `(dma.par>>4)&0xf` reads the
+             * low nibble of len>>4 (= n&0xf), not the (n-1) field. Batches
+             * with exactly 16 vertices (the common case) collapse to
+             * numvertices=1: the batch's bounds shrink to a single vertex and
+             * bgTestBulletHitBackground's per-batch AABB pretest rejects the
+             * batch for nearly every ray, so its triangles are never tested
+             * (D312 projectile pass-through / D313 missing bullet impacts).
+             * Recover the params byte from bits 16-23 of words.w0. */
+            numvertices = (((u32)gdl[cmdindex].words.w0 >> 20) & 0xf) + 1;
+#else
             numvertices = ((gdl[cmdindex].dma.par >> 4) & 0xf) + 1;
+#endif
 
             vtx = (Vtx *)(SEGMENT_OFFSET(gdl[cmdindex].dma.addr) + (u32)vertices);
 
@@ -3812,7 +3826,6 @@ bool bgTestRayIntersectionInRoom(coord3d *from, coord3d *to, coord3d *dir, RoomV
 
     return found;
 }
-
 
 /**
  * In order to make bgTestBulletHitBackground match, 4 bytes had to dropped from the regular HitThing struct.

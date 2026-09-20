@@ -132,16 +132,16 @@ issues documented rather than outstanding.
 
 ```mermaid
 xychart-beta
-    title "Commits per day - August 2026"
-    x-axis ["8/16", "8/17", "8/20", "8/21", "8/22", "8/23", "8/24", "8/27", "8/28", "8/29", "8/30", "8/31"]
+    title "Commits per day - August 2026 (x-axis: day of month)"
+    x-axis ["16", "17", "20", "21", "22", "23", "24", "27", "28", "29", "30", "31"]
     y-axis "commits" 0 --> 90
     bar [1, 2, 2, 6, 9, 2, 4, 7, 57, 39, 39, 46]
 ```
 
 ```mermaid
 xychart-beta
-    title "Commits per day - September 2026"
-    x-axis ["9/1", "9/2", "9/3", "9/4", "9/5", "9/6", "9/7", "9/8", "9/9", "9/10", "9/11", "9/12", "9/13", "9/14", "9/15", "9/16", "9/17", "9/18", "9/19", "9/20"]
+    title "Commits per day - September 2026 (x-axis: day of month)"
+    x-axis ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]
     y-axis "commits" 0 --> 90
     bar [11, 52, 39, 8, 8, 2, 8, 34, 17, 30, 20, 30, 57, 4, 84, 38, 22, 13, 2, 6]
 ```

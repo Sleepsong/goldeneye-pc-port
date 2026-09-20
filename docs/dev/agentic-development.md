@@ -62,7 +62,7 @@ reserved for the bugs that needed the most reasoning held at once; the same
 
 ## Timeline
 
-All dates from this repository's own commit history (August 2026).
+All dates from this repository's own commit history (August–September 2026).
 
 ```mermaid
 gantt
@@ -87,6 +87,7 @@ gantt
     section Month one - front end to v0.3.0
     Audio mixer (music + SFX)              :2026-09-02, 7d
     Steam Deck hardening + F10 overlay QoL :2026-09-14, 3d
+    Final fix sweep (D309-D321) + release review :2026-09-18, 3d
     v0.3.0 released (full campaign playtested) :milestone, 2026-09-20, 0d
 ```
 
@@ -221,7 +222,7 @@ let them substitute for each other:
    usage limit mid-problem, the local model picked the task up from the
    HANDOFF state and continued; when the local model hit a bug that needed
    deeper structural reasoning, it wrote up where it was and Claude took over.
-2. **`findings.md`**; the chronological finding log. 311 numbered `D`
+2. **`findings.md`**; the chronological finding log. 321 numbered `D`
    entries by v0.3.0 (199 tracked in the index; some labels merged or
    withdrawn), each a root cause with `file:line` evidence and the fix. New
    agents (either model) are pointed at the relevant entries before they

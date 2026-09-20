@@ -221,7 +221,8 @@ asset pipeline, first frames), and **Claude Code** (Sonnet 5, Opus 5 for the
 hardest bugs) joining for the collaborative phase (the 21-level sweep, the
 ABI finding catalog, SDL input, front end), handing work back and forth
 through shared written notes, directed by one person part-time. In short:
-~3.5 weeks, ~430 commits, 200+ bugs logged and tracked to resolution.
+36 days (16 Aug – 20 Sep), ~835 commits, 199 findings root-caused and
+logged (`D1`–`D321`).
 
 The full write-up (timeline, handoff mechanism, effort breakdown, an honest
 "what worked / what didn't"): [`docs/dev/agentic-development.md`](docs/dev/agentic-development.md).

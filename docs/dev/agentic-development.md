@@ -132,24 +132,17 @@ issues documented rather than outstanding.
 
 ```mermaid
 xychart-beta
-    title "Commits per day - August 2026 (x-axis: day of month)"
-    x-axis ["16", "17", "20", "21", "22", "23", "24", "27", "28", "29", "30", "31"]
-    y-axis "commits" 0 --> 90
-    bar [1, 2, 2, 6, 9, 2, 4, 7, 57, 39, 39, 46]
+    title "Commits per week (week start)"
+    x-axis ["8/16", "8/23", "8/30", "9/6", "9/13", "9/20"]
+    y-axis "commits" 0 --> 250
+    bar [20, 109, 203, 141, 220, 6]
 ```
 
-```mermaid
-xychart-beta
-    title "Commits per day - September 2026 (x-axis: day of month)"
-    x-axis ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"]
-    y-axis "commits" 0 --> 90
-    bar [11, 52, 39, 8, 8, 2, 8, 34, 17, 30, 20, 30, 57, 4, 84, 38, 22, 13, 2, 6]
-```
-
-Days with no commits are omitted (18–19 and 25–26 Aug). The step up from
-8/28 onward is the collaborative phase in full swing, including the parallel
-multi-agent "bursts"; the 9/15 spike is the Steam Deck playtest-feedback
-batch landing at once.
+Weekly totals (the final week is release day only). The step up from the
+8/23 week onward is the collaborative phase in full swing, including the
+parallel multi-agent "bursts"; the 9/13–9/19 week peaks on a single-day
+84-commit burst (9/15) when the Steam Deck playtest-feedback batch landed
+at once.
 
 ### Who did what
 

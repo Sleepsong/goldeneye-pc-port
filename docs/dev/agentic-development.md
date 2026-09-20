@@ -205,7 +205,7 @@ result worth taking away.
 This is the part worth paying attention to.
 
 ```mermaid
-flowchart LR
+flowchart TD
     H["Human: direction, integration,<br/>build + playtest verification"]
     C["Claude / Claude Code<br/>frontier, hosted"]
     Q["Qwen 3.8 via pi<br/>open-weight, local RTX 5090"]

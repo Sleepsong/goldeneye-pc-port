@@ -88,10 +88,9 @@ start), front-end menu navigation on the left stick to match the F10 overlay
 playtested end to end at Agent difficulty); steady 60 fps
 (software RSP off the presentation critical path); full audio: in-level music and SFX; keyboard + mouse (click-to-lock, proportional aim mode, a single
 simplified sensitivity control) and a modern dual-stick controller layout;
-automatic widescreen FOV scaling; the Dam end-of-level cutscene, and Bond's
-third-person model positioning generally, are fixed (right the large
-majority of the time now, at most a small drift when off — no more floating
-or spin-glitching); file-backed saves; faithful N64 progression
+automatic widescreen FOV scaling; Bond is fixed in cutscenes (no more
+floating or spin-glitching) and his third-person model positioning generally
+is right the large majority of the time now, at most a small drift when off; file-backed saves; faithful N64 progression
 by default (F10 → *All unlocked* opens every level, 007 mode and the full
 cheat menu); F10 in-game options overlay (resolution, frame cap, MSAA,
 filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.

@@ -17,10 +17,11 @@
 
 ### What's new since v0.2.2
 
-- **The Dam end-of-level cutscene is fixed** — the most visible remaining
-  glitch in prior releases: Bond's animation no longer breaks or repeats,
-  and the camera correctly tracks him through all three scripted abseil
-  shots (D243). Root cause: a 32-bit-era struct-size constant in the
+- **Bond is fixed in cutscenes** — the most visible remaining glitch in
+  prior releases: Bond no longer floats or glitches out during cutscenes,
+  his animation no longer breaks or repeats, and the camera correctly
+  tracks him through scripted sequences including all three Dam end-of-level
+  abseil shots (D243). Root cause: a 32-bit-era struct-size constant in the
   cutscene body-model setup never accounted for 64-bit pointer widening,
   corrupting the model's own animation-timing fields on creation. Fixing
   that also fixed the associated camera shake, which had previously been
@@ -31,10 +32,6 @@
   bug — Bond now ends up in the right place the large majority of the time,
   with only a small positional drift on the rare occasion he's off (D173/
   D292).
-- **Mouse can no longer move the camera during locked cutscenes** — a
-  separate bug found while verifying the fix above: the intro flyover and
-  the Dam abseil-jump sequence are meant to be camera-locked, but mouse-look
-  was never actually gated during those states.
 - **Particle colors mostly fixed**: bullet-impact sparks and lingering
   smoke/explosion residue no longer cycle through a rainbow palette (D219) —
   root cause was a hardcoded raw-memory-offset read into the spark's stored
@@ -57,11 +54,6 @@
   were the original N64 TV-safe-area margin, invisible on a CRT under real
   overscan but visible on a PC monitor. New `Video.SafeAreaCrop` toggle
   (default on) if you want the original framing back.
-- **Hipfire mouse-look feels dramatically better**: slow mouse motion is no
-  longer barely recognized and fast motion no longer saturates almost
-  immediately — mouse look now writes the camera angle directly instead of
-  being routed through the N64 analog stick's turn curve (D300,
-  `Input.MouseDirectLook`, on by default).
 - **Two more crash fixes**: a campaign-halting crash at the end of Control
   Center on 00 Agent difficulty, which would then crash on every subsequent
   relaunch until the save was reset (D295); and a crash selecting most save
@@ -91,15 +83,18 @@
   dereference a pointer without checking it was valid first). Live-verified
   crash-free on real Steam Deck hardware, including with `All unlocked`
   toggled on.
-- **F10 mouse sensitivity simplified**: the separate aim-speed and turn-speed
-  sliders — which could be set to inconsistent values against each other —
-  are now a single `Mouse sensitivity` control with a wider range. Also
-  fixed three F10 menu bugs found along the way: clicking a row could
-  unexpectedly scroll the whole list, a click near certain rows could
-  silently activate a different option than the one you clicked (most
-  noticeably, clicking `All unlocked` could instead trigger `Quit to
-  desktop`), and the panel's bottom row no longer duplicates whatever item
-  is currently selected (D251).
+- **Mouse input and F10 controls fixed**: mouse input was reworked to
+  follow the Perfect Dark PC port's architecture — slow mouse motion is no
+  longer barely recognized and fast motion no longer saturates almost
+  immediately (D300, `Input.MouseDirectLook`, on by default). The separate
+  aim-speed and turn-speed sliders — which could be set to inconsistent
+  values against each other — are now a single `Mouse sensitivity` control
+  with a wider range. Also fixed three F10 menu bugs found along the way:
+  clicking a row could unexpectedly scroll the whole list, a click near
+  certain rows could silently activate a different option than the one you
+  clicked (most noticeably, clicking `All unlocked` could instead trigger
+  `Quit to desktop`), and the panel's bottom row no longer duplicates
+  whatever item is currently selected (D251).
 - **Random-number generation now matches the N64 original exactly** (D284) —
   a shift-operation bug in the PRNG had desynced the PC's random stream from
   N64's since the very first release, affecting loot placement, AI variance,

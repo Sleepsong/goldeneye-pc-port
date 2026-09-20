@@ -178,3 +178,7 @@ gdb-hang.txt
 # frozen asset converter (built by CI via PyInstaller; local freezes land here)
 tools_pc/dist/prepare-assets/ge007-convert*
 build-pyinst/
+
+# Local working junk (frame captures, timerun state, PPM dumps) - moved here
+# from repo root / scratch on 2026-09-18; never commit.
+/local/

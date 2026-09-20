@@ -1,10 +1,11 @@
 ---
 title: GoldenEye 007 PC Port
-# v0.2.1 (Bing SEO round 2): re-shortened to 133 chars (was 161, 1 over
-# Bing's 160 limit) and bumped the stale v0.2.0 mention.
+# v0.3.0: status bumped from v0.2.1; Honest-status bullets synced with the
+# README's v0.3.0 known issues (D255/D282/F10-dup/overscan items removed as
+# fixed). Description kept at 133 chars (Bing's 160 limit).
 description: >-
   A native PC port of the 1997 N64 classic, built from decompiled source with
-  a software RSP. v0.2.1 for Windows, Linux and Steam Deck.
+  a software RSP. v0.3.0 for Windows, Linux and Steam Deck.
 ---
 
 <!-- v0.2.1 (Bing SEO): the "# GoldenEye 007 PC Port" h1 was removed here --
@@ -17,12 +18,12 @@ N64's graphics coprocessor (RSP) running in software, the same architecture
 as the [Perfect Dark PC port](https://github.com/fgsfdsfgs/perfect_dark), the
 same Rare "Indy" engine family, one hardware generation apart.
 
-**Status: v0.2.1.** The full single-player campaign runs at a steady 60 fps
-and is completable end to end; all 21 missions load and run clean on Windows
-and Linux (one intermittent Steam Deck/Linux crash remains, listed below),
-and audio (music + SFX) plays throughout. The known rough edges (cutscenes
-that still glitch, a handful of cosmetic rendering defects, missing features
-like real widescreen) are listed plainly under [Honest status](#honest-status).
+**Status: v0.3.0.** The full single-player campaign runs at a steady 60 fps
+and is completable end to end (all 21 missions playtested); all 21 missions
+load and run clean on Windows, Linux and Steam Deck, and audio (music + SFX)
+plays throughout. The known rough edges — mostly cosmetic rendering defects,
+stretched-not-native widescreen, and missing features — are listed plainly
+under [Honest status](#honest-status).
 
 **This is a pre-1.0 release, not a finished product** — v1.0 is the target
 for a polished, feature-complete build; expect rough edges and missing
@@ -33,8 +34,8 @@ consideration, and more).
 
 <p align="center">
   <img src="media/goldeneye-gh-preview.gif" width="70%"
-       alt="~32 s gameplay montage from live play sessions">
-  <br><em>~32 s gameplay montage loop from live play sessions, running in the port.</em>
+       alt="~12 s gameplay montage from live play sessions">
+  <br><em>~12 s gameplay montage from live v0.3.0 play sessions, running in the port.</em>
 </p>
 
 ## Download
@@ -189,23 +190,30 @@ catalogue: [Porting notes](porting-notes.md).
 
 ## Honest status
 
-- **Cutscenes still glitch, mostly with James Bond**: in scripted sequences
-  Bond is the one who gets misplaced, hovers, or spins; the other actors are
-  fine for the most part now. Still the most visible gap in this release.
-- Particle colours drift through a rainbow palette instead of holding grey/orange.
-- Water levels show a moving seam; pixel strips at screen edges at non-integer
-  scales; some front-end 3D models mispositioned or absent.
+- **Particle colours** can still drift through a rainbow palette
+  intermittently: one genuine cause is fixed this release, a second hasn't
+  been found yet (D252).
+- **Some muzzle flashes draw an extra erroneous long flash** straight up from
+  the gun, on top of the correct one. Cosmetic only (D303).
+- Water levels show a moving seam between two water patterns (D245);
+  occasional z-fighting on some geometry (D308); in-level security-camera
+  props can occasionally face backwards (D307). Minor and cosmetic.
+- **The front-end Nintendo logo renders as two white blobs** and the Rareware
+  logo's texture filtering looks off (D75).
 - Surface 1's 2D billboard trees render as a solid wall of tree texture
-  instead of discrete sprites; under active investigation.
-- No true widescreen (16:9 stretches the 4:3 view rather than expanding
-  FOV); distant geometry can drop out on the biggest open levels; gunshot
-  SFX can sound off during sustained/rapid fire.
+  instead of discrete sprites; under active investigation (D236).
+- **Widescreen is stretched, not native**: 16:9 stretches the 4:3 frame to
+  fill the display; automatic FOV scaling keeps the framing comfortable and
+  gameplay is unaffected, but a distortion-free native widescreen render is
+  still on the roadmap. Distant geometry can also drop out on the biggest
+  open levels (D249).
+- **Gunshot SFX can sound off during sustained/rapid fire** (D240/D241).
 - **`All unlocked` is highly experimental** — don't enable it until you have
-  at least one save written, or it can break audio and mouse aim (D281).
-- The F10 overlay's bottom row duplicates the selected item; an intermittent
-  Linux/Steam Deck SIGSEGV remains, reliably reproducible via Facility's
-  door-opening computer terminals (D255); front-end menu navigation needs
-  the right stick, not the left, on gamepad (D282).
+  at least one save written, or it can break audio and mouse aim
+  (D257/D259/D281).
+- Bond's cutscene positioning is fixed and right the large majority of the
+  time now; on the rare occasion he's off it's a small drift — no more
+  floating or spin-glitching (D173/D292/D243).
 - No macOS/ARM support; no controller rebinding UI yet.
 
 The full list, with root causes and fix status: the

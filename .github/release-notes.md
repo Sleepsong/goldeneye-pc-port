@@ -2,7 +2,7 @@
 
 <p align="center">
   <img src="https://github.com/jkdansereau/goldeneye-pc-port/raw/v0.3.0/docs/media/goldeneye-gh-preview.gif" width="480"
-       alt="~32 s gameplay montage from live play sessions (no audio track)">
+       alt="~12 s gameplay montage from live v0.3.0 play sessions (no audio track)">
 </p>
 
 > The full single-player campaign runs at a steady 60 fps with audio (music +
@@ -64,6 +64,15 @@
   Center on 00 Agent difficulty, which would then crash on every subsequent
   relaunch until the save was reset (D295); and a crash selecting most save
   slots with `Skip Intro` enabled (D299).
+- **The elusive complete freeze is root-caused and fixed.** Players had hit
+  a total, non-self-recovering lockup (most recently when returning from
+  Caverns to the intro screen) that was real but never reproduced on demand.
+  It turned out to be a latent defect in the original game's own AI command
+  stream — a record type the engine mis-measures, which our level-teardown
+  timing can trigger and the N64 never presents. Fixed with a minimal change
+  under the project's game-code exception process (D309/D310); a second,
+  unrelated freeze mechanism found during the same playtest is now guarded
+  as well (D311).
 - **A NULL-pointer guard was added** around a save-data lookup that two
   players hit with an identical crash address (GitHub #87, D301) — this
   should close that crash, though we weren't able to reproduce the exact
@@ -139,6 +148,16 @@
   (the wrong direction) on some levels, seen on Bunker — this is the
   gameplay security-camera object, not the player's own view (D307). Not
   investigated for this release.
+- **A rare, self-clearing visual quirk**: on an occasional animation
+  transition, Bond's model can briefly render out of place. It has no effect
+  on gameplay or your save, and it clears on its own or by re-entering the
+  level; a safeguard added this release guarantees it can never affect game
+  stability (D311).
+- **Two collision oddities found in final playtesting**: throwable items
+  (mines, grenades) can occasionally clip through walls in certain spots
+  (D312), and bullet impacts don't appear on some surfaces — doors and
+  windows are unaffected (D313). Both are queued for the next release; if
+  you hit either, an issue with the level and spot helps a lot.
 
 ### Downloads
 

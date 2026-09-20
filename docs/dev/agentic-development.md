@@ -68,7 +68,7 @@ All dates from this repository's own commit history (August 2026).
 gantt
     dateFormat YYYY-MM-DD
     axisFormat %b %d
-    title GoldenEye 007 PC port; from fork to playable front end
+    title GoldenEye 007 PC port; from fork to v0.3.0
     section Local model - Qwen 3.8 via pi
     Fork + PC-port scaffolding            :m1, 2026-08-16, 1d
     Full compile + link (~230 TUs)        :m2, 2026-08-20, 1d
@@ -84,6 +84,10 @@ gantt
     SDL input layer (kbd/mouse/gamepad)   :2026-08-29, 1d
     Front-end flow (menu to briefing to start) :m7, 2026-08-30, 1d
     File-backed EEPROM saves              :2026-08-31, 1d
+    section Month one - front end to v0.3.0
+    Audio mixer (music + SFX)              :2026-09-02, 7d
+    Steam Deck hardening + F10 overlay QoL :2026-09-14, 3d
+    v0.3.0 released (full campaign playtested) :milestone, 2026-09-18, 0d
 ```
 
 - **Day 0** (16 Aug): repository forked, PC-port scaffolding added.
@@ -97,50 +101,59 @@ gantt
   unattended play window without crashing.**
 - **Day 14** (30–31 Aug): front end playable end to end (menu → mission
   select → difficulty → briefing → start); file-backed saves.
+- **Day 33** (18 Sep): **v0.3.0 released** — the full campaign playtested
+  end to end at Agent difficulty, audio complete, bundles for Windows,
+  Linux and Steam Deck.
 
 So roughly **two weeks**, one person part-time, to take a decompilation from
 "builds an N64 ROM" to "boots on desktop, renders every solo level, playable
-through the front end into the early game"; with audio and a set of cosmetic
-issues still outstanding.
+through the front end into the early game". The rest of month one (29 Aug –
+18 Sep) took it from there to a public release: the 21-level sweep to
+full-campaign completion, the audio mixer, input and Steam Deck polish,
+widescreen FOV scaling, and the v0.3.0 bundles — with a set of cosmetic
+issues documented rather than outstanding.
 
 ## By the numbers
 
 | | |
 |---|---|
-| Calendar time | 26 days (17 Aug – 11 Sep 2026), one person part-time |
-| Commits on the port | ~430 |
-| Root-caused bugs logged | `D1`–`D226` in [`findings.md`](https://github.com/jkdansereau/goldeneye-pc-port/blob/main/docs/dev/findings.md), 116 still-listed entries (some labels later merged or withdrawn) |
-| Handoff sessions | 89+ (`M-2` … `M-89`, and counting) |
-| Game-source files given `#ifdef PORT` ABI edits | 67 files, ~305 blocks |
-| New port-layer / tooling files | ~114 |
-| Port layer | ~21,900 lines C/C++ (`port/`) |
-| PC asset-conversion tooling | ~7,050 lines Python (`tools_pc/`) |
-| Outcome | intro + all 21 solo missions render and are crash-free, front end playable, in-level SFX + menu/intro music play; in-level music and full-campaign completion re-confirmation still owed |
+| Calendar time | 34 days (16 Aug – 18 Sep 2026), one person part-time |
+| Commits on the port | ~690 |
+| Root-caused bugs logged | `D1`–`D311` in [`findings.md`](https://github.com/jkdansereau/goldeneye-pc-port/blob/main/docs/dev/findings.md), 190 tracked entries in the index (some labels later merged or withdrawn) |
+| Handoff sessions | 190+ (`M-2` … `M-191`, and counting) |
+| Game-source files given `#ifdef PORT` ABI edits | 71 files, ~385 blocks |
+| New port-layer / tooling files | ~119 |
+| Port layer | ~24,450 lines C/C++ (`port/`) |
+| PC asset-conversion tooling | ~7,180 lines Python (`tools_pc/`) |
+| Outcome | **v0.3.0 released**: full campaign playable end to end (all 21 missions playtested at Agent difficulty) at a steady 60 fps, full audio (music + SFX), file-backed saves; Windows, Linux and Steam Deck; known cosmetic defects documented in the finding log |
 
 ### Commit velocity
 
 ```mermaid
 xychart-beta
     title "Commits per day"
-    x-axis ["8/16", "8/17", "8/20", "8/21", "8/22", "8/23", "8/24", "8/27", "8/28", "8/29", "8/30", "8/31", "9/1"]
-    y-axis "commits" 0 --> 60
-    bar [1, 2, 2, 6, 9, 2, 4, 7, 57, 39, 39, 46, 9]
+    x-axis ["8/16", "8/17", "8/20", "8/21", "8/22", "8/23", "8/24", "8/27", "8/28", "8/29", "8/30", "8/31", "9/1", "9/2", "9/3", "9/4", "9/5", "9/6", "9/7", "9/8", "9/9", "9/10", "9/11", "9/12", "9/13", "9/14", "9/15", "9/16", "9/17", "9/18"]
+    y-axis "commits" 0 --> 90
+    bar [1, 2, 2, 6, 9, 2, 4, 7, 57, 39, 39, 46, 11, 52, 39, 8, 8, 2, 8, 34, 17, 30, 20, 30, 57, 4, 84, 38, 22, 13]
 ```
 
-Days with no commits are omitted. The 8/25–8/26 gap is between phases; the
-step up from 8/28 onward is the collaborative phase in full swing, including
-the parallel multi-agent "bursts" used near the end.
+Days with no commits are omitted (18–19 and 25–26 Aug). The step up from
+8/28 onward is the collaborative phase in full swing, including the parallel
+multi-agent "bursts"; the 9/15 spike is the Steam Deck playtest-feedback
+batch landing at once.
 
 ### Who did what
 
 ```mermaid
-pie showData title "Commits by agent (raw count)"
+pie showData title "Commits by agent (raw count, snapshot through early September)"
     "Claude" : 161
     "Local model (Qwen 3.8 / pi)" : 62
 ```
 
 (Phase A, the first 26 commits, to 24 Aug, was entirely the local model,
-solo; from 27 Aug on the two agents worked in parallel.)
+solo; from 27 Aug on the two agents worked in parallel. The raw tally was
+not re-run for the final third of the project; treat the milestone-weighted
+estimate below as the better number.)
 
 | Milestone / workstream | Primary agent | Weight |
 |---|---|---|
@@ -208,9 +221,11 @@ let them substitute for each other:
    usage limit mid-problem, the local model picked the task up from the
    HANDOFF state and continued; when the local model hit a bug that needed
    deeper structural reasoning, it wrote up where it was and Claude took over.
-2. **`findings.md`**; the chronological finding log. 162 numbered entries,
-   each a root cause with `file:line` evidence and the fix. New agents (either
-   model) are pointed at the relevant entries before they start.
+2. **`findings.md`**; the chronological finding log. 311 numbered `D`
+   entries by v0.3.0 (190 tracked in the index; some labels merged or
+   withdrawn), each a root cause with `file:line` evidence and the fix. New
+   agents (either model) are pointed at the relevant entries before they
+   start.
 3. **`porting-notes.md`**; the append-only "recurring bug classes" file. The
    single highest-leverage artifact: it stopped both models from
    re-deriving the same class of N64→PC bug over and over.
@@ -262,7 +277,8 @@ Honest notes, for anyone weighing whether this transfers.
   to Opus 5. Each tier earned its place on the problems the tier below it
   couldn't close.
 
-**Still outstanding** (parked below crash/level work): audio is not
-implemented; several front-end 3D transforms and some text rendering are
-wrong. See
+**Still outstanding** (the v0.3.0 known-issues list): cosmetic rendering
+defects (particle colours, Surface 1 billboard trees, front-end logos, water
+seam), stretched-not-native widescreen, PAL/JP support, a controller
+rebinding UI, and macOS/ARM builds. See the README's Status section and
 [`GRAPHICS-BACKLOG.md`](https://github.com/jkdansereau/goldeneye-pc-port/blob/main/docs/dev/GRAPHICS-BACKLOG.md).

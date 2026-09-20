@@ -39,9 +39,9 @@ account of what worked and what didn't.
 
 <p align="center">
   <img src="docs/media/goldeneye-gh-preview.gif" width="64%"
-       alt="~32 s gameplay montage from live play sessions">
-  <br><em>All in-engine, running in the port, a ~32&nbsp;s gameplay montage loop
-  from the v0.2.0 playtest.</em>
+       alt="~12 s gameplay montage from live play sessions">
+  <br><em>All in-engine, running in the port — a ~12&nbsp;s gameplay montage
+  from live v0.3.0 play sessions.</em>
 </p>
 
 ## Download
@@ -112,6 +112,13 @@ filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.
 - In-level security camera props (not the player's own view) can
   occasionally end up facing backwards on some levels, seen on Bunker
   (D307).
+- Rarely, Bond's model can briefly render out of place after an animation
+  transition — purely visual: no effect on gameplay or saves, and it clears
+  on its own or by re-entering the level (D311).
+- On Facility, if gas leaks during Ourumov's monologue he can pause for up to
+  ~10 s before resuming the scripted shootout — a latent race that exists in
+  the N64 original too (where it softlocks permanently); the port detects and
+  auto-recovers it (D318).
 - Some front-end 3D models are off: the spinning Nintendo logo renders as two
   white blobs and the Rareware logo's texture filtering looks wrong (D75).
 - Surface 1's 2D billboard trees render as a solid wall of tree texture
@@ -432,11 +439,11 @@ This port is a thin layer on a large amount of other people's work.
 
 **Tools and models used to develop the port**
 
-- Qwen 3.8 (Alibaba Qwen team), run locally as the
+- Qwen 3.8 (Alibaba Qwen team), run locally from the
   [`unsloth/Qwen3.8-27B-GGUF`](https://huggingface.co/unsloth/Qwen3.8-27B-GGUF)
-  `UD-Q4_K_XL` quant;
-  [Unsloth](https://unsloth.ai) (the GGUF quantisation and Unsloth Desktop,
-  used as the local model server).
+  repo — `UD-Q4_K_XL` as the primary quant, with other quants used along the
+  way; [Unsloth](https://unsloth.ai) (the GGUF quantisation and Unsloth
+  Desktop) as the local model server.
 - [pi](https://pi.dev/): the local coding-agent harness.
 - [Claude / Claude Code](https://claude.com/claude-code) (Anthropic).
 

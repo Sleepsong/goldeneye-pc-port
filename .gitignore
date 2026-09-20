@@ -156,6 +156,12 @@ ge007.crash.log
 
 # agent scratch space + audio probe artifacts (regenerable dumps/traces)
 scratchpad/
+# session logs / investigation scratch — local only, never in the public repo
+# (untracked 2026-09-19 during the v0.3.0 release review)
+/scratch/
+# re-vendored GPL reference source (see reference/mouse-injector/README.md)
+/reference/mouse-injector/*
+!reference/mouse-injector/README.md
 # local research/backlog working docs (TCRF cut-content cross-reference etc.)
 backlog/
 # montage work artifact: the tiled contact sheet behind docs/img/shots/ and

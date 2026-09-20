@@ -1,40 +1,28 @@
-# GEPD Edition — Mouse Injector (vendored reference source)
+# mouse-injector (removed from public repo)
 
-Vendored **read-only reference** for the PC port's input layer. NOT compiled
-by our build; never modify it — treat it like `rsp/graphics/gmain.s`
-(ground truth we consult, not code we ship).
+The GEPD-Edition Mouse Injector source (GPLv2, ~1.5 MB including a prebuilt
+`discord-rpc.lib`) was vendored here as a read-only reference for the PC
+port's mouse-aim model, and **removed from the public repo on 2026-09-19**
+during the v0.3.0 release review: it is GPL-licensed code (plus a binary)
+inside an MIT-licensed project, and it is not compiled or linked by anything
+in this tree — it was consulted by developers only.
 
-## Provenance
+## Provenance (if you need to re-vendor it locally)
 
-Extracted from `source.tar.xz` inside the GEPD Edition 1964 bundle
-(`C:\Users\james\Games\Emulators\Nintendo 64\1964_GEPD_Edition\1964\`).
-The Mouse Injector is a Project64/1964 input plugin that emulates the N64
-controller from keyboard/mouse while injecting mouse-aim state directly into
-GoldenEye 007 / Perfect Dark game memory. License: **GPLv2** (see
-`LICENSE.TXT`; `manymouse/` carries its own license).
+- Project: "GEPD-Edition Mouse Injector" (GoldenEye 007 / Perfect Dark N64
+  mouse-aim injection for emulators), GPLv2.
+- The file that mattered was `games/goldeneye.c` (~380 lines — the whole GE
+  aim/hipfire/menu model), plus `device.c` (raw mouse polling) and
+  `maindll.h` (tickrate units).
 
-**Version skew:** the tarball is a mix of eras — `device.c`, `ui/` are from
-the 2014 v1.5d line; `games/goldeneye.c`, `maindll.h`, `maindll.c` are dated
-2021–22; the bundle's binary is a 2023 build with a few later additions. The
-aim *model* in `games/goldeneye.c` is stable across those versions and is the
-one we already mirrored (finding D194). Consult it for the model and
-constants, not as an exact match to any single release.
+## What replaced it in this repo
 
-## Key files
+- The ported, calibrated result lives in `port/src/input.c` (the D194
+  lineage; see `docs/dev/GEPD-INPUT-PLAN.md` for the design record, which
+  quotes the model inline).
+- Historical findings that cite `reference/mouse-injector/...` paths
+  (`docs/dev/findings.md`, D194/D214/etc.) remain accurate as written; the
+  cited file content is preserved in those write-ups.
 
-| File | What to look at |
-|---|---|
-| `games/goldeneye.c` | **The whole GE input/aim model.** `GE_Inject()` = hipfire direct camera write + tank + menu cursor; `GE_AimMode()` = crosshair-position aim (±5.159° limit, 72% edge threshold, 475/s scroll — the D194 source); `GE_Crouch()` = crouch-toggle state machine; `GE_Controller()` = button mapping (wheel→weapon macro, aim=B in menus); `GE_InjectHacks()` = ROM patches we do NOT port (reload key, FOV override) but which document intended behavior. |
-| `games/perfectdark.c` | PD analogue of the same model (radial menu, hoverbike, camspy). |
-| `device.c` / `manymouse/` | Raw-driver mouse polling + cursor lock (`SetCursorPos` cadence), wheel cooldown handling, multi-device mapping. |
-| `maindll.h` | `TICKRATE`/`TIMESTEP` (2 ms overclocked / 4 ms stock) — the units every per-tick constant in `goldeneye.c` assumes. |
-| `global.h` | Settings enum (sensitivity range 1..80, acceleration, crosshair-movement %, invert pitch, crouch toggle, aim mode). |
-| `vkey.h` | Default key layout (WASD=C-buttons, Q=A, E=B, R=reload, wheel=weapon cycle). |
-
-## Cross-references in our tree
-
-- `docs/dev/GEPD-INPUT-PLAN.md` — plan for the remaining GEPD inheritances
-  (issues #89/#90).
-- `port/src/input.c` — D194 (`aimGepdCompute`) is our mirror of
-  `GE_AimMode()`; D223 wheel cycling mirrors `GE_Controller()`'s weapon macro.
-- `docs/dev/findings.md` §D194/D238 — aim-mode history and tuning.
+If you want the original source again for reference work, clone it locally
+into `reference/mouse-injector/` (it is gitignored now) — do not commit it.

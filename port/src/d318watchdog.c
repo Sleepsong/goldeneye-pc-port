@@ -68,7 +68,11 @@
  * In every non-deadlocked state the watchdog is inert: the escape path
  * kills Trevelyan within ~25-100 ticks (60x under the threshold) and
  * legitimate combat never targets chr 67 from this loop. One-shot per
- * process; logs its detection and intervention for playtest audit.
+ * OCCURRENCE: after firing, it re-arms once the signature has been absent
+ * for D318_REARM_TICKS consecutive ticks (the deadlock is gone -- recovered
+ * or the player moved on), so a later replay of Facility in the same
+ * session (AllUnlocked) is still covered. Logs its detection and
+ * intervention for playtest audit.
  *
  * Opt out (research only): GE_D318W=0
  */
@@ -100,6 +104,7 @@ extern void sub_GAME_7F025560(ChrRecord *self, s32 attack_type, s32 arg2);
 #define D318_OURUMOV_CHR     78
 #define D318_TREVELYAN_CHR   67
 #define D318_DEADLOCK_TICKS  600    /* 10 s at 60 Hz; escape takes < 2 s     */
+#define D318_REARM_TICKS     600    /* signature-absent ticks before re-arm  */
 
 static ChrRecord *d318wFindChr(s16 chrnum)
 {
@@ -124,12 +129,14 @@ static ChrRecord *d318wFindChr(s16 chrnum)
 
 void d318WatchdogTick(void)
 {
-    static int  s_enabled = -1; /* -1 uncached, 0 off (GE_D318W=0), 1 on     */
-    static s32  s_run     = 0;  /* consecutive ticks the signature has held   */
-    static bool s_fired   = FALSE;
+    static int  s_enabled   = -1; /* -1 uncached, 0 off (GE_D318W=0), 1 on   */
+    static s32  s_run       = 0;  /* consecutive ticks the signature has held */
+    static s32  s_absent    = 0;  /* consecutive ticks signature absent       */
+    static bool s_fired     = FALSE;
     ChrRecord  *c78;
     ChrRecord  *c67;
     bool        g = FALSE;
+    bool        sig;
 
     if (s_enabled < 0)
     {
@@ -137,7 +144,7 @@ void d318WatchdogTick(void)
 
         s_enabled = (e && e[0] == '0') ? 0 : 1;
     }
-    if (!s_enabled || s_fired)
+    if (!s_enabled)
     {
         return;
     }
@@ -145,33 +152,49 @@ void d318WatchdogTick(void)
     c78 = d318wFindChr(D318_OURUMOV_CHR);
     c67 = d318wFindChr(D318_TREVELYAN_CHR);
 
-    if (c78 && c78->ailist
+    sig = (c78 && c78->ailist
         && chraiGetAIListID(c78->ailist, &g) == D318_LIST_AI22
         && c78->aioffset >= D318_OFF_LOOP_MIN && c78->aioffset < D318_OFF_LOOP_MAX
         && c78->actiontype == ACT_ATTACK
         && (s32)c78->act_attack.entityid == D318_TREVELYAN_CHR
-        && c67 && c67->prop && !chrIsDead(c67))
+        && c67 && c67->prop && !chrIsDead(c67));
+
+    if (sig)
     {
-        if (s_run == 1)
+        s_absent = 0;
+        if (!s_fired)
         {
-            osSyncPrintf("D318W: t=%d deadlock signature detected (c78 ai_22 off=%d "
-                         "ACT_ATTACK ent=67, c67 alive) -- starting %d-tick confirmation window\n",
-                         (int)g_GlobalTimer, (int)c78->aioffset, D318_DEADLOCK_TICKS);
-        }
-        s_run++;
-        if (s_run >= D318_DEADLOCK_TICKS)
-        {
-            osSyncPrintf("D318W: t=%d D318 execution deadlock confirmed -- re-initializing "
-                         "c78's attack (sub_GAME_7F025560 atk=0x%x ent=%d) to break the anim pin\n",
-                         (int)g_GlobalTimer, (unsigned)c78->act_attack.attacktype,
-                         (int)c78->act_attack.entityid);
-            sub_GAME_7F025560(c78, (s32)c78->act_attack.attacktype, (s32)c78->act_attack.entityid);
-            s_fired = TRUE;
+            if (s_run == 1)
+            {
+                osSyncPrintf("D318W: t=%d deadlock signature detected (c78 ai_22 off=%d "
+                             "ACT_ATTACK ent=67, c67 alive) -- starting %d-tick confirmation window\n",
+                             (int)g_GlobalTimer, (int)c78->aioffset, D318_DEADLOCK_TICKS);
+            }
+            s_run++;
+            if (s_run >= D318_DEADLOCK_TICKS)
+            {
+                osSyncPrintf("D318W: t=%d D318 execution deadlock confirmed -- re-initializing "
+                             "c78's attack (sub_GAME_7F025560 atk=0x%x ent=%d) to break the anim pin\n",
+                             (int)g_GlobalTimer, (unsigned)c78->act_attack.attacktype,
+                             (int)c78->act_attack.entityid);
+                sub_GAME_7F025560(c78, (s32)c78->act_attack.attacktype, (s32)c78->act_attack.entityid);
+                s_fired = TRUE;
+            }
         }
     }
     else
     {
         s_run = 0;
+        /* One-shot per occurrence: once the deadlock signature has been
+         * clear for a while after a fire, re-arm so a later replay of
+         * Facility in the same process (AllUnlocked) is still covered. */
+        if (s_fired && ++s_absent >= D318_REARM_TICKS)
+        {
+            s_fired = FALSE;
+            s_absent = 0;
+            osSyncPrintf("D318W: t=%d signature clear for %d ticks -- watchdog re-armed\n",
+                         (int)g_GlobalTimer, D318_REARM_TICKS);
+        }
     }
 }
 

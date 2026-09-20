@@ -54,6 +54,11 @@ Python — but an unpinned dependency means a future PyInstaller release
 could change what ships without a corresponding diff in this repository.
 Pinning it is a tracked follow-up.
 
+One development-only backdoor exists in source builds: the `GE_DEBUG_UNLOCKALL`
+environment variable (`src/game/file2.c`) pre-unlocks all cheat options at boot.
+It is off unless explicitly set, changes no shipped behavior, and is documented
+here so the env-var surface stays fully accounted for.
+
 ## Fidelity to the original N64 game
 
 The port's non-negotiable rule is that decompiled game logic is never

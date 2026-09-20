@@ -48,8 +48,10 @@
 - **Automatic widescreen FOV scaling**: the game now scales its field of
   view to match your display's aspect ratio automatically, instead of
   requiring the old manual FOV-scale slider. Toggle off in the F10 overlay
-  (`Widescreen Auto`) if you prefer the original 4:3 framing. (This is FOV
-  scaling, not a native 16:9 world/HUD re-render — see Known Issues.)
+  (`Widescreen Auto`) if you prefer the original 4:3 framing. The scaled
+  vertical FOV is clamped to a 20°–160° range as a guard against degenerate
+  values on unusual aspect ratios. (This is FOV scaling, not a native 16:9
+  world/HUD re-render — see Known Issues.)
 - **TV overscan artifacts removed**: the black bars top/bottom and the thin
   pixel strips left/right of the gameplay view are gone (D247/D246) — both
   were the original N64 TV-safe-area margin, invisible on a CRT under real
@@ -77,6 +79,13 @@
   players hit with an identical crash address (GitHub #87, D301) — this
   should close that crash, though we weren't able to reproduce the exact
   trigger condition ourselves to confirm it end-to-end.
+- **Facility's execution softlock is caught and recovered from**: a rare
+  race in the original game's own AI script (present on the N64 too) could
+  leave Ourumov frozen mid-execution after Objective C, with no way out short
+  of reloading. A port-side watchdog now detects the exact unrecoverable
+  state and re-seeds the attack so the scene plays out as authored; it
+  re-arms once the scene has cleared, so replaying Facility later in the
+  same session is still covered (D318).
 - **A Steam Deck crash is fixed**: an audio-thread bug could crash the game
   early in a level (`sndHandleEvent`'s sound-preemption scan could
   dereference a pointer without checking it was valid first). Live-verified

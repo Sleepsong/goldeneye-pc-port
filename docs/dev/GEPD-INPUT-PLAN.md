@@ -3,14 +3,17 @@
 Status: **plan only** — no code changes yet. Companion to `port/src/input.c`
 (current state: D118/D165/D166/D194/D214/D223/D238 lineage).
 
-## 1. The reference (vendored in-repo)
+## 1. The reference (no longer vendored in the public repo)
 
-The GEPD Edition Mouse Injector source is vendored at **`reference/mouse-injector/`**
-(see its README for provenance, version-skew warning, and a per-file guide).
-The file that matters is **`games/goldeneye.c`** (~380 lines, the whole GE
-aim model), plus `device.c` (raw mouse polling) and `maindll.h` (tickrate —
-the units every per-tick constant assumes). Consult it directly; no
-re-extraction needed.
+The GEPD Edition Mouse Injector source was vendored at `reference/mouse-injector/`
+and **removed from the public repo on 2026-09-19** (GPLv2 code + a prebuilt
+binary inside an MIT project; never compiled here). See
+`reference/mouse-injector/README.md` for provenance and how to re-vendor it
+locally if you need the original. The file that mattered was
+**`games/goldeneye.c`** (~380 lines, the whole GE aim model), plus `device.c`
+(raw mouse polling) and `maindll.h` (tickrate — the units every per-tick
+constant assumes). The model is quoted inline below and in the D194 findings;
+the ported result lives in `port/src/input.c`.
 
 ### What the Mouse Injector does (GE)
 
@@ -49,9 +52,10 @@ sensitivity/FOV coupling discipline. That's WIs 1–3 + 6 below.
 
 Two references, two jobs (decided during #89/#90 triage):
 
-- **GEPD Mouse Injector** (`reference/mouse-injector/`) = *what the mouse does
-  to the camera*. The only reference with GE-specific knowledge (camera
-  fields, crosshair limits, tank case, safety gates). Primary for WI-1.
+- **GEPD Mouse Injector** (was `reference/mouse-injector/`, removed from the
+  public repo 2026-09-19 — see its README stub) = *what the mouse does to the
+  camera*. The only reference with GE-specific knowledge (camera fields,
+  crosshair limits, tank case, safety gates). Primary for WI-1.
 - **PD PC port checkout** (standing reference, see AGENTS.md) = *how a PC game
   presents and captures input*: cursor-lock behavior, raw input handling,
   sensitivity units/scaling, and the shipped in-game options/keybind UI.

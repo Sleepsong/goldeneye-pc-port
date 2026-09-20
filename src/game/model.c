@@ -3227,7 +3227,13 @@ void modelSetAnimFrame2WithChrStuff(Model *model, f32 framea, f32 frameb, f32 fr
             {
                 frameb = (framea > -1.0e6f && framea < 1.0e6f) ? framea : 0.0f;
             }
-            /* D311: the original guard only validated frameb. If framea
+            /* D311 (RULE-2-SIGNOFF 2026-09-19, release review: user approved
+             * retention as the stability-maximizing option; classified as a
+             * defensive guard against non-finite state in the same class as
+             * the accepted D156 guards -- it only fires on poison values that
+             * indicate an already-broken state, and snaps to a valid frame
+             * rather than altering any legitimate animation):
+             * the original guard only validated frameb. If framea
              * (model->animframe1) is ALREADY poisoned, "frameb = framea" left
              * both garbage and floorFloatToInt saturated the two near-equal
              * huge floats to far-apart ints -- observed live in Caverns:
@@ -3646,14 +3652,23 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
              * a scripted animation restart; a restart landing while unkb0 is
              * stale-nonzero divides by it using a mismatched unkac/animrate
              * pair from the previous animation, producing huge playspeed
-             * spikes (~388-410, vs. a legitimate max of ~2.0). This clamp is
-             * a stopgap for the symptom, not the root-cause fix.
+             * spikes (~388-410, vs. a legitimate max of ~2.0).
              * M-187: was mistakenly gated on d243mProbeActive() (requires
              * GE_D243M=1), so it never fired for a real player -- only during
              * a diagnostic capture. Fixed to gate on the camera-mode test
              * alone (gameScriptedCameraActive()) so it's actually active by
              * default. Logging stays separately gated on d243mProbeActive().
-             * Threshold: 50.0 is way above any legitimate playspeed (normal
+             * M-189 (2026-09-18) found and fixed the ACTUAL root cause (a
+             * stale hardcoded 32-bit sizeof(Model) literal in bondview2.c's
+             * model-carving buffer, user-verified live): this clamp no longer
+             * fires in practice. It is retained as defense-in-depth against
+             * any future out-of-range playspeed reaching a scripted camera.
+             * RULE-2-SIGNOFF (2026-09-19, release review): ungated
+             * behavior-modifying guard in src/game, approved for retention
+             * by the user as the stability-maximizing option for v0.3.0;
+             * candidate for removal post-release once all cutscenes are
+             * re-verified clean without it (findings.md D243 / M-192).
+             * Threshold: 10.0 is way above any legitimate playspeed (normal
              * is ~1.0, max observed in gameplay is ~2.0). */
             extern int d243mProbeActive(void);
             extern int gameScriptedCameraActive(void);
@@ -3742,9 +3757,13 @@ void modelTickAnim(struct Model *model, s32 numticks, s32 update_chrstuff)
              * range (0-1000) to prevent this.
              * M-186 correction: NOT a D100/D140 struct-punning/pointer-
              * widening issue -- see the M-183 comment above for the
-             * corrected mechanism (stale unkb0/unkb4/unkac/animrate on a
-             * scripted animation restart); this is a stopgap, not the root-
-             * cause fix.
+             * corrected mechanism and for M-189's actual root-cause fix
+             * (stale 32-bit sizeof(Model) literal in bondview2.c); with that
+             * fix in place this clamp no longer fires in practice and is
+             * retained as defense-in-depth. RULE-2-SIGNOFF (2026-09-19,
+             * release review): approved for retention by the user for
+             * v0.3.0; candidate for removal post-release (findings.md D243 /
+             * M-192).
              * M-187: was mistakenly gated on d243mProbeActive() (requires
              * GE_D243M=1), so it never fired for a real player. Fixed to
              * gate on the camera-mode test alone (gameScriptedCameraActive()).

@@ -149,7 +149,9 @@ static struct Row rows[] = {
      * over the same risk are pulled from the menu entirely; only the single
      * master `Input.MouseSensitivity` row below remains player-facing, exactly
      * mirroring the reference GEPD/PD injector model this input was ported
-     * from (`reference/mouse-injector/games/goldeneye.c`) -- ONE user-facing
+     * from (GEPD-Edition Mouse Injector's goldeneye.c -- source no longer
+     * vendored in the public repo, see reference/mouse-injector/README.md) --
+     * ONE user-facing
      * sensitivity value, with the two per-mode constants staying fixed at
      * their calibrated (38/50) defaults, never independently player-tunable.
      * Config vars + SensLink logic stay in `input.c`/`rowSet()` untouched

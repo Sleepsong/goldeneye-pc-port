@@ -3,7 +3,7 @@
 Every `getenv("GE_…")` in the tree. The table prose is hand-curated;
 **`tools_pc/gen_env_probes.py`** re-greps the live sites and reports drift
 (NEW / GONE vars + a fresh file:line map) — run it before trusting the
-File:line cells. Last reconciled 2026-09-20 (v0.3.0 release review). All are **env-gated**: unset = zero behavior
+File:line cells. Last reconciled 2026-09-21 (D322 probe added; v0.3.0 release review was 2026-09-20). All are **env-gated**: unset = zero behavior
 change, so they are safe to leave in a release build (they only cost a
 `getenv` on the guarded path). "Dead" below means *the finding it was built
 for is closed* — the probe is strip-candidate scaffolding, not that it does
@@ -110,6 +110,7 @@ Two classes:
 | `GE_RSEED` | `port/src/random.c:134` (`#ifdef PORT`) | Test-only boot-seed override: `GE_RSEED=<hex64>` pins `g_randomSeed` at first seed instead of the wall-clock-derived value — for determinism and N64-parity tests. Inert unset. | **live, test-only** |
 | `GE_RSEED_LV` | `port/src/d318watchdog.c:232` (`#ifdef PORT`) | One-shot level-start seed log: logs `g_randomSeed` at the first tick after level start (optionally armed for a specific tick via `<hex>@<tick>`) — ties a saved/loaded game's PRNG state to a level for D318-class repro. Inert unset. | **live** (D318 verification) |
 | `GE_D318T` | `port/src/d318watchdog.c:270` (`#ifdef PORT`) | D318 watchdog timeline probe: per-tick log of the Facility ai_22 softlock signature window (c78 list/offset/attack state, c67 health) while the watchdog watches. Inert unset. | **live** (D318 verification) |
+| `GE_D322` | `port/src/audio.c` (`audioSetNextBuffer`), `src/snd.c` (`sndD322PoolSummary`) | D322 pool-telemetry probe: one line per 5 s of wall clock with the three pool layers a long session can exhaust — `sfx=count/max` (8-voice SFX soft cap), `evtq=n/64` (event queue occupancy; full = silent post drops, M-71), `pv free/lame/alloc` (24 physical synth voices shared by SFX + music; `-1`s before sndInit), plus the D204 pipeline fields. Cheap (~30 reads/s), campaign-safe; read together with `GE_D204=1`. | **live** (D322 capture) |
 | `GE_D318W` | `port/src/d318watchdog.c:136` (`#ifdef PORT`) | **Not a probe — the D318 port-side watchdog itself, ON by default.** Detects the Facility ai_22 hold-pose softlock signature (a latent N64 race, see findings.md D318) for 600 consecutive ticks and re-seeds c78's attack via the game's own fresh-attack entry point. `GE_D318W=0` opts out; logs `D318W:` lines when it acts. **Permanent fix, not strip-candidate.** | **live** (D318 fix — permanent) |
 
 ## Notes

@@ -12373,6 +12373,8 @@ Build-verified: warning set identical to the previous head over the same transla
 - The closed-panel FPS counter (D213) anchors RIGHT, with the 16:9 cap under `HudLayout=2`.
 - Mouse mapping: the D316 rect from `gfx_get_ui_screen_rect` is narrowed about its centre by the same 1/k before the pixel → logical conversion, so clicks land on the rows they appear over. Rounding is done by hand to avoid adding another implicit `lround` in that TU.
 
+**FPS counter cut off at the top (user playtest, 2026-09-25).** This dates from D247, not from this work. The D213 counter was drawn at canvas y=6, but with `SafeAreaCrop` on, in gameplay the crop maps the view top (y=10, NTSC "Full") to the window top, so the counter's upper half was off-window in every aspect mode. It is now drawn at `viGetViewTop() + 6`: identical in the front end (view top 0), and fully visible in-game.
+
 **Default is byte-identical.** With `AspectMode=0` the per-frame fit is off, as before. With both options off, the overlay hooks emit nothing and the mouse scale is exactly 1.0.
 
 **Verification.** Linux build is clean. The warning set is identical to the previous head over the same translation units. Runtime re-test owed:

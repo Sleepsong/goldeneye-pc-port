@@ -61,6 +61,7 @@ extern void  textMeasure(s32 *textheight, s32 *textwidth, char *text,
                          struct fontchar *chars, struct font *font, s32 lineheight);
 extern s16   viGetX(void);
 extern s16   viGetY(void);
+extern s16   viGetViewTop(void);
 
 /* ------------------------------------------------------------------------ */
 
@@ -931,7 +932,12 @@ Gfx *optionsOverlayEmit(void)
         gDPSetScissor(fgdl++, G_SC_NON_INTERLACE, 0, 0, fw, fh);
         fgdl = microcode_constructor(fgdl);
         fgdl = portOverlayAnchor(fgdl, PORT_HUD_RIGHT);   /* D325 */
-        fgdl = drawTextR(fgdl, fw - 6, 6, s_fpsText, 0x40ff60ff);
+        /* D325: y relative to the 3D view's top, not the canvas top. With
+         * Video.SafeAreaCrop on, in-game (NTSC "Full": view top 10) the
+         * canvas above the view is cropped off-window, so the old fixed y=6
+         * cut the counter's top half off (user playtest). Front end: view
+         * top 0, so still y=6 there. */
+        fgdl = drawTextR(fgdl, fw - 6, viGetViewTop() + 6, s_fpsText, 0x40ff60ff);
         fgdl = portOverlayAnchor(fgdl, PORT_HUD_NONE);
         gDPPipeSync(fgdl++);
         gSPEndDisplayList(fgdl++);

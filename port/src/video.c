@@ -67,6 +67,7 @@ static int cfgLodDistance         = 150; /* D249: percent scale on the geometry/
 static int cfgLodDistanceAutoFov  = 0;   /* off by default -- unlike DrawDistance, this is meant as a standalone perf lever, not something that should silently get more expensive as FovScale widens */
 static int cfgAniso         = 4;   /* D212: anisotropic filtering samples; 4 = the value fast3d already applied (no visual delta at default) */
 static int cfgSafeAreaCrop  = 1;   /* crop the N64 TV-overscan safe-area margin (visible as black top/bottom bars on PC) instead of showing it; on by default */
+static int cfgAspectMode    = 0;   /* D323: 0 = stretch to the window (original), 1 = 4:3 pillarbox/letterbox, 2 = Hor+ (undistorted wider world, HUD still stretched) */
 static int cfgFullscreen    = 0;   /* 0 = windowed, 1 = borderless fullscreen   */
 
 /*
@@ -145,7 +146,11 @@ f32 portFovScale = 1.0f;
 f32 portScaleFovY(f32 fovy, s32 isTitleScreen)
 {
     if (!isTitleScreen) {
-        if (cfgWidescreenAuto && gfx_current_dimensions.aspect_ratio > 0.01f) {
+        /* D323: STRETCH only. Under Hor+ portScaleAspect below already widens
+         * the horizontal FOV to the window, and this would widen the vertical
+         * one on top (the 32:9 case lands at ~98deg vertical); under the 4:3
+         * fit there is nothing to widen. */
+        if (cfgWidescreenAuto && cfgAspectMode == 0 && gfx_current_dimensions.aspect_ratio > 0.01f) {
             fovy *= sqrtf(gfx_current_dimensions.aspect_ratio / (4.0f / 3.0f));
         }
         if (portFovScale > 0.4f && portFovScale < 2.01f && portFovScale != 1.0f) {
@@ -155,6 +160,31 @@ f32 portScaleFovY(f32 fovy, s32 isTitleScreen)
     if (fovy > 160.0f) { fovy = 160.0f; }
     if (fovy < 20.0f)  { fovy = 20.0f; }
     return fovy;
+}
+
+/* D323: Video.AspectMode=2 (Hor+). The game builds its projection with
+ * aspect = viewport width / height in logical units (320x220 for NTSC "Full"),
+ * i.e. it assumes one logical unit is as wide as it is tall -- true on a 4:3
+ * TV, false once fast3d stretches the logical canvas across a wider window.
+ * Multiplying by fast3d's actual on-window logical pixel aspect makes the
+ * rendered world undistorted at any window shape: vertical FOV unchanged,
+ * horizontal FOV widened to fill (Hor+). Fed to BOTH the render projection
+ * (src/fr.c viSetupCurrentPlayerView) and currentPlayerSetPerspective (the
+ * viSet* calls), the latter deriving c_scalex -- frustum-cull planes, portal
+ * culling, sky, crosshair/aim 2D<->3D mapping and bullet spread all follow it,
+ * so there is no edge culling and aim/spread stay angle-identical to the N64.
+ * 2D (HUD, text, crosshair sprite) is not a projection and stays stretched.
+ * Front end (LEVELID_TITLE) excluded like portScaleFovY: its 3D is laid out
+ * against fixed 2D menus. Identity at the default AspectMode=0. */
+f32 portScaleAspect(f32 aspect, s32 isTitleScreen)
+{
+    if (cfgAspectMode == 2 && !isTitleScreen) {
+        f32 k = gfx_get_logical_pixel_aspect();
+        if (k > 0.1f && k < 10.0f) {
+            aspect *= k;
+        }
+    }
+    return aspect;
 }
 
 /* D218: Video.DrawDistance -- multiplier applied to a level's authored
@@ -249,6 +279,7 @@ PD_CONSTRUCTOR static void videoConfigInit(void)
     configRegisterInt("Video.LodDistanceAutoFov", &cfgLodDistanceAutoFov, 0, 1);
     configRegisterInt("Video.Anisotropy", &cfgAniso, 1, 16);
     configRegisterInt("Video.SafeAreaCrop", &cfgSafeAreaCrop, 0, 1);
+    configRegisterInt("Video.AspectMode", &cfgAspectMode, 0, 2);
     configRegisterInt("Video.Fullscreen",    &cfgFullscreen, 0, 1);
     configRegisterInt("Window.Width",        &cfgWinW,       0, 16384);
     configRegisterInt("Window.Height",       &cfgWinH,       0, 16384);
@@ -291,6 +322,7 @@ static void videoApplyImageOptions(void)
     portFovScale = (f32)cfgFovScale / 100.0f;
     gfx_set_anisotropy_level(cfgAniso);
     gfx_set_safe_area_crop(cfgSafeAreaCrop);
+    gfx_set_aspect_fit(cfgAspectMode == 1);
 }
 
 static void videoApplyTexFilter(void)
@@ -351,6 +383,28 @@ void videoGetDesktopSize(int *w, int *h)
     }
     if (w) *w = m.w;
     if (h) *h = m.h;
+}
+
+void videoGetGameRectInWindow(int ww, int wh, int *x, int *y, int *w, int *h)
+{
+    int rx = 0, ry = 0, rw = ww, rh = wh;
+    const struct XYWidthHeight gv = gfx_current_game_window_viewport;
+    const int dw = (int)gfx_current_window_dimensions.width;
+    const int dh = (int)gfx_current_window_dimensions.height;
+    /* gv is in drawable pixels; rescale in case SDL window coords differ
+     * (HiDPI). Whole window whenever the fit is off (gv == drawable). */
+    if (initDone && dw > 0 && dh > 0 && ((int)gv.width != dw || (int)gv.height != dh)) {
+        rx = (int)((long long)gv.x * ww / dw);
+        ry = (int)((long long)gv.y * wh / dh);
+        rw = (int)((long long)gv.width * ww / dw);
+        rh = (int)((long long)gv.height * wh / dh);
+        if (rw < 1) rw = 1;
+        if (rh < 1) rh = 1;
+    }
+    if (x) *x = rx;
+    if (y) *y = ry;
+    if (w) *w = rw;
+    if (h) *h = rh;
 }
 
 int videoIsFullscreen(void)
@@ -479,6 +533,16 @@ int videoInit(void)
     sysLogPrintf(LOG_INFO, "video: %dx%d window (native %dx%d)",
                  (int)gfx_current_dimensions.width, (int)gfx_current_dimensions.height,
                  GE_NATIVE_W, GE_NATIVE_H);
+    /* D323: Video.Fullscreen is borderless fullscreen-desktop (SDL_WINDOW_
+     * FULLSCREEN_DESKTOP) -- the window always covers the whole display and
+     * [Window] Width/Height only apply once you leave fullscreen. Say so,
+     * since "set 1920x1440 + Fullscreen=1" reads like it should work. */
+    if (cfgFullscreen && cfgWinW > 0 && cfgWinH > 0) {
+        sysLogPrintf(LOG_INFO, "video: fullscreen uses the desktop resolution; "
+                     "Window.Width/Height (%dx%d) apply to windowed mode only. "
+                     "For a 4:3 image in fullscreen set Video.AspectMode = 1",
+                     cfgWinW, cfgWinH);
+    }
     return 0;
 }
 
@@ -624,7 +688,10 @@ void videoSubmitCommands(Gfx *cmds)
 
 /* Runs from gfx_sdl_swap_buffers_begin with the composited frame still in the
  * back buffer, just before SDL_GL_SwapWindow. Reading the back buffer after
- * the swap is undefined on buffer-exchange drivers (Mesa/WSLg) -> black. */
+ * the swap is undefined on buffer-exchange drivers (Mesa/WSLg) -> black.
+ * Captures the whole window (gfx_current_window_dimensions): under the D323
+ * 4:3 fit gfx_current_dimensions is only the centred rect. Same size when
+ * the fit is off. */
 static void videoPreSwapCapture(void)
 {
     /* GE_PCDUMP="first-last" / "first-last:step" -> ./ppm/frame_NNNNNN.ppm.
@@ -644,8 +711,8 @@ static void videoPreSwapCapture(void)
             ((int)frames - lo) % step == 0) {
             char path[128];
             snprintf(path, sizeof(path), "ppm/frame_%06d.ppm", (int)frames);
-            gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_dimensions.width,
-                                      (uint32_t)gfx_current_dimensions.height, path);
+            gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_window_dimensions.width,
+                                      (uint32_t)gfx_current_window_dimensions.height, path);
         }
     }
 
@@ -655,8 +722,8 @@ static void videoPreSwapCapture(void)
         char path[128];
         GE_MKDIR("ppm");
         snprintf(path, sizeof(path), "ppm/shot_%03d.ppm", shotNum++);
-        if (gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_dimensions.width,
-                                      (uint32_t)gfx_current_dimensions.height, path)) {
+        if (gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_window_dimensions.width,
+                                      (uint32_t)gfx_current_window_dimensions.height, path)) {
             sysLogPrintf(LOG_INFO, "video: screenshot -> %s "
                          "(view with tools_pc/ppm2bmp.py)", path);
         } else {

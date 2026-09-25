@@ -562,6 +562,23 @@ through a converter or a runtime bswap fixup reads scrambled.
 - Controller state has one source: `port/src/input.c`. `libultra.c`'s SI
   section marshals `inputComputePad()` into `g_contPad[]`; it is driven by
   `osContStartReadData` (per logic tick), no separate `video.c` frame hook.
+- **GE's projection aspect is in logical units, and it has two consumers.**
+  `g_ViBackData->aspect` = viewport w/h in the 320-wide logical canvas; it is
+  only the *displayed* aspect while one logical unit is square on screen. Any
+  port change to the logical→window mapping (window shape, safe-area crop,
+  a sub-rect draw area) must feed the factor into BOTH the render
+  projection (`fr.c` `guPerspectiveF`) AND `currentPlayerSetPerspective`
+  (→ `c_scalex`: cull planes, portal culling, sky, aim, bullet spread), or
+  the render and the culling/aim disagree at the screen edges. Get the
+  factor from fast3d (`gfx_get_logical_pixel_aspect`); don't re-derive it
+  (D323, the aspect half of D222).
+- **fast3d draw area ≠ window: fix `aspect_scale` too.** With
+  `aspect_mode == 0`, `gfx_adjust_x_for_aspect_ratio` scales clip X by
+  `aspect_scale / gfx_current_dimensions.aspect_ratio`. That was the
+  *window* aspect (inherited from PD), which is the identity only while the
+  draw area is the window. Shrinking `gfx_current_dimensions` (pillarbox,
+  D323) without also changing it stretches every vertex and rect by
+  window/draw-area aspect.
 
 ## D. N64 hardware idioms fast3d does not emulate
 

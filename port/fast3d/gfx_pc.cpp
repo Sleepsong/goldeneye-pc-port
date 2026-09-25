@@ -267,6 +267,18 @@ extern "C" void gfx_set_safe_area_crop(int on) {
     g_safe_area_crop_enabled = !!on;
 }
 
+/* D323: Video.AspectMode=1 (4:3). gfx_start_frame shrinks gfx_current_
+ * dimensions to a centred 4:3 rect and records its offset in gfx_current_
+ * game_window_viewport; gfx_adjust_viewport_or_scissor already adds that
+ * offset to every viewport/scissor/fill-rect it maps, and the per-frame
+ * full-FB clear (scissor disabled) leaves the bars black. Off = the rect is
+ * the whole window, exactly as before. */
+static bool g_aspect_fit_enabled = false;
+
+extern "C" void gfx_set_aspect_fit(int on) {
+    g_aspect_fit_enabled = !!on;
+}
+
 uint32_t gfx_msaa_level = 1;
 
 static bool dropped_frame;
@@ -2564,7 +2576,11 @@ static void gfx_sp_geometry_mode(uint32_t clear, uint32_t set) {
 static inline void gfx_update_aspect_mode(void) {
     const uint32_t side = rsp.aspect_mode & G_ASPECT_CENTER_EXT;
 
-    rsp.aspect_scale = rsp.aspect_mode ? gfx_current_native_aspect : gfx_current_window_dimensions.aspect_ratio;
+    /* D323: mode 0 used gfx_current_window_dimensions here, which makes
+     * gfx_adjust_x_for_aspect_ratio scale clip X by window/draw-area aspect --
+     * 1.0 while the draw area IS the window, but 2.67x on a 32:9 window with
+     * the 4:3 fit on. The draw area's own aspect is the identity in both. */
+    rsp.aspect_scale = rsp.aspect_mode ? gfx_current_native_aspect : gfx_current_dimensions.aspect_ratio;
 
     if (side == G_ASPECT_LEFT_EXT) {
         rsp.aspect_ofs = 1.f - gfx_current_dimensions.aspect_ratio / gfx_current_native_aspect;
@@ -2589,10 +2605,15 @@ static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
     gfx_update_aspect_mode();
 }
 
-static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_aspect = false) {
-    // HACK: assume all target framebuffers have the same aspect
-    // Use floor/ceil to ensure scissor fully contains the logical region
-    // and prevents sub-pixel gaps at viewport edges
+/* The logical-canvas -> draw-area mapping gfx_adjust_viewport_or_scissor
+ * applies: logical (x, y) lands at ((x - left) * ratioX, (top - y) * ratioY)
+ * pixels. Shared with gfx_get_logical_pixel_aspect (D323) so the Hor+
+ * projection correction can never drift from the real forward transform. */
+struct LogicalMapping {
+    float left, top, ratioX, ratioY;
+};
+
+static inline LogicalMapping gfx_logical_mapping(void) {
     // g_gpSafeTop already plays the exact role SCREEN_HEIGHT plays below
     // (both are the bottom-up Y value of the mapped region's TOP edge) --
     // this reduces to the untouched original formula when crop is off.
@@ -2618,11 +2639,25 @@ static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_as
     const float safeWidth = g_safe_area_crop_enabled ? (float)SCREEN_WIDTH - 2.0f : (float)SCREEN_WIDTH;
     const float ratioX = gfx_current_dimensions.width / safeWidth;
 
-    float x1 = (area->x - safeLeft) * ratioX;
-    float y1 = (safeTop - area->y) * ratioY;
-    float x2 = (area->x + area->width - safeLeft) * ratioX;
-    float y2 = (safeTop - area->y + area->height) * ratioY;
-    
+    return { safeLeft, safeTop, ratioX, ratioY };
+}
+
+extern "C" float gfx_get_logical_pixel_aspect(void) {
+    const LogicalMapping m = gfx_logical_mapping();
+    return (m.ratioY > 0.0f) ? m.ratioX / m.ratioY : 1.0f;
+}
+
+static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_aspect = false) {
+    // HACK: assume all target framebuffers have the same aspect
+    // Use floor/ceil to ensure scissor fully contains the logical region
+    // and prevents sub-pixel gaps at viewport edges
+    const LogicalMapping m = gfx_logical_mapping();
+
+    float x1 = (area->x - m.left) * m.ratioX;
+    float y1 = (m.top - area->y) * m.ratioY;
+    float x2 = (area->x + area->width - m.left) * m.ratioX;
+    float y2 = (m.top - area->y + area->height) * m.ratioY;
+
     area->x = std::floor(x1);
     area->y = std::floor(y1);
     area->width = std::ceil(x2) - area->x;
@@ -3729,10 +3764,35 @@ extern "C" void gfx_start_frame(void) {
 
     gfx_current_window_dimensions.aspect_ratio = (float)gfx_current_window_dimensions.width / gfx_current_window_dimensions.height;
 
-    gfx_current_dimensions = gfx_current_window_dimensions;
-
-    gfx_current_game_window_viewport.width = gfx_current_dimensions.width;
-    gfx_current_game_window_viewport.height = gfx_current_dimensions.height;
+    /* D323: 4:3 fit. Shrink the draw area to the largest centred 4:3 rect;
+     * dims and game-window viewport stay equal in size, so the offscreen-FB
+     * "different_size" path below is never taken -- the game still renders
+     * straight into the window (or its window-sized MSAA FB) and
+     * gfx_adjust_viewport_or_scissor offsets every draw into the rect.
+     * Built in locals and published once: other threads read these fields
+     * (port/src/video.c), and a steady-state frame then rewrites the same
+     * values instead of passing through the full-window ones. */
+    struct GfxDimensions dims = gfx_current_window_dimensions;
+    struct XYWidthHeight game_vp = { 0, 0, dims.width, dims.height };
+    if (g_aspect_fit_enabled) {
+        constexpr float target = 4.f / 3.f;
+        const uint32_t ww = dims.width;
+        const uint32_t wh = dims.height;
+        uint32_t w = ww, h = wh;
+        if (dims.aspect_ratio > target + 0.001f) {
+            w = (uint32_t)std::lround(wh * target);   /* pillarbox */
+        } else if (dims.aspect_ratio < target - 0.001f) {
+            h = (uint32_t)std::lround(ww / target);   /* letterbox */
+        }
+        w = std::max<uint32_t>(1, std::min(w, ww));
+        h = std::max<uint32_t>(1, std::min(h, wh));
+        dims.width = w;
+        dims.height = h;
+        dims.aspect_ratio = (float)w / (float)h;
+        game_vp = { (int16_t)((ww - w) / 2), (int16_t)((wh - h) / 2), w, h };
+    }
+    gfx_current_dimensions = dims;
+    gfx_current_game_window_viewport = game_vp;
 
     if (gfx_current_dimensions.height != gfx_prev_dimensions.height) {
         for (auto& fb : framebuffers) {

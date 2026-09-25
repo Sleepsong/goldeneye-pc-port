@@ -67,6 +67,7 @@ enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION, ROW_FPSC
 
 static const char *const kOnOff[]     = { "OFF", "ON", NULL };
 static const char *const kTexFilter[] = { "NEAREST", "BILINEAR", "3-POINT", NULL };
+static const char *const kAspectMode[] = { "STRETCH", "4:3", "HOR+", NULL };  /* D323 */
 static const int         kMsaaSeq[]   = { 1, 2, 4, 8 };
 /* D186: the sim's own tick pacemaker is hardcoded to the console's native VI
  * rate (60Hz NTSC / 50Hz PAL, port/src/libultra.c) -- Video.FpsCap can only
@@ -88,7 +89,8 @@ static const int kResList[][2] = {
     {  640,  480 }, {  800,  600 }, {  960,  720 }, { 1024,  768 },
     { 1152,  864 }, { 1280,  720 }, { 1280,  800 }, { 1280,  960 },
     { 1366,  768 }, { 1440,  900 }, { 1600,  900 }, { 1600, 1200 },
-    { 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 2560, 1440 },
+    { 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 1920, 1440 },
+    { 2560, 1440 },
     { 3200, 1800 }, { 3840, 2160 },
 };
 #define NUM_RES ((int)(sizeof(kResList) / sizeof(kResList[0])))
@@ -126,7 +128,15 @@ static struct Row rows[] = {
     { "Video.TextureFilter",      "Texture filter",   ROW_ENUM,   1,    kTexFilter, 0, 0, 0,   0,0,0,0,0 },
     { "Video.Anisotropy",         "Anisotropic",      ROW_SLIDER, 1,    NULL,       0, 0, 0,   0,0,0,0,0 },
     { "Video.FovScale",           "FOV scale %",      ROW_SLIDER, 5,    NULL,       0, 0, 0,   0,0,0,0,0 },
-    { "Video.WidescreenAuto",     "Widescreen auto FOV",ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
+    /* D323: STRETCH = original full-window stretch; 4:3 = pillarbox (or
+     * letterbox) to a centred 4:3 image, the N64's display shape (with Crop
+     * overscan bars on, NTSC gameplay's 318x220 view is still squeezed ~8%
+     * into it, same as any 4:3 window); HOR+ = undistorted wider 3D world,
+     * 2D HUD still stretched. Live. Widescreen auto FOV is
+     * inert in both non-stretch modes (4:3 has nothing to widen, Hor+ widens
+     * horizontally itself), so its row hides while this is nonzero. */
+    { "Video.AspectMode",         "Aspect ratio",     ROW_ENUM,   1,    kAspectMode,0, 0, 0,   0,0,0,0,0 },
+    { "Video.WidescreenAuto",     "Widescreen auto FOV",ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0, "Video.AspectMode" },
     { "Video.SafeAreaCrop",       "Crop overscan bars", ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
     { "Video.DrawDistance",       "Draw distance %",  ROW_SLIDER, 25,   NULL,       0, 0, 0,   0,0,0,0,0, "Video.DrawDistanceAutoFov" },
     { "Video.DrawDistanceAutoFov","Draw dist. auto",  ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },

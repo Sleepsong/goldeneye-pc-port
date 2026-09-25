@@ -80,6 +80,7 @@
 #include "config.h"
 #include "input.h"
 #include "optionsoverlay.h"
+#include "video.h"
 /* D194 absolute aim: read-only access to the live camera (struct player).
  * Game header pulled in through the same shim path every other compiled game
  * file uses; we only READ vv_theta/vv_verta/speedtheta/speedverta/aspect. */
@@ -993,8 +994,13 @@ unsigned inputComputePad(int idx, signed char *stick_x, signed char *stick_y)
                             lastMenuMouseY = my;
                         }
                         if (mx != lastMenuMouseX || my != lastMenuMouseY) {
-                            double fx = (double)mx / (double)ww;
-                            double fy = (double)my / (double)wh;
+                            /* D323: relative to the game image, which is a
+                             * centred 4:3 rect under Video.AspectMode=1
+                             * (the whole window otherwise -- unchanged). */
+                            int gx = 0, gy = 0, gw = ww, gh = wh;
+                            videoGetGameRectInWindow(ww, wh, &gx, &gy, &gw, &gh);
+                            double fx = (double)(mx - gx) / (double)gw;
+                            double fy = (double)(my - gy) / (double)gh;
                             if (fx < 0.0) fx = 0.0; else if (fx > 1.0) fx = 1.0;
                             if (fy < 0.0) fy = 0.0; else if (fy > 1.0) fy = 1.0;
                             cursor_h_pos = (float)(loH + fx * (hiH - loH));

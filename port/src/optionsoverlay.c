@@ -45,6 +45,7 @@
 #include "video.h"
 #include "input.h"
 #include "optionsoverlay.h"
+#include "porthud.h"   /* D325 overlay aspect hooks */
 #include "../fast3d/gfx_api.h"
 
 /* ---- game symbols (rendering/UI only; see input.c for the same pattern) ---- */
@@ -60,6 +61,7 @@ extern void  textMeasure(s32 *textheight, s32 *textwidth, char *text,
                          struct fontchar *chars, struct font *font, s32 lineheight);
 extern s16   viGetX(void);
 extern s16   viGetY(void);
+extern s16   viGetViewTop(void);
 
 /* ------------------------------------------------------------------------ */
 
@@ -67,6 +69,8 @@ enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION, ROW_FPSC
 
 static const char *const kOnOff[]     = { "OFF", "ON", NULL };
 static const char *const kTexFilter[] = { "NEAREST", "BILINEAR", "3-POINT", NULL };
+static const char *const kAspectMode[] = { "STRETCH", "4:3", "HOR+", NULL };  /* D323 */
+static const char *const kHudLayout[]  = { "STRETCH", "EDGES", "16:9", NULL };  /* D324 */
 static const int         kMsaaSeq[]   = { 1, 2, 4, 8 };
 /* D186: the sim's own tick pacemaker is hardcoded to the console's native VI
  * rate (60Hz NTSC / 50Hz PAL, port/src/libultra.c) -- Video.FpsCap can only
@@ -88,7 +92,8 @@ static const int kResList[][2] = {
     {  640,  480 }, {  800,  600 }, {  960,  720 }, { 1024,  768 },
     { 1152,  864 }, { 1280,  720 }, { 1280,  800 }, { 1280,  960 },
     { 1366,  768 }, { 1440,  900 }, { 1600,  900 }, { 1600, 1200 },
-    { 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 2560, 1440 },
+    { 1680, 1050 }, { 1920, 1080 }, { 1920, 1200 }, { 1920, 1440 },
+    { 2560, 1440 },
     { 3200, 1800 }, { 3840, 2160 },
 };
 #define NUM_RES ((int)(sizeof(kResList) / sizeof(kResList[0])))
@@ -126,7 +131,19 @@ static struct Row rows[] = {
     { "Video.TextureFilter",      "Texture filter",   ROW_ENUM,   1,    kTexFilter, 0, 0, 0,   0,0,0,0,0 },
     { "Video.Anisotropy",         "Anisotropic",      ROW_SLIDER, 1,    NULL,       0, 0, 0,   0,0,0,0,0 },
     { "Video.FovScale",           "FOV scale %",      ROW_SLIDER, 5,    NULL,       0, 0, 0,   0,0,0,0,0 },
-    { "Video.WidescreenAuto",     "Widescreen auto FOV",ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
+    /* D323: STRETCH = original full-window stretch; 4:3 = pillarbox (or
+     * letterbox) to a centred 4:3 image, the N64's display shape (with Crop
+     * overscan bars on, NTSC gameplay's 318x220 view is still squeezed ~8%
+     * into it, same as any 4:3 window); HOR+ = undistorted wider 3D world,
+     * 2D HUD still stretched. Live. Widescreen auto FOV is
+     * inert in both non-stretch modes (4:3 has nothing to widen, Hor+ widens
+     * horizontally itself), so its row hides while this is nonzero. */
+    { "Video.AspectMode",         "Aspect ratio",     ROW_ENUM,   1,    kAspectMode,0, 0, 0,   0,0,0,0,0 },
+    { "Video.WidescreenAuto",     "Widescreen auto FOV",ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0, "Video.AspectMode" },
+    /* D324: in-game HUD. STRETCH = stretched with the window (original);
+     * EDGES = unstretched, each element slid to its screen edge; 16:9 = the
+     * same, edges capped at a centred 16:9 area (for 21:9/32:9). Live. */
+    { "Video.HudLayout",          "HUD layout",       ROW_ENUM,   1,    kHudLayout, 0, 0, 0,   0,0,0,0,0 },
     { "Video.SafeAreaCrop",       "Crop overscan bars", ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
     { "Video.DrawDistance",       "Draw distance %",  ROW_SLIDER, 25,   NULL,       0, 0, 0,   0,0,0,0,0, "Video.DrawDistanceAutoFov" },
     { "Video.DrawDistanceAutoFov","Draw dist. auto",  ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },
@@ -744,6 +761,16 @@ void optionsOverlayHandleInput(void)
      * click lands on the same row it visually appears over. */
     int32_t rx = 0, ry = 0, rw = 0, rh = 0;
     gfx_get_ui_screen_rect(&rx, &ry, &rw, &rh);
+    {
+        /* D325: the panel is drawn compressed about the canvas centre by
+         * portOverlayWidthScale (1/k) when unstretched; invert that too. */
+        const double s = (double)portOverlayWidthScale();
+        if (s < 1.0 && rw > 0) {
+            const int32_t nw = (int32_t)((double)rw * s + 0.5);   /* rw > 0 */
+            rx += (rw - nw) / 2;
+            rw = nw;
+        }
+    }
     if (rw > 0 && rh > 0) {
         double ox = (double)(mx - rx) * (double)viGetX() / rw;
         double oy = (double)(my - ry) * (double)viGetY() / rh;
@@ -904,7 +931,14 @@ Gfx *optionsOverlayEmit(void)
         gDPSetTexturePersp(fgdl++, G_TP_NONE);
         gDPSetScissor(fgdl++, G_SC_NON_INTERLACE, 0, 0, fw, fh);
         fgdl = microcode_constructor(fgdl);
-        fgdl = drawTextR(fgdl, fw - 6, 6, s_fpsText, 0x40ff60ff);
+        fgdl = portOverlayAnchor(fgdl, PORT_HUD_RIGHT);   /* D325 */
+        /* D325: y relative to the 3D view's top, not the canvas top. With
+         * Video.SafeAreaCrop on, in-game (NTSC "Full": view top 10) the
+         * canvas above the view is cropped off-window, so the old fixed y=6
+         * cut the counter's top half off (user playtest). Front end: view
+         * top 0, so still y=6 there. */
+        fgdl = drawTextR(fgdl, fw - 6, viGetViewTop() + 6, s_fpsText, 0x40ff60ff);
+        fgdl = portOverlayAnchor(fgdl, PORT_HUD_NONE);
         gDPPipeSync(fgdl++);
         gSPEndDisplayList(fgdl++);
         return s_buf;
@@ -944,6 +978,10 @@ Gfx *optionsOverlayEmit(void)
 
     /* ---- pass 1: all fills (G_CC_PRIMITIVE) ---- */
     gdl = fillRect(gdl, 0, 0, W, H, 0, 0, 0, 150);                       /* dim */
+    /* D325: the dim above stays full-width; the panel itself is drawn
+     * unstretched about the centre when HOR+ / a HUD layout is on (the
+     * mouse mapping below applies portOverlayWidthScale to match). */
+    gdl = portOverlayAnchor(gdl, PORT_HUD_CENTER);
     gdl = fillRect(gdl, OV_X0 - 8, panelTop, W - (OV_X0 - 8), panelBottom,
                    8, 10, 24, 210);                                     /* panel */
     gdl = fillRect(gdl, OV_CB_X0, OV_CB_Y0, OV_CB_X1, OV_CB_Y1,
@@ -1000,6 +1038,7 @@ Gfx *optionsOverlayEmit(void)
         }
     }
 
+    gdl = portOverlayAnchor(gdl, PORT_HUD_NONE);   /* D325 */
     gDPPipeSync(gdl++);
     gSPEndDisplayList(gdl++);
 

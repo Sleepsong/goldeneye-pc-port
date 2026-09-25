@@ -608,6 +608,9 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D320 | **D318-class sweep: aim-hold → `_update` AI lists in 8 levels carry the same as-authored softlock race (static analysis, 2026-09-20).** — full `## D320` entry at file tail | OPEN — static sweep complete (Facility ai_19, Control ai_9, Depot ai_12 flagged high/med-high; Bond-combat loops likely safe); no live confirmation beyond D318 itself; probe-verify path + generalized-watchdog recommendation documented. |
 | D321 | **D318 trigger chain fully mapped: tanks → combat bit is an authored ~3.5 s gas-cascade delay (chr 254 script); derail lands same-tick; PC behavior confirmed faithful to N64 (probe captures, 2026-09-20).** — full `## D321` entry at file tail | CLOSED — trigger chain mapped and faithful; D318 watchdog validated in live play. Optional deferred tuning: `D318_DEADLOCK_TICKS` 600→300 (user's call). |
 | D322 | **Long-session audio degradation: full campaign on v0.3.0 — audio progressively worsens from Silo, by Caverns/Cradle the OST is inaudible and SFX "come and go"; restarting the game restores it (issue #87, user report, 2026-09-21).** — full `## D322` entry at file tail | OPEN — static triage done (teardown audit, mixer statelessness, D202-coverage check); ranked hypotheses: voice-pool exhaustion/counter drift > queue starvation > evtq saturation. `GE_D322` pool-telemetry probe shipped; needs a campaign capture with `GE_D322=1 GE_D204=1`. |
+| D323 | **Ultrawide (5120x1440, 32:9): resolution won't hold (`Fullscreen=1` ignores `[Window]` size) and the whole frame is stretched ~2.7x; asks for a 4:3 pillarbox and a world-only Hor+ fix (user report, Bazzite/KDE, 2026-09-25).** — full `## D323` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: HOR+ confirmed; 4:3 showed sky in the bars (1-unit crop overflow), fixed by clamping the scissor to the fit rect, re-test owed. New `Video.AspectMode` (F10 "Aspect ratio"): 0 STRETCH (default, unchanged), 1 4:3 pillarbox/letterbox in fast3d (`gfx_start_frame` draw-area fit), 2 HOR+ (route-(b) `#ifdef PORT` aspect hook at the `src/fr.c` projection + cull chokepoint, D211/D222 class). Window part was config semantics, not a bug: borderless fullscreen always takes the desktop size; ini rewritten on exit. HUD anchoring not done. |
+| D324 | **HUD anchoring for widescreen (D323 goal 3): in-game 2D HUD drawn unstretched and slid to the screen edge it belongs to, instead of stretched across the window (user ask, 2026-09-25).** — full `## D324` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: EDGES/16:9 HUD confirmed; the pause watch under HOR+ had hard vertical cuts and smeared sides, fixed (full scissor for the watch + sides fade to black with the zoom), re-test owed. New `Video.HudLayout` (F10 "HUD layout"): 0 STRETCH (default, unchanged), 1 EDGES, 2 16:9 (edges capped at a centred 16:9 area). Uses fast3d's dormant PD `G_EXTRAGEOMETRYMODE_EXT` aspect path, emitted from `#ifdef PORT` hooks in 4 HUD functions (route-(b), D181/D211 class); fixes two latent bugs in that PD path and makes the scissor follow the mode. Crosshair unstretched in shape only, so aim is unchanged. SP only. |
+| D325 | **Widescreen follow-ups from playtest: front-end menus still stretched under HOR+, and the F10 overlay stretched too (user report, 2026-09-25).** — full `## D325` entry at file tail | FIXED (build-verified; re-test owed) — under HOR+ the front end (LEVELID_TITLE) now uses the 4:3 fit, re-evaluated per frame; the F10 panel is drawn CENTER-unstretched (dim stays full-width) with a matching click-mapping inverse, and the FPS counter anchors RIGHT, whenever HOR+ or a HUD layout is on. Defaults unchanged. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -12239,3 +12242,143 @@ Full campaign (or at minimum Silo → Caverns/Cradle) with **`GE_D322=1 GE_D204=
 - All pools healthy while audio is bad → back to the mixer/reverb state classes (re-open M-65's ruled-out list with a long-session `GE_AUDIODUMP`).
 
 **Status:** OPEN — static triage complete, probe shipped, awaiting campaign capture. Cross-ref: D202/M-65+M-66b (ownerless-loop leak class + expiration), D207 (8-cap starvation design notes), D305 (pool/list desync observation), D204 (pipeline pacing + `GE_D204` monitor), D248/D250 (frame pacing, fixed), issue #87.
+
+## D323 — Ultrawide: resolution won't hold, and the whole frame stretches on non-4:3 windows; 4:3 pillarbox + world-only Hor+ (user report, 2026-09-25)
+
+**Report.** Bazzite (Fedora, KDE), RTX 5070, one 5120x1440 (32:9) display, v0.3.0. (1) Resolution/window size changes in `ge007.ini` or F10 don't stick. (2) The frame stretches ~2.7x horizontally; gamescope `-S fit` didn't pillarbox it. Ini: `[Video] Fullscreen=1 WidescreenAuto=1 FovScale=100 SafeAreaCrop=1`, `[Window] Width=5120 Height=1440 X=-1 Y=-1`. Asked for: short term a 4:3 pillarbox (or a stable 1920x1440 window); then a world-only Hor+ fix (HUD may stay stretched); HUD anchoring later, using the PD port as reference.
+
+### Part 1 — "won't hold a resolution": config semantics, no code bug
+
+- `Video.Fullscreen=1` is **borderless fullscreen-desktop**: `gfx_sdl2.cpp` defaults `fullscreen_flag = SDL_WINDOW_FULLSCREEN_DESKTOP`, and `video.c` hardcodes `.fullscreen_is_exclusive = false`. SDL sizes that window to the display, so `[Window] Width/Height` are ignored while fullscreen. They only apply in windowed mode. Exclusive fullscreen is not a fix either: Wayland/XWayland does no real mode switch, and the compositor scales a lower mode back up to the output.
+- `configSave()` rewrites the whole ini from memory on every clean exit (`main.c` `portAtExit`) and whenever F10 closes. So hand edits made **while the game runs** are lost. Edit only with the game closed; the file header already says so.
+- `videoSaveWindowState()` writes the **live** windowed geometry back on exit. A 1920x1440 window on a 1440-tall display cannot fit the KDE work area (title bar + panel), so KWin shrinks it, and that shrunk size is what gets saved. That is the "won't hold" symptom in windowed mode.
+- The F10 Resolution row is windowed-only (shows "(fullscreen)" otherwise), and its preset list had no 4:3 size at 1440 lines.
+
+Changes: a startup log line when `Fullscreen=1` and a `[Window]` size are both set, saying the size applies to windowed mode only and pointing at `Video.AspectMode=1`; `1920x1440` added to the F10 windowed presets. The real fix for goal 1 is below: pillarbox inside fullscreen, with no window sizing involved.
+
+### Part 2 — why the frame stretches, and where the aspect lives
+
+- The game projects with `g_ViBackData->aspect` = viewport width / height **in logical units** (320x220 for NTSC "Full", `bondview2.c` `bondviewMovePlayerUpdateViewport` → `viSetAspect`). That equals the displayed aspect only when a logical unit is square, as on a 4:3 TV. The one projection chokepoint is `src/fr.c` `viSetupCurrentPlayerView` (`guPerspectiveF`). The same aspect also goes through `viSet*` → `currentPlayerSetPerspective` → `c_perspaspect` → `currentPlayerSetCameraScale` (`c_scalex`), which drives the left/right cull planes (`c_cameraleftnorm`), portal culling (`bgProjectRoomCoordToScreen` → `transform3Dto2DWithZScaling`), sky screen↔world mapping, aim 2D↔3D, and bullet spread (`gunfire.c`, which divides by `getPlayer_c_perspaspect()`).
+- fast3d maps the logical canvas onto the window linearly (`gfx_adjust_viewport_or_scissor`, `ratioX`/`ratioY` independent). GE never sets `G_ASPECT_MODE_EXT`, so `gfx_adjust_x_for_aspect_ratio` is the identity. Every non-4:3 window therefore stretches world and HUD alike.
+- `Video.WidescreenAuto` (sqrt(aspect/(4/3)) on vertical FOV) never removed the distortion: the stretch ratio is display aspect / projection aspect, independent of fovy. It only shows more world. At 32:9 it pushed the vertical FOV to ~98 degrees.
+
+### Fix — `Video.AspectMode` (0/1/2), F10 "Aspect ratio" STRETCH / 4:3 / HOR+, live
+
+- **0 STRETCH** (default): original behaviour. Every changed expression reduces to the old one (see "Default is byte-identical" below).
+- **1 4:3** (fast3d only, `port/fast3d/gfx_pc.cpp`): `gfx_start_frame` shrinks `gfx_current_dimensions` to the largest centred 4:3 rect and stores its offset in `gfx_current_game_window_viewport` (letterboxes if the window is taller than 4:3). The existing offset path in `gfx_adjust_viewport_or_scissor` moves every viewport, scissor and fill/texture rect into the rect. Dims and game-window viewport stay equal in size, so the offscreen "different_size" FB path (unwired here, since GE has no ImGui blit) is never taken. The game still renders straight into the window, or into its window-sized MSAA FB. The per-frame clear runs with the scissor disabled, so the bars stay black. One fast3d fix was needed: `gfx_update_aspect_mode` (mode 0) set `aspect_scale` from the **window** aspect, which makes `gfx_adjust_x_for_aspect_ratio` scale clip X by window/draw-area aspect. That is 1.0 when the draw area is the window, but 2.67x at 32:9 with the fit on. It now uses the draw area's own aspect, which is the identity in both cases. The fit is computed in locals and published to `gfx_current_dimensions` / `gfx_current_game_window_viewport` once per frame. Other threads read those fields, and the old field-by-field sequence passed through full-window values every frame, which could flash a wrong FOV for one frame. Consumers updated: F12 screenshots and `GE_PCDUMP` capture the whole window (`gfx_current_window_dimensions`, the same size as before when the fit is off); the menu mouse pointer (`input.c`) maps relative to the rect via `videoGetGameRectInWindow`. The F10 overlay's click mapping already goes through `gfx_get_ui_screen_rect` (D316), which includes the offset. Caveat: with `SafeAreaCrop=1`, NTSC gameplay shows a 318x220 logical region, so it sits ~8% squeezed in a 4:3 rect, exactly as in any 4:3 window today. Turn the crop off for the N64's exact frame (its own black bars then show inside the box). The fit target is deliberately a fixed 4:3, not the crop-dependent canvas aspect: that aspect changes between front end (240 lines) and gameplay (220), so the bars would jump.
+- **2 HOR+** (route-(b) `src/` hook, same policy class as D181/D211/D222): `portScaleAspect()` (`port/src/video.c`) multiplies the game's aspect by `gfx_get_logical_pixel_aspect()`, which is fast3d's actual on-window pixels-per-logical-X divided by pixels-per-logical-Y. It is computed from the same `gfx_logical_mapping()` helper `gfx_adjust_viewport_or_scissor` now uses, so the two cannot drift. The value is 1.0 for square logical pixels, 2.67 at 32:9 with the crop off, ~2.46 with it on, and ~0.92 at 4:3 with it on (so Hor+ also removes the crop's 8% squeeze at 4:3). In `src/fr.c` it is applied inside the existing `#ifdef PORT` arms only: at the `guPerspectiveF` call (render) and via a new `frCullAspect()` in all four `viSet*` → `currentPlayerSetPerspective` calls (the aspect half of D222). `g_ViBackData->aspect` itself is not modified. Because `c_scalex` follows, cull planes, portal culling, sky, and aim mapping all stay consistent with the render: **no edge pop-in is expected**, unlike the user's expectation. Bullet spread keeps the N64's angular size (screen-unit spread shrinks by k while each unit covers k times the angle). The front end (`LEVELID_TITLE`) is excluded, as with `portScaleFovY`, because its 3D is laid out against fixed 2D. `WidescreenAuto` now applies in STRETCH only (`portScaleFovY` checks `cfgAspectMode == 0`): under Hor+ the vertical FOV stays the N64's 60 degrees (FovScale still applies), and under 4:3 there is nothing to widen. Its F10 row hides while AspectMode is nonzero. Horizontal FOV at 32:9 and FovScale 100: 2·atan(tan 30°·3.556) ≈ 128°.
+- **Not covered / expected cosmetic residue under HOR+:** all 2D (HUD, text, crosshair sprite, ammo, radar) stays stretched, which is goal 3 and not done here. Fixed-aspect 3D that bypasses the chokepoint also stays stretched: the pause-menu watch and the in-hand watch raise (`options.c` `WATCH_PERSPECTIVE_ASPECT`, `bondview2.c` ~8731 `guPerspective(..., 1.4545455f, ...)`). The gun viewmodel uses the world projection (`bg.c` `currentPlayerGetProjectionMatrix`), so it is undistorted and sits nearer screen centre at extreme aspects (normal Hor+). Split-screen MP is untested; the safe-area crop already assumes a single viewport.
+- **Goal 3 (HUD anchoring): done in D324** (`Video.HudLayout`), which also unstretches the fixed-aspect pause watch listed above under Hor+.
+
+**Default is byte-identical by construction.** With `AspectMode=0`: the fit block is skipped; `game_window_viewport.x/y` are reset to the 0 they already were; `aspect_scale` reads `gfx_current_dimensions.aspect_ratio`, a bit-copy of the window aspect, so `x·a/a` is computed exactly as before; `gfx_logical_mapping()` evaluates the same float expressions in the same order; screenshot sizes are equal; `portScaleAspect` returns its input; `portScaleFovY` gains only a `cfgAspectMode == 0` term. The N64 build is untouched: `#else` arms unchanged, no Makefile/tools/rsp/ld edits.
+
+**Verification.** Linux build (`cmake -G Ninja -DROMID=ntsc-final`, Ubuntu 24.04, SDL 2.30) is clean: 246/246, no warnings beyond the pre-change baseline (warning sets diffed). **Runtime verification was impossible in that environment (no ROM).** Owed, by a human: (a) `GE_PCDUMP` single-frame diff against the golden baseline at defaults, expected identical; (b) `Video.AspectMode=1` fullscreen at 5120x1440: centred 1920x1440 image, black bars, F10 clicks and menu pointer land on target, MSAA 1 and 4 both correct; (c) `Video.AspectMode=2`: round objects round (barrels, radar is 2D so it stays stretched), no culling at the screen edges while turning on Dam/Streets, crosshair hit placement unchanged; (d) F12 screenshot captures the whole window in both modes.
+
+### Playtest (user, 2026-09-25, 5120x1440, Linux bundle of `2c0bd76`)
+
+HOR+ and STRETCH: no issues reported. **4:3: sky visible in the black bars at both sides of the box.**
+
+**Cause.** The game sets the scissor to the full 320x240 canvas (`fr.c` `viSetupScreensForNumPlayers`). With the safe-area crop on, `gfx_adjust_viewport_or_scissor` maps only units 1..319 onto the draw area (the D246 1-unit side trim). So the scissor, and the viewport, extend one logical unit (≈6 px at 1440p) past each side. Under the plain stretch that overflow is off-window and invisible; under the fit it lands in the bars, and the sky drawn there shows. Letterboxed (tall) windows would show the same overflow top and bottom.
+
+**Fix.** `gfx_clamp_scissor_to_fit` (`port/fast3d/gfx_pc.cpp`) intersects the pixel scissor with the fit rect wherever it is computed (`gfx_dp_set_scissor`, and the D324 re-derive on aspect-mode changes). It is a no-op while the fit is off. The F10 overlay's own full-window scissor is clamped too, which is harmless: its panel lies inside the canvas. Build-verified; re-test owed.
+
+**Status:** FIXED (HOR+ user-confirmed; the 4:3 bar fix needs a re-test). HUD anchoring (goal 3): D324. Cross-ref: D211 (FovScale hook), D222 (cull-plane coupling; this is its aspect half), D246/D247 (safe-area crop, which feeds the mapping), D316 (`gfx_get_ui_screen_rect`), D181 (route-(b) policy).
+
+## D324 — HUD anchoring for widescreen: unstretched 2D HUD, anchored to the screen edges (D323 goal 3, 2026-09-25)
+
+**Ask.** Follow-up to D323. Under Hor+ the world is undistorted but every 2D element is still stretched across the window: 2.67x wide at 32:9, and the crosshair becomes a wide oval. Anchor the HUD the way the Perfect Dark PC port does.
+
+### Mechanism — fast3d's dormant PD aspect path, made correct
+
+fast3d already carries PD's `G_EXTRAGEOMETRYMODE_EXT` (0x3a) with `G_ASPECT_LEFT/RIGHT/CENTER/WIDE_EXT`. GE never emitted it. With a mode set, `gfx_adjust_x_for_aspect_ratio` rescales clip X (vertices and fill/texture rects alike) about the centre and slides it by an offset. Changes, all inert while no mode is set:
+- **Square logical pixels, not a fixed 4:3.** `aspect_scale` under a mode is now the logical canvas's own square-pixel aspect, D / `gfx_get_logical_pixel_aspect()` = safe width / safe height (4:3 with the crop off, 318/220 in NTSC gameplay with it on), instead of PD's `gfx_current_native_aspect`. Without this, anchored 2D would stay ~8% squeezed under the D246/D247 safe-area crop.
+- **Latent PD bug 1, the WIDE (16:9 cap) offset.** PD scaled the edge offset by 16:9/D, so the canvas edge does not land on the 16:9 edge: -0.69 NDC instead of -0.5 at 32:9, and -0.90 instead of -0.76 at 21:9. Now `ofs = ∓(R/N − 1)` with R = min(D, 16:9), which puts the canvas edge exactly at ∓R/D. It reduces to PD's formula when R = D.
+- **Latent PD bug 2, the anchored scissor.** The `preserve_aspect` path in `gfx_adjust_viewport_or_scissor` used native 4:3 and added `aspect_ofs * width/2` without the scale factor. That puts a LEFT/RIGHT scissor D/N off (2.7x at 32:9), so anchored elements would be clipped away. It now applies the same map as the vertices, in pixels, with floor/ceil bounds.
+- **The scissor follows the mode.** The pixel scissor is computed once, when `G_SETSCISSOR` runs, with whatever mode was current then. `gfx_dp_set_scissor` now keeps the logical rect, and `gfx_sp_extra_geometry_mode` re-derives the pixel scissor whenever the aspect mode changes. So an anchored element is clipped by a scissor anchored the same way, and a full-screen draw after the mode is cleared is not clipped by one left over from a HUD element.
+- **Robustness.** `gfx_run` drops any mode a display list left set, both at frame start and before the F10 overlay (whose click mapping, D316, assumes the plain stretch). `gfx_calc_and_set_viewport` refreshes the mode's parameters because the crop bounds feed them.
+
+### Emission — `port/include/porthud.h`, `port/src/video.c`
+
+`portHudAnchor(gdl, PORT_HUD_LEFT|RIGHT|CENTER|NONE)` emits the command (clear `G_ASPECT_MODE_EXT`, set the anchor, plus `G_ASPECT_WIDE_EXT` for `HudLayout=2`). **It emits nothing while `Video.HudLayout=0`, and nothing in split-screen** (per-quadrant viewports would need their own anchors), so the default display list is byte-identical. `portWatchAspect` covers the pause watch. `portHudSpriteWidthScale()` covers the crosshair.
+
+### Call sites (all `#ifdef PORT`; the `#else`/N64 code is unchanged; every set is paired with a NONE)
+
+The pairs sit inside the functions, so both callers in `maybe_mp_interface` (gameplay and the cameramode-1 cutscene path) get them:
+
+| Element | Function | Anchor |
+|---|---|---|
+| Right-hand ammo (icon + mag + reserve) | `gunfire.c` `generate_ammo_total_microcode` | RIGHT |
+| Left-hand (dual-wield) ammo | same function | LEFT |
+| Health/armour arcs (4:3 ortho 3D) | `bondview2.c` `bondviewRenderGaugeBars` | CENTER |
+| Bottom-left pickup/status text + its box | `bondview2.c` `hudmsgBottomRender` | LEFT |
+| Top message text | `bondview2.c` `sub_GAME_7F08AAE8` | LEFT, set after the banner: the dark full-width banner stays stretched |
+| Countdown timer (logical x 130–190) | `propobj.c` `countdownTimerRender` | CENTER |
+| Pause watch (arm, face, pages, inventory 3D) | `bondview2.c` `bondviewRenderWatch` | CENTER via `portWatchAspect` |
+| Crosshair | `gunfire.c` `gunDrawSight` | shape only (see below) |
+
+- **The crosshair must not move.** Its position maps to the aim direction through `c_scalex`, in the stretched logical space, so it cannot be anchored. `halfedxy[0] *= portHudSpriteWidthScale()` (1/k) narrows only its horizontal half-size about its own centre. That is exactly how the game's own anamorphic 16:9 option treats it two lines earlier (`halfedxy[0] *= 0.75f`), and `draw_textured_rectangle` derives the texture step from the size, so the texture scales rather than crops. At 1.0 (option off) the float product is exact, so nothing changes.
+- **The watch is really 3D.** It uses its own `guPerspective(..., 1.4545455f /* 320/220 */, ...)`. Compressing it about the centre by N/D is the same as rendering it with the Hor+ aspect when N ≈ 320/220, so under `AspectMode=2` it lines up as on the N64. `portWatchAspect` is therefore gated by `AspectMode == 2 || HudLayout != 0`, not by HudLayout alone. The watch pages draw their text as 2D placed against the 3D face; everything inside shares the one CENTER factor and stays aligned. The watch path was checked for full-screen fills (`options.c` page functions): none, only small text backing boxes.
+- **Left stretched, on purpose.** `currentPlayerDrawFade` and the death blood overlay (full-screen), the `mpmenuon` darkening, the top-message banner, the MP radar (MP only), and the front end (not in `maybe_mp_interface`).
+
+### Behaviour by layout
+
+- **1 EDGES:** each element's canvas edge sits on the screen edge.
+- **2 16:9:** on the edges of a centred 16:9 area, which avoids far-corner HUD on 21:9/32:9. It is identical to EDGES at 16:9 or narrower.
+- **4:3 fit (AspectMode=1) combined with a HUD layout:** the HUD becomes exactly square inside the box; with the crop on, that is ~8% wider than STRETCH.
+
+**Default is byte-identical.** With `HudLayout=0` and `AspectMode != 2`, no command is emitted, `gfx_reset_aspect_mode` never fires, the scissor bookkeeping is a plain copy, and the crosshair factor is exactly 1.0.
+
+**Verification.** Linux ntsc-final build is clean. The warning set is identical to a pre-change build of the same six translation units, compared with counts. **Runtime verification is impossible here (no ROM).** Owed, at 5120x1440, `AspectMode=2`:
+1. `HudLayout=1`: ammo in the bottom-right corner, round and unstretched; pickup text bottom-left; health arcs round and centred; top message text left with the banner still full-width; crosshair round, and shots still land on it in aim mode.
+2. `HudLayout=2`: the same, but at the edges of a centred 16:9 area.
+3. Pause watch undistorted and centred, with its text on its face.
+4. Dual-wield: left ammo bottom-left.
+5. Countdown timer, on any level that shows it: centred.
+6. F10 opened over anchored HUD: clicks still land (the overlay runs with the mode reset).
+7. Defaults: `GE_PCDUMP` identical to the golden.
+
+### Playtest (user, 2026-09-25, 5120x1440, HOR+, EDGES and STRETCH HUD)
+
+HUD anchoring: no issues reported (ammo on the right edge, crosshair round). **The pause watch "renders oddly" under HOR+** (screenshots):
+- raising: the arm and sleeve end in hard vertical lines exactly at the 4:3 boundary, with the world beside them;
+- fully up: the watch face sits in the centre and both sides are flat navy.
+
+**Causes.**
+1. **Hard cuts.** CENTER mode also narrowed the scissor (`preserve_aspect`) to the 4:3 canvas. The watch is 3D and its arm legitimately extends past that canvas once compressed, so the narrowed scissor chopped it. A narrowed scissor is right for 2D HUD elements and wrong for this.
+2. **Flat sides.** At full zoom the world keeps rendering, but through the watch zoom's tiny FOV (`bondviewUpdateWatchZoomIn` → `viSetFovY(zoominfovy)`), so beyond the watch it is a smear or a flat colour. On a 4:3 screen the watch covers everything and this is never seen. GE's own anamorphic 16:9 option never corrected the watch either (its `guPerspective` aspect is fixed at 320:220).
+
+**Fix.**
+- A new port-only extra-geometry bit, `G_ASPECT_FULL_SCISSOR_EXT` (0x80, `gbiex.h`; unused by PD). While it is set, the aspect mode leaves the scissor in the plain stretched mapping (`gfx_scissor_follows_aspect`). `portWatchAspect` sets it with CENTER, and the reset and clear masks cover it.
+- `bondviewRenderWatch` (`#ifdef PORT`, after the watch) draws translucent black side bars over the stretched-logical ranges [0, 160 − 160/k) and [320 − ⌊160 − 160/k⌋, 320). Their alpha is `bondviewWatchAnimationRelated()` × 255: it rises 0 → 1 with the zoom, holds while the watch is up, and falls back as it lowers. The bars use the game's own `microcode_constructor_related_to_menus` box (the same one as the MP pause dim), wrapped in `microcode_constructor` / `combiner_bayer_lod_perspective` like every HUD box.
+- Result: the watch is undistorted and uncut, and the paused screen becomes a clean pillarbox that fades in rather than popping. `portWatchPillarHalfWidth()` returns 0 (no bars) unless the watch aspect is active and the window is wider than the canvas.
+- A note from the build: `bondview2.c` sees the game's own `math.h`, so `floorf`/`ceilf` came out implicitly declared (int-returning). The bar edges use truncation (exact for the non-negative value) and a mirrored right edge instead.
+
+Build-verified: warning set identical to the previous head over the same translation units. Re-test owed.
+
+**Status:** FIXED (HUD anchoring user-confirmed; the watch fix needs a re-test). Cross-ref: D323 (Hor+, 4:3 fit, `gfx_get_logical_pixel_aspect`), D246/D247 (crop), D316 (overlay mapping), D181/D211 (route-(b) policy).
+
+## D325 — Widescreen follow-ups: front-end menus pillarboxed under HOR+, F10 overlay unstretched (user playtest, 2026-09-25)
+
+**Report.** After D323/D324 were playtested at 5120x1440, HOR+ still left the main menu (file select, mission select) stretched across the window, and the F10 overlay was stretched too. The user asked for the F10 menu to follow the aspect settings like everything else.
+
+**Front end.** It was deliberately excluded from HOR+ (`portScaleAspect`/`portScaleFovY` skip `LEVELID_TITLE`). Its 2D and 3D are laid out against a fixed 4:3 canvas (440x330 in the front end; SCREEN_WIDTH/HEIGHT follow the native viewport, D103) and there is no world to widen, so the undistorted form is a pillarbox.
+- `videoApplyAspectFit()` (`port/src/video.c`) now decides the fast3d 4:3 fit every frame on the scheduler thread, before `gfx_start_frame`: on for `AspectMode=1`, and for `AspectMode=2` while `lvlGetCurrentStageToLoad() == LEVELID_TITLE`. That covers the legal screen, logos, menus, mission select and briefing.
+- `LEVELID_TITLE` (90) is a local `GE_LEVELID_TITLE` copy, following `input.c`'s `GE_MENU_RUN_STAGE` pattern, because `bondconstants.h` doesn't compile standalone in a port TU (tried: `bondtypes.h` type errors).
+- The stage read can be a frame off at a front-end ↔ level switch; that frame is a transition anyway.
+- Mouse input needs no change: the menu pointer (`videoGetGameRectInWindow`) and F10 clicks (`gfx_get_ui_screen_rect`) are already rect-aware from D323.
+
+**F10 overlay.**
+- `portOverlayAnchor` / `portOverlayWidthScale` (`port/include/porthud.h`) apply when HOR+ or a HUD layout is on and the canvas is stretched past square, i.e. k > 1.01. In the pillarboxed front end k ≈ 1.005 because of the crop trim, so the overlay is left alone there.
+- In `optionsOverlayEmit` the full-screen dim is drawn first, stretched, then the panel under CENTER, then a reset.
+- The closed-panel FPS counter (D213) anchors RIGHT, with the 16:9 cap under `HudLayout=2`.
+- Mouse mapping: the D316 rect from `gfx_get_ui_screen_rect` is narrowed about its centre by the same 1/k before the pixel → logical conversion, so clicks land on the rows they appear over. Rounding is done by hand to avoid adding another implicit `lround` in that TU.
+
+**FPS counter cut off at the top (user playtest, 2026-09-25).** This dates from D247, not from this work. The D213 counter was drawn at canvas y=6, but with `SafeAreaCrop` on, in gameplay the crop maps the view top (y=10, NTSC "Full") to the window top, so the counter's upper half was off-window in every aspect mode. It is now drawn at `viGetViewTop() + 6`: identical in the front end (view top 0), and fully visible in-game.
+
+**Default is byte-identical.** With `AspectMode=0` the per-frame fit is off, as before. With both options off, the overlay hooks emit nothing and the mouse scale is exactly 1.0.
+
+**Verification.** Linux build is clean. The warning set is identical to the previous head over the same translation units. Runtime re-test owed:
+1. HOR+: logos, main menu, file select and mission select are pillarboxed 4:3 and undistorted; the menu pointer and clicks land on target; entering a level switches to full-width HOR+.
+2. HOR+ or a HUD layout: F10 panel undistorted and centred over a full-width dim; clicks on rows and on the close box land; with the panel closed, the FPS counter sits at the right edge (or the 16:9 edge).
+
+**Status:** FIXED (build-verified; re-test owed). Cross-ref: D323 (fit, `videoGetGameRectInWindow`), D324 (aspect-mode path, `portEmitAspectMode`), D316 (overlay click mapping), D213 (FPS counter), D103 (native viewport).

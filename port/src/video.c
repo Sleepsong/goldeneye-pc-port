@@ -31,9 +31,17 @@
 #include "input.h"
 #include "optionsoverlay.h"
 
+#include "porthud.h"
+
+/* D325: LEVELID_TITLE (src/bondconstants.h enum LEVELID) -- the front-end
+ * stage. Local copy, like input.c's GE_MENU_RUN_STAGE: bondconstants.h does
+ * not compile standalone in a port TU. */
+#define GE_LEVELID_TITLE 90
+
 #include "../fast3d/gfx_api.h"
 #include "../fast3d/gfx_sdl.h"
 #include "../fast3d/gfx_opengl.h"
+#include "../fast3d/gbiex.h"   /* G_EXTRAGEOMETRYMODE_EXT, G_ASPECT_*_EXT (D324) */
 
 /* GE's internal resolution: NTSC LAN1 is 640x480; PAL LAN1 shows a
  * 640x400 area. The window opens at the native size (1:1) by default. */
@@ -67,6 +75,8 @@ static int cfgLodDistance         = 150; /* D249: percent scale on the geometry/
 static int cfgLodDistanceAutoFov  = 0;   /* off by default -- unlike DrawDistance, this is meant as a standalone perf lever, not something that should silently get more expensive as FovScale widens */
 static int cfgAniso         = 4;   /* D212: anisotropic filtering samples; 4 = the value fast3d already applied (no visual delta at default) */
 static int cfgSafeAreaCrop  = 1;   /* crop the N64 TV-overscan safe-area margin (visible as black top/bottom bars on PC) instead of showing it; on by default */
+static int cfgAspectMode    = 0;   /* D323: 0 = stretch to the window (original), 1 = 4:3 pillarbox/letterbox, 2 = Hor+ (undistorted wider world, HUD still stretched) */
+static int cfgHudLayout     = 0;   /* D324: 0 = HUD stretched with the window (original), 1 = unstretched + anchored to the screen edges, 2 = unstretched + anchored to a centred 16:9 area */
 static int cfgFullscreen    = 0;   /* 0 = windowed, 1 = borderless fullscreen   */
 
 /*
@@ -145,7 +155,11 @@ f32 portFovScale = 1.0f;
 f32 portScaleFovY(f32 fovy, s32 isTitleScreen)
 {
     if (!isTitleScreen) {
-        if (cfgWidescreenAuto && gfx_current_dimensions.aspect_ratio > 0.01f) {
+        /* D323: STRETCH only. Under Hor+ portScaleAspect below already widens
+         * the horizontal FOV to the window, and this would widen the vertical
+         * one on top (the 32:9 case lands at ~98deg vertical); under the 4:3
+         * fit there is nothing to widen. */
+        if (cfgWidescreenAuto && cfgAspectMode == 0 && gfx_current_dimensions.aspect_ratio > 0.01f) {
             fovy *= sqrtf(gfx_current_dimensions.aspect_ratio / (4.0f / 3.0f));
         }
         if (portFovScale > 0.4f && portFovScale < 2.01f && portFovScale != 1.0f) {
@@ -155,6 +169,155 @@ f32 portScaleFovY(f32 fovy, s32 isTitleScreen)
     if (fovy > 160.0f) { fovy = 160.0f; }
     if (fovy < 20.0f)  { fovy = 20.0f; }
     return fovy;
+}
+
+/* D323: Video.AspectMode=2 (Hor+). The game builds its projection with
+ * aspect = viewport width / height in logical units (320x220 for NTSC "Full"),
+ * i.e. it assumes one logical unit is as wide as it is tall -- true on a 4:3
+ * TV, false once fast3d stretches the logical canvas across a wider window.
+ * Multiplying by fast3d's actual on-window logical pixel aspect makes the
+ * rendered world undistorted at any window shape: vertical FOV unchanged,
+ * horizontal FOV widened to fill (Hor+). Fed to BOTH the render projection
+ * (src/fr.c viSetupCurrentPlayerView) and currentPlayerSetPerspective (the
+ * viSet* calls), the latter deriving c_scalex -- frustum-cull planes, portal
+ * culling, sky, crosshair/aim 2D<->3D mapping and bullet spread all follow it,
+ * so there is no edge culling and aim/spread stay angle-identical to the N64.
+ * 2D (HUD, text, crosshair sprite) is not a projection and stays stretched.
+ * Front end (LEVELID_TITLE) excluded like portScaleFovY: its 3D is laid out
+ * against fixed 2D menus. Identity at the default AspectMode=0. */
+f32 portScaleAspect(f32 aspect, s32 isTitleScreen)
+{
+    if (cfgAspectMode == 2 && !isTitleScreen) {
+        f32 k = gfx_get_logical_pixel_aspect();
+        if (k > 0.1f && k < 10.0f) {
+            aspect *= k;
+        }
+    }
+    return aspect;
+}
+
+/* D324: HUD anchoring (port/include/porthud.h). Video.HudLayout 1/2 draws
+ * the in-game 2D HUD with square logical pixels instead of stretched with
+ * the window, each element slid to the screen edge it belongs to (ammo
+ * right, dual-wield ammo + pickup text + top text left, gauges + countdown
+ * centre); 2 caps the edges at a centred 16:9 area so nothing lands in the
+ * far corners of a 21:9/32:9 display. The fast3d side (gfx_update_aspect_
+ * mode) does the geometry; these only emit the command. Nothing is emitted
+ * while the option is off, and never in split-screen (per-quadrant
+ * viewports would need their own anchors). */
+static Gfx *portEmitAspectMode(Gfx *gdl, u32 bits)
+{
+    gdl->words.w0 = ((uintptr_t)G_EXTRAGEOMETRYMODE_EXT << 24)
+                  | (~(u32)(G_ASPECT_MODE_EXT | G_ASPECT_FULL_SCISSOR_EXT) & 0x00FFFFFFu);   /* clear mask, complemented */
+    gdl->words.w1 = bits;                                      /* set mask */
+    return gdl + 1;
+}
+
+static s32 portHudSinglePlayer(void)
+{
+    extern s32 getPlayerCount(void);
+    return getPlayerCount() == 1;
+}
+
+Gfx *portHudAnchor(Gfx *gdl, s32 anchor)
+{
+    u32 bits;
+
+    if (cfgHudLayout == 0 || !portHudSinglePlayer()) {
+        return gdl;
+    }
+    switch (anchor) {
+    case PORT_HUD_LEFT:   bits = G_ASPECT_LEFT_EXT;   break;
+    case PORT_HUD_RIGHT:  bits = G_ASPECT_RIGHT_EXT;  break;
+    case PORT_HUD_CENTER: bits = G_ASPECT_CENTER_EXT; break;
+    default:              return portEmitAspectMode(gdl, 0);
+    }
+    if (cfgHudLayout == 2) {
+        bits |= G_ASPECT_WIDE_EXT;
+    }
+    return portEmitAspectMode(gdl, bits);
+}
+
+static s32 portWatchAspectActive(void)
+{
+    return (cfgAspectMode == 2 || cfgHudLayout != 0) && portHudSinglePlayer();
+}
+
+/* The watch keeps the full scissor (G_ASPECT_FULL_SCISSOR_EXT): its arm and
+ * sleeve are 3D that extends past the 4:3 canvas, and narrowing the scissor
+ * chopped them off in hard vertical lines (user playtest, 2026-09-25). */
+Gfx *portWatchAspect(Gfx *gdl, s32 on)
+{
+    if (!portWatchAspectActive()) {
+        return gdl;
+    }
+    return portEmitAspectMode(gdl, on ? (G_ASPECT_CENTER_EXT | G_ASPECT_FULL_SCISSOR_EXT) : 0);
+}
+
+f32 portWatchPillarHalfWidth(void)
+{
+    f32 k;
+
+    if (!portWatchAspectActive()) {
+        return 0.0f;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    if (!(k > 1.001f && k < 10.0f)) {
+        return 0.0f;   /* not wider than the canvas: nothing to cover */
+    }
+    return 160.0f / k;   /* half of the 320-unit logical canvas */
+}
+
+/* D325: the F10 overlay (port/src/optionsoverlay.c) follows the same
+ * unstretch the HUD/watch do. Active whenever HOR+ or a HUD layout is on and
+ * the logical canvas is being stretched wider than square (k > 1); never in
+ * the front end under HOR+, which is pillarboxed instead (k == 1 there). */
+static s32 portOverlayUnstretchActive(void)
+{
+    f32 k;
+
+    if (cfgAspectMode != 2 && cfgHudLayout == 0) {
+        return 0;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    return k > 1.01f && k < 10.0f;   /* ~1.005 in the pillarboxed front end (crop trim): leave it */
+}
+
+Gfx *portOverlayAnchor(Gfx *gdl, s32 anchor)
+{
+    u32 bits;
+
+    if (!portOverlayUnstretchActive()) {
+        return gdl;
+    }
+    switch (anchor) {
+    case PORT_HUD_RIGHT:
+        bits = G_ASPECT_RIGHT_EXT | (cfgHudLayout == 2 ? G_ASPECT_WIDE_EXT : 0);
+        break;
+    case PORT_HUD_CENTER:
+        bits = G_ASPECT_CENTER_EXT;
+        break;
+    default:
+        bits = 0;
+        break;
+    }
+    return portEmitAspectMode(gdl, bits);
+}
+
+f32 portOverlayWidthScale(void)
+{
+    return portOverlayUnstretchActive() ? 1.0f / gfx_get_logical_pixel_aspect() : 1.0f;
+}
+
+f32 portHudSpriteWidthScale(void)
+{
+    f32 k;
+
+    if (cfgHudLayout == 0 || !portHudSinglePlayer()) {
+        return 1.0f;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    return (k > 0.1f && k < 10.0f) ? 1.0f / k : 1.0f;
 }
 
 /* D218: Video.DrawDistance -- multiplier applied to a level's authored
@@ -249,6 +412,8 @@ PD_CONSTRUCTOR static void videoConfigInit(void)
     configRegisterInt("Video.LodDistanceAutoFov", &cfgLodDistanceAutoFov, 0, 1);
     configRegisterInt("Video.Anisotropy", &cfgAniso, 1, 16);
     configRegisterInt("Video.SafeAreaCrop", &cfgSafeAreaCrop, 0, 1);
+    configRegisterInt("Video.AspectMode", &cfgAspectMode, 0, 2);
+    configRegisterInt("Video.HudLayout", &cfgHudLayout, 0, 2);
     configRegisterInt("Video.Fullscreen",    &cfgFullscreen, 0, 1);
     configRegisterInt("Window.Width",        &cfgWinW,       0, 16384);
     configRegisterInt("Window.Height",       &cfgWinH,       0, 16384);
@@ -291,6 +456,21 @@ static void videoApplyImageOptions(void)
     portFovScale = (f32)cfgFovScale / 100.0f;
     gfx_set_anisotropy_level(cfgAniso);
     gfx_set_safe_area_crop(cfgSafeAreaCrop);
+}
+
+/* D323/D325: the 4:3 fit is on for Video.AspectMode=1, and under HOR+ (=2)
+ * while the front end (LEVELID_TITLE: legal screen, logos, menus, mission
+ * select, briefing) is up -- its 2D and 3D are laid out for a 4:3 canvas and
+ * have no world to widen (portScaleAspect already excludes it), so a
+ * pillarbox is the undistorted form. Re-evaluated every frame on the
+ * scheduler thread, before gfx_start_frame; the stage read can be one frame
+ * off at a front-end <-> level switch, which only lands on a transition. */
+static void videoApplyAspectFit(void)
+{
+    extern s32 lvlGetCurrentStageToLoad(void);
+    s32 fit = (cfgAspectMode == 1)
+           || (cfgAspectMode == 2 && lvlGetCurrentStageToLoad() == GE_LEVELID_TITLE);
+    gfx_set_aspect_fit(fit);
 }
 
 static void videoApplyTexFilter(void)
@@ -351,6 +531,28 @@ void videoGetDesktopSize(int *w, int *h)
     }
     if (w) *w = m.w;
     if (h) *h = m.h;
+}
+
+void videoGetGameRectInWindow(int ww, int wh, int *x, int *y, int *w, int *h)
+{
+    int rx = 0, ry = 0, rw = ww, rh = wh;
+    const struct XYWidthHeight gv = gfx_current_game_window_viewport;
+    const int dw = (int)gfx_current_window_dimensions.width;
+    const int dh = (int)gfx_current_window_dimensions.height;
+    /* gv is in drawable pixels; rescale in case SDL window coords differ
+     * (HiDPI). Whole window whenever the fit is off (gv == drawable). */
+    if (initDone && dw > 0 && dh > 0 && ((int)gv.width != dw || (int)gv.height != dh)) {
+        rx = (int)((long long)gv.x * ww / dw);
+        ry = (int)((long long)gv.y * wh / dh);
+        rw = (int)((long long)gv.width * ww / dw);
+        rh = (int)((long long)gv.height * wh / dh);
+        if (rw < 1) rw = 1;
+        if (rh < 1) rh = 1;
+    }
+    if (x) *x = rx;
+    if (y) *y = ry;
+    if (w) *w = rw;
+    if (h) *h = rh;
 }
 
 int videoIsFullscreen(void)
@@ -479,6 +681,16 @@ int videoInit(void)
     sysLogPrintf(LOG_INFO, "video: %dx%d window (native %dx%d)",
                  (int)gfx_current_dimensions.width, (int)gfx_current_dimensions.height,
                  GE_NATIVE_W, GE_NATIVE_H);
+    /* D323: Video.Fullscreen is borderless fullscreen-desktop (SDL_WINDOW_
+     * FULLSCREEN_DESKTOP) -- the window always covers the whole display and
+     * [Window] Width/Height only apply once you leave fullscreen. Say so,
+     * since "set 1920x1440 + Fullscreen=1" reads like it should work. */
+    if (cfgFullscreen && cfgWinW > 0 && cfgWinH > 0) {
+        sysLogPrintf(LOG_INFO, "video: fullscreen uses the desktop resolution; "
+                     "Window.Width/Height (%dx%d) apply to windowed mode only. "
+                     "For a 4:3 image in fullscreen set Video.AspectMode = 1",
+                     cfgWinW, cfgWinH);
+    }
     return 0;
 }
 
@@ -510,6 +722,7 @@ void videoStartFrame(void)
                      cfgVSync, cfgFpsCap, cfgTexFilter, cfgFovScale, cfgAniso);
     }
 
+    videoApplyAspectFit();   /* D325: per frame (front end vs level) */
     gfx_start_frame();
 }
 
@@ -624,7 +837,10 @@ void videoSubmitCommands(Gfx *cmds)
 
 /* Runs from gfx_sdl_swap_buffers_begin with the composited frame still in the
  * back buffer, just before SDL_GL_SwapWindow. Reading the back buffer after
- * the swap is undefined on buffer-exchange drivers (Mesa/WSLg) -> black. */
+ * the swap is undefined on buffer-exchange drivers (Mesa/WSLg) -> black.
+ * Captures the whole window (gfx_current_window_dimensions): under the D323
+ * 4:3 fit gfx_current_dimensions is only the centred rect. Same size when
+ * the fit is off. */
 static void videoPreSwapCapture(void)
 {
     /* GE_PCDUMP="first-last" / "first-last:step" -> ./ppm/frame_NNNNNN.ppm.
@@ -644,8 +860,8 @@ static void videoPreSwapCapture(void)
             ((int)frames - lo) % step == 0) {
             char path[128];
             snprintf(path, sizeof(path), "ppm/frame_%06d.ppm", (int)frames);
-            gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_dimensions.width,
-                                      (uint32_t)gfx_current_dimensions.height, path);
+            gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_window_dimensions.width,
+                                      (uint32_t)gfx_current_window_dimensions.height, path);
         }
     }
 
@@ -655,8 +871,8 @@ static void videoPreSwapCapture(void)
         char path[128];
         GE_MKDIR("ppm");
         snprintf(path, sizeof(path), "ppm/shot_%03d.ppm", shotNum++);
-        if (gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_dimensions.width,
-                                      (uint32_t)gfx_current_dimensions.height, path)) {
+        if (gfx_opengl_dump_bound_fbo((uint32_t)gfx_current_window_dimensions.width,
+                                      (uint32_t)gfx_current_window_dimensions.height, path)) {
             sysLogPrintf(LOG_INFO, "video: screenshot -> %s "
                          "(view with tools_pc/ppm2bmp.py)", path);
         } else {

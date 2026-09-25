@@ -74,6 +74,23 @@ first run.
 Mouse sensitivity (master and aim-mode), Y-inversion and the other input
 settings are in the `[Input]` section of `ge007.ini`, or in the F10 overlay.
 
+### Widescreen and ultrawide displays
+
+By default a non-4:3 window stretches the whole picture. Two F10 options
+(also `[Video]` in `ge007.ini`) change that; both apply instantly:
+
+- **Aspect ratio** (`AspectMode`): **STRETCH** (default) · **4:3** (the
+  original picture with black bars at the sides) · **HOR+** (the 3D world
+  undistorted at your display's shape, with a wider view; menus are shown
+  4:3 with bars).
+- **HUD layout** (`HudLayout`): **STRETCH** (default) · **EDGES** (HUD drawn
+  unstretched and pinned to the screen edges) · **16:9** (the same, pinned to
+  a centred 16:9 area; handy on 21:9 / 32:9).
+
+Fullscreen always uses your desktop resolution; the `[Window]` size only
+applies in windowed mode. For a 4:3 picture on a wide display, use
+*Aspect ratio* → 4:3 rather than a 4:3 window size.
+
 @DECK@
 ## 5. Legal
 

@@ -55,6 +55,17 @@ void gfx_set_safe_area_crop(int on);       /* crop the N64 TV-overscan safe-area
  * crop above -- for inverting a window mouse click into logical 2D UI space
  * (see port/src/optionsoverlay.c, D316). */
 void gfx_get_ui_screen_rect(int32_t *outX, int32_t *outY, int32_t *outW, int32_t *outH);
+/* D323: Video.AspectMode=1 -- fit the game's draw area to a centred 4:3 rect
+ * inside the window (pillarbox on wide windows, letterbox on tall ones)
+ * instead of stretching it to the full window. 0 = stretch (original). */
+void gfx_set_aspect_fit(int on);
+/* D323: on-window pixels per logical X unit divided by on-window pixels per
+ * logical Y unit, as gfx_adjust_viewport_or_scissor currently maps them
+ * (window/fit size + safe-area crop). 1.0 = square logical pixels, i.e. the
+ * N64's own 4:3 display; 2.667 on a 32:9 window with the crop off. The Hor+
+ * projection correction (port/src/video.c portScaleAspect) multiplies the
+ * game's aspect by this so the world is undistorted however it is mapped. */
+float gfx_get_logical_pixel_aspect(void);
 void gfx_texture_cache_clear(void);
 void gfx_texture_cache_delete(const uint8_t *orig_addr);
 void gfx_texture_cache_delete_range(const uint8_t *start, const uint8_t *end);

@@ -202,11 +202,12 @@ catalogue: [Porting notes](porting-notes.md).
   logo's texture filtering looks off (D75).
 - Surface 1's 2D billboard trees render as a solid wall of tree texture
   instead of discrete sprites; under active investigation (D236).
-- **Widescreen is stretched, not native**: 16:9 stretches the 4:3 frame to
+- **Widescreen is stretched by default**: 16:9 stretches the 4:3 frame to
   fill the display; automatic FOV scaling keeps the framing comfortable and
-  gameplay is unaffected, but a distortion-free native widescreen render is
-  still on the roadmap. Distant geometry can also drop out on the biggest
-  open levels (D249).
+  gameplay is unaffected. New in this fork's v0.3.1-ultrawide, opt-in and lightly playtested:
+  F10 *Aspect ratio* (4:3 pillarbox or HOR+) and *HUD layout* (unstretched,
+  edge-anchored HUD) — see the README (D323/D324). Distant geometry can also
+  drop out on the biggest open levels (D249).
 - **Gunshot SFX can sound off during sustained/rapid fire** (D240/D241).
 - **`All unlocked` is highly experimental** — don't enable it until you have
   at least one save written, or it can break audio and mouse aim

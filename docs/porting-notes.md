@@ -562,6 +562,52 @@ through a converter or a runtime bswap fixup reads scrambled.
 - Controller state has one source: `port/src/input.c`. `libultra.c`'s SI
   section marshals `inputComputePad()` into `g_contPad[]`; it is driven by
   `osContStartReadData` (per logic tick), no separate `video.c` frame hook.
+- **GE's projection aspect is in logical units, and it has two consumers.**
+  `g_ViBackData->aspect` = viewport w/h in the 320-wide logical canvas; it is
+  only the *displayed* aspect while one logical unit is square on screen. Any
+  port change to the logical→window mapping (window shape, safe-area crop,
+  a sub-rect draw area) must feed the factor into BOTH the render
+  projection (`fr.c` `guPerspectiveF`) AND `currentPlayerSetPerspective`
+  (→ `c_scalex`: cull planes, portal culling, sky, aim, bullet spread), or
+  the render and the culling/aim disagree at the screen edges. Get the
+  factor from fast3d (`gfx_get_logical_pixel_aspect`); don't re-derive it
+  (D323, the aspect half of D222).
+- **fast3d draw area ≠ window: fix `aspect_scale` too.** With
+  `aspect_mode == 0`, `gfx_adjust_x_for_aspect_ratio` scales clip X by
+  `aspect_scale / gfx_current_dimensions.aspect_ratio`. That was the
+  *window* aspect (inherited from PD), which is the identity only while the
+  draw area is the window. Shrinking `gfx_current_dimensions` (pillarbox,
+  D323) without also changing it stretches every vertex and rect by
+  window/draw-area aspect.
+- **PD's `G_ASPECT_*_EXT` path was dead code here; don't trust it
+  untested.** GE never emitted it, so two PD bugs sat latent until D324
+  used it for HUD anchoring: the WIDE (16:9 cap) offset was scaled by
+  16:9/D, missing the 16:9 edge; and the `preserve_aspect` scissor used a
+  fixed 4:3 and an unscaled offset, clipping LEFT/RIGHT elements away. The
+  general lesson: any fast3d path inherited from PD that GE never reached
+  should be checked by hand before it is relied on.
+- **The RDP scissor is baked to pixels when `G_SETSCISSOR` runs.** Anything
+  that changes the logical→pixel map mid-list (an aspect mode) must
+  re-derive the pixel scissor from the logical rect, or later draws are
+  clipped by a rect computed for the old mapping (D324 keeps the logical
+  rect and re-derives it on every aspect-mode change).
+- **A HUD sprite whose position is an aim direction can't be anchored.**
+  The crosshair's logical position maps to world angle through `c_scalex`,
+  so moving it breaks aiming. Scale only its size (`halfedxy[0]`), the way
+  the game's own anamorphic 16:9 option does (D324).
+- **Anything that "fills the screen" was authored to fill 4:3.** Unstretching
+  it on a wider display exposes what was always outside the frame. For the
+  pause watch that is the world seen through the watch zoom's tiny FOV, a
+  smear. So a narrowed scissor must not be used on 3D that extends past the
+  canvas (it cuts it in hard lines), and the exposed sides need an explicit
+  treatment (D324 fades them to black with the zoom). The game's
+  cut-past-the-edge 1-unit overflow (D246) is the same class for the 4:3
+  pillarbox: invisible off-window, visible in the bars (D323).
+- **Game TUs see the game's own `math.h`, not libm's.** In `src/game/*.c`,
+  `floorf`/`ceilf` and friends come out implicitly declared (int-returning,
+  garbage). Only a `-Wimplicit-function-declaration` warning flags it. In
+  `#ifdef PORT` code there, avoid them (truncate, or use the game's
+  `floorFloat`) or get a real declaration via `port_math.h`.
 
 ## D. N64 hardware idioms fast3d does not emulate
 

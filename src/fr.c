@@ -733,7 +733,12 @@ Gfx *viSetupCurrentPlayerView(Gfx *gdl)
          * briefing) also renders through this path with stage == LEVELID_TITLE
          * (lv.c lvlRender), and the menu 3D is authored at a fixed FOV. */
         f32 frFovY = portScaleFovY(g_ViBackData->fovy, lvlGetCurrentStageToLoad() == LEVELID_TITLE);
-        guPerspectiveF(g_viProjectionMatrixF, &g_viPerspNorm, frFovY, g_ViBackData->aspect, g_ViBackData->znear, g_ViBackData->zfar, 1.0f);
+        /* D323: Video.AspectMode=2 (Hor+) -- correct the aspect for how
+         * fast3d actually maps the logical canvas onto the window, so the
+         * world renders undistorted. Identity at the default AspectMode=0. */
+        extern f32 portScaleAspect(f32 aspect, s32 isTitleScreen);
+        f32 frAspect = portScaleAspect(g_ViBackData->aspect, lvlGetCurrentStageToLoad() == LEVELID_TITLE);
+        guPerspectiveF(g_viProjectionMatrixF, &g_viPerspNorm, frFovY, frAspect, g_ViBackData->znear, g_ViBackData->zfar, 1.0f);
     }
 #else
     guPerspectiveF(g_viProjectionMatrixF, &g_viPerspNorm, g_ViBackData->fovy, g_ViBackData->aspect, g_ViBackData->znear, g_ViBackData->zfar, 1.0f);
@@ -947,13 +952,25 @@ static f32 frCullFovY(void)
     extern s32 lvlGetCurrentStageToLoad(void);
     return portScaleFovY(g_ViBackData->fovy, lvlGetCurrentStageToLoad() == LEVELID_TITLE);
 }
+
+/* D323: the aspect half of D222 -- c_perspaspect feeds c_scalex, i.e. the
+ * left/right cull planes, portal culling, sky, aim 2D<->3D mapping and bullet
+ * spread. Must match the aspect viSetupCurrentPlayerView renders with, or
+ * Hor+ would cull the newly visible screen edges. g_ViBackData->aspect itself
+ * is left untouched. Identity at the default Video.AspectMode=0. */
+static f32 frCullAspect(void)
+{
+    extern f32 portScaleAspect(f32 aspect, s32 isTitleScreen);
+    extern s32 lvlGetCurrentStageToLoad(void);
+    return portScaleAspect(g_ViBackData->aspect, lvlGetCurrentStageToLoad() == LEVELID_TITLE);
+}
 #endif
 
 void viSetFovY(f32 fovy)
 {
     g_ViBackData->fovy = fovy;
 #ifdef PORT
-    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), g_ViBackData->aspect);
+    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), frCullAspect());
 #else
     currentPlayerSetPerspective(g_ViBackData->znear, g_ViBackData->fovy, g_ViBackData->aspect);
 #endif
@@ -964,7 +981,7 @@ void viSetAspect(f32 aspect)
 {
     g_ViBackData->aspect = aspect;
 #ifdef PORT
-    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), g_ViBackData->aspect);
+    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), frCullAspect());
 #else
     currentPlayerSetPerspective(g_ViBackData->znear, g_ViBackData->fovy, g_ViBackData->aspect);
 #endif
@@ -981,7 +998,7 @@ void viSetFov(f32 fovx, f32 fovy)
     g_ViBackData->fovy = fovy;
     g_ViBackData->aspect = (f32) (fovx / fovy);
 #ifdef PORT
-    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), g_ViBackData->aspect);
+    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), frCullAspect());
 #else
     currentPlayerSetPerspective(g_ViBackData->znear, g_ViBackData->fovy, g_ViBackData->aspect);
 #endif
@@ -993,7 +1010,7 @@ void viSetZRange(f32 near, f32 far)
     g_ViBackData->znear = near;
     g_ViBackData->zfar = far;
 #ifdef PORT
-    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), g_ViBackData->aspect);
+    currentPlayerSetPerspective(g_ViBackData->znear, frCullFovY(), frCullAspect());
 #else
     currentPlayerSetPerspective(g_ViBackData->znear, g_ViBackData->fovy, g_ViBackData->aspect);
 #endif

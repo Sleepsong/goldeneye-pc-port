@@ -65,6 +65,11 @@ void videoGetWindowSize(int *w, int *h);
 void videoGetDesktopSize(int *w, int *h);
 int  videoIsFullscreen(void);
 
+/* D323: the rect of a ww x wh window (SDL window coords, top-left origin) the
+ * game image occupies -- the centred 4:3 rect under Video.AspectMode=1, the
+ * whole window otherwise. For mapping the mouse onto the game image. */
+void videoGetGameRectInWindow(int ww, int wh, int *x, int *y, int *w, int *h);
+
 /* Snapshot live window geometry into the config vars (call before configSave
  * on a clean exit). No-op if the window isn't up. */
 void videoSaveWindowState(void);

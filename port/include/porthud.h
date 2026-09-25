@@ -32,6 +32,13 @@ Gfx *portHudAnchor(Gfx *gdl, s32 anchor);
  * projection) or Video.HudLayout (it is the pause UI). */
 Gfx *portWatchAspect(Gfx *gdl, s32 on);
 
+/* Half-width, in stretched logical units about the canvas centre, of the
+ * area the unstretched watch covers (160/k); 0 when portWatchAspect is off or
+ * the window is not wider than the canvas. The side areas beyond it show the
+ * watch-zoomed world (a smear); bondviewRenderWatch fades them to black with
+ * the zoom so the full pause screen is a clean pillarbox. */
+f32 portWatchPillarHalfWidth(void);
+
 /* Multiplier for a centred HUD sprite's horizontal half-size (the crosshair)
  * that makes it unstretched while its position -- which must keep matching
  * the aim direction -- stays in the stretched mapping. 1.0 when off. */

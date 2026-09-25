@@ -281,6 +281,12 @@ static bool g_aspect_fit_enabled = false;
 static struct XYWidthHeight g_scissor_logical;
 static bool g_scissor_logical_valid = false;
 
+/* D324: narrow the scissor with the aspect mode, unless the port asked to
+ * keep it full (G_ASPECT_FULL_SCISSOR_EXT). */
+static inline bool gfx_scissor_follows_aspect(void) {
+    return rsp.aspect_mode != 0 && !(rsp.extra_geometry_mode & G_ASPECT_FULL_SCISSOR_EXT);
+}
+
 extern "C" void gfx_set_aspect_fit(int on) {
     g_aspect_fit_enabled = !!on;
 }
@@ -2725,8 +2731,35 @@ extern "C" void gfx_get_ui_screen_rect(int32_t *outX, int32_t *outY, int32_t *ou
     *outH = (int32_t)area.height;
 }
 
+/* D323 follow-up: the game's scissor is the full 320-unit canvas, but with
+ * the safe-area crop on only units 1..319 map onto the draw area (D246), so
+ * one logical unit (~6 px at 1440p) of every draw lands past each side of it.
+ * Under the plain stretch that is off-window; under the 4:3 fit it is inside
+ * the black bars (user report: sky showing at the box edges). Clamp the pixel
+ * scissor to the fit rect. Window coords, GL bottom-up, like the scissor.
+ * No-op while the fit is off. */
+static void gfx_clamp_scissor_to_fit(XYWidthHeight* area) {
+    if (!g_aspect_fit_enabled) {
+        return;
+    }
+    const struct XYWidthHeight& gv = gfx_current_game_window_viewport;
+    const int32_t rx0 = gv.x;
+    const int32_t ry0 = (int32_t)gfx_current_window_dimensions.height - ((int32_t)gv.y + (int32_t)gv.height);
+    const int32_t rx1 = rx0 + (int32_t)gv.width;
+    const int32_t ry1 = ry0 + (int32_t)gv.height;
+    const int32_t x0 = std::max<int32_t>(area->x, rx0);
+    const int32_t y0 = std::max<int32_t>(area->y, ry0);
+    const int32_t x1 = std::max<int32_t>(x0, std::min<int32_t>(area->x + (int32_t)area->width, rx1));
+    const int32_t y1 = std::max<int32_t>(y0, std::min<int32_t>(area->y + (int32_t)area->height, ry1));
+    area->x = (int16_t)x0;
+    area->y = (int16_t)y0;
+    area->width = (uint32_t)(x1 - x0);
+    area->height = (uint32_t)(y1 - y0);
+}
+
 static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
-    const uint32_t prev_aspect = rsp.aspect_mode;
+    const uint32_t scissor_bits = G_ASPECT_MODE_EXT | G_ASPECT_FULL_SCISSOR_EXT;
+    const uint32_t prev_aspect = rsp.extra_geometry_mode & scissor_bits;
     rsp.extra_geometry_mode &= ~clear;
     rsp.extra_geometry_mode |= set;
     rsp.aspect_mode = (rsp.extra_geometry_mode & G_ASPECT_MODE_EXT);
@@ -2736,9 +2769,10 @@ static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
      * rect on every mode change, so an anchored element is clipped by a
      * scissor anchored the same way -- and a full-screen draw after the mode
      * is cleared is not clipped by a scissor left over from a HUD element. */
-    if (rsp.aspect_mode != prev_aspect && g_scissor_logical_valid) {
+    if ((rsp.extra_geometry_mode & scissor_bits) != prev_aspect && g_scissor_logical_valid) {
         rdp.scissor = g_scissor_logical;
-        gfx_adjust_viewport_or_scissor(&rdp.scissor, rsp.aspect_mode != 0);
+        gfx_adjust_viewport_or_scissor(&rdp.scissor, gfx_scissor_follows_aspect());
+        gfx_clamp_scissor_to_fit(&rdp.scissor);
         rdp.viewport_or_scissor_changed = true;
     }
 }
@@ -2748,8 +2782,9 @@ static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
  * A no-op unless a mode is set -- GE never sets one unless Video.HudLayout
  * or Video.AspectMode=2 asked for it. */
 static void gfx_reset_aspect_mode(void) {
-    if (rsp.extra_geometry_mode & G_ASPECT_MODE_EXT) {
-        gfx_sp_extra_geometry_mode(G_ASPECT_MODE_EXT, 0);
+    const uint32_t bits = G_ASPECT_MODE_EXT | G_ASPECT_FULL_SCISSOR_EXT;
+    if (rsp.extra_geometry_mode & bits) {
+        gfx_sp_extra_geometry_mode(bits, 0);
     }
 }
 
@@ -2853,7 +2888,8 @@ static void gfx_dp_set_scissor(uint32_t mode, uint32_t ulx, uint32_t uly, uint32
     g_scissor_logical = rdp.scissor;   /* D324 */
     g_scissor_logical_valid = true;
 
-    gfx_adjust_viewport_or_scissor(&rdp.scissor, rsp.aspect_mode != 0);
+    gfx_adjust_viewport_or_scissor(&rdp.scissor, gfx_scissor_follows_aspect());
+    gfx_clamp_scissor_to_fit(&rdp.scissor);
 
     rdp.viewport_or_scissor_changed = true;
 }

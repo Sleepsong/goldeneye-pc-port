@@ -45,6 +45,10 @@
 #define G_ASPECT_WIDE_EXT          0x00000040
 #define G_ASPECT_CENTER_EXT        (G_ASPECT_LEFT_EXT | G_ASPECT_RIGHT_EXT)
 #define G_ASPECT_MODE_EXT          (G_ASPECT_CENTER_EXT | G_ASPECT_WIDE_EXT)
+/* GE port (D324), not in PD: with an aspect mode set, keep the scissor in the
+ * plain stretched mapping instead of narrowing it to the anchored canvas. For
+ * 3D that legitimately extends past the 4:3 canvas (the pause watch's arm). */
+#define G_ASPECT_FULL_SCISSOR_EXT  0x00000080
 #define G_NO_CLIPPING_EXT          0x00000100
 #define G_MODULATE_EXT             0x00000200
 #define G_TF_BLUR_EXT              (1 << G_MDSFT_TEXTFILT)

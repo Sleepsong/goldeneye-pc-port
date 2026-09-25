@@ -8864,6 +8864,31 @@ Gfx *bondviewRenderWatch(Gfx *gdl)
     }
 #ifdef PORT
     gdl = portWatchAspect(gdl, FALSE);   /* D324 */
+    {
+        /* D324: past the unstretched watch, the sides show the world through
+         * the watch zoom's tiny FOV (a smear / flat colour). Fade them to
+         * black with the zoom (bondviewWatchAnimationRelated: 0 -> 1 raising,
+         * 1 up, 1 -> 0 lowering) so the paused screen is a clean pillarbox.
+         * Stretched logical coords; nothing drawn while the option is off. */
+        f32 half = portWatchPillarHalfWidth();
+        f32 fade = bondviewWatchAnimationRelated();
+        if (half > 0.0f && fade > 0.0f)
+        {
+            s32 alpha = (s32) (fade * 255.0f);
+            /* Truncation is floor here (160 - half >= 0); the right bar
+             * mirrors the left one, i.e. starts at ceil(160 + half). */
+            s32 innerl = (s32) (160.0f - half);
+            s32 innerr = 320 - innerl;
+            if (alpha > 255)
+            {
+                alpha = 255;
+            }
+            gdl = microcode_constructor(gdl);
+            gdl = microcode_constructor_related_to_menus(gdl, 0, 0, innerl, viGetY(), (u32) alpha);
+            gdl = microcode_constructor_related_to_menus(gdl, innerr, 0, viGetX(), viGetY(), (u32) alpha);
+            gdl = combiner_bayer_lod_perspective(gdl);
+        }
+    }
 #endif
  
     end:

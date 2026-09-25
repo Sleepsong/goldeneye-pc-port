@@ -203,7 +203,7 @@ f32 portScaleAspect(f32 aspect, s32 isTitleScreen)
 static Gfx *portEmitAspectMode(Gfx *gdl, u32 bits)
 {
     gdl->words.w0 = ((uintptr_t)G_EXTRAGEOMETRYMODE_EXT << 24)
-                  | (~(u32)G_ASPECT_MODE_EXT & 0x00FFFFFFu);   /* clear mask, complemented */
+                  | (~(u32)(G_ASPECT_MODE_EXT | G_ASPECT_FULL_SCISSOR_EXT) & 0x00FFFFFFu);   /* clear mask, complemented */
     gdl->words.w1 = bits;                                      /* set mask */
     return gdl + 1;
 }
@@ -233,12 +233,34 @@ Gfx *portHudAnchor(Gfx *gdl, s32 anchor)
     return portEmitAspectMode(gdl, bits);
 }
 
+static s32 portWatchAspectActive(void)
+{
+    return (cfgAspectMode == 2 || cfgHudLayout != 0) && portHudSinglePlayer();
+}
+
+/* The watch keeps the full scissor (G_ASPECT_FULL_SCISSOR_EXT): its arm and
+ * sleeve are 3D that extends past the 4:3 canvas, and narrowing the scissor
+ * chopped them off in hard vertical lines (user playtest, 2026-09-25). */
 Gfx *portWatchAspect(Gfx *gdl, s32 on)
 {
-    if ((cfgAspectMode != 2 && cfgHudLayout == 0) || !portHudSinglePlayer()) {
+    if (!portWatchAspectActive()) {
         return gdl;
     }
-    return portEmitAspectMode(gdl, on ? G_ASPECT_CENTER_EXT : 0);
+    return portEmitAspectMode(gdl, on ? (G_ASPECT_CENTER_EXT | G_ASPECT_FULL_SCISSOR_EXT) : 0);
+}
+
+f32 portWatchPillarHalfWidth(void)
+{
+    f32 k;
+
+    if (!portWatchAspectActive()) {
+        return 0.0f;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    if (!(k > 1.001f && k < 10.0f)) {
+        return 0.0f;   /* not wider than the canvas: nothing to cover */
+    }
+    return 160.0f / k;   /* half of the 320-unit logical canvas */
 }
 
 f32 portHudSpriteWidthScale(void)

@@ -595,6 +595,19 @@ through a converter or a runtime bswap fixup reads scrambled.
   The crosshair's logical position maps to world angle through `c_scalex`,
   so moving it breaks aiming. Scale only its size (`halfedxy[0]`), the way
   the game's own anamorphic 16:9 option does (D324).
+- **Anything that "fills the screen" was authored to fill 4:3.** Unstretching
+  it on a wider display exposes what was always outside the frame. For the
+  pause watch that is the world seen through the watch zoom's tiny FOV, a
+  smear. So a narrowed scissor must not be used on 3D that extends past the
+  canvas (it cuts it in hard lines), and the exposed sides need an explicit
+  treatment (D324 fades them to black with the zoom). The game's
+  cut-past-the-edge 1-unit overflow (D246) is the same class for the 4:3
+  pillarbox: invisible off-window, visible in the bars (D323).
+- **Game TUs see the game's own `math.h`, not libm's.** In `src/game/*.c`,
+  `floorf`/`ceilf` and friends come out implicitly declared (int-returning,
+  garbage). Only a `-Wimplicit-function-declaration` warning flags it. In
+  `#ifdef PORT` code there, avoid them (truncate, or use the game's
+  `floorFloat`) or get a real declaration via `port_math.h`.
 
 ## D. N64 hardware idioms fast3d does not emulate
 

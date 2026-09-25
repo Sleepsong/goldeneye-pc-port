@@ -33,6 +33,11 @@
 
 #include "porthud.h"
 
+/* D325: LEVELID_TITLE (src/bondconstants.h enum LEVELID) -- the front-end
+ * stage. Local copy, like input.c's GE_MENU_RUN_STAGE: bondconstants.h does
+ * not compile standalone in a port TU. */
+#define GE_LEVELID_TITLE 90
+
 #include "../fast3d/gfx_api.h"
 #include "../fast3d/gfx_sdl.h"
 #include "../fast3d/gfx_opengl.h"
@@ -263,6 +268,47 @@ f32 portWatchPillarHalfWidth(void)
     return 160.0f / k;   /* half of the 320-unit logical canvas */
 }
 
+/* D325: the F10 overlay (port/src/optionsoverlay.c) follows the same
+ * unstretch the HUD/watch do. Active whenever HOR+ or a HUD layout is on and
+ * the logical canvas is being stretched wider than square (k > 1); never in
+ * the front end under HOR+, which is pillarboxed instead (k == 1 there). */
+static s32 portOverlayUnstretchActive(void)
+{
+    f32 k;
+
+    if (cfgAspectMode != 2 && cfgHudLayout == 0) {
+        return 0;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    return k > 1.01f && k < 10.0f;   /* ~1.005 in the pillarboxed front end (crop trim): leave it */
+}
+
+Gfx *portOverlayAnchor(Gfx *gdl, s32 anchor)
+{
+    u32 bits;
+
+    if (!portOverlayUnstretchActive()) {
+        return gdl;
+    }
+    switch (anchor) {
+    case PORT_HUD_RIGHT:
+        bits = G_ASPECT_RIGHT_EXT | (cfgHudLayout == 2 ? G_ASPECT_WIDE_EXT : 0);
+        break;
+    case PORT_HUD_CENTER:
+        bits = G_ASPECT_CENTER_EXT;
+        break;
+    default:
+        bits = 0;
+        break;
+    }
+    return portEmitAspectMode(gdl, bits);
+}
+
+f32 portOverlayWidthScale(void)
+{
+    return portOverlayUnstretchActive() ? 1.0f / gfx_get_logical_pixel_aspect() : 1.0f;
+}
+
 f32 portHudSpriteWidthScale(void)
 {
     f32 k;
@@ -410,7 +456,21 @@ static void videoApplyImageOptions(void)
     portFovScale = (f32)cfgFovScale / 100.0f;
     gfx_set_anisotropy_level(cfgAniso);
     gfx_set_safe_area_crop(cfgSafeAreaCrop);
-    gfx_set_aspect_fit(cfgAspectMode == 1);
+}
+
+/* D323/D325: the 4:3 fit is on for Video.AspectMode=1, and under HOR+ (=2)
+ * while the front end (LEVELID_TITLE: legal screen, logos, menus, mission
+ * select, briefing) is up -- its 2D and 3D are laid out for a 4:3 canvas and
+ * have no world to widen (portScaleAspect already excludes it), so a
+ * pillarbox is the undistorted form. Re-evaluated every frame on the
+ * scheduler thread, before gfx_start_frame; the stage read can be one frame
+ * off at a front-end <-> level switch, which only lands on a transition. */
+static void videoApplyAspectFit(void)
+{
+    extern s32 lvlGetCurrentStageToLoad(void);
+    s32 fit = (cfgAspectMode == 1)
+           || (cfgAspectMode == 2 && lvlGetCurrentStageToLoad() == GE_LEVELID_TITLE);
+    gfx_set_aspect_fit(fit);
 }
 
 static void videoApplyTexFilter(void)
@@ -662,6 +722,7 @@ void videoStartFrame(void)
                      cfgVSync, cfgFpsCap, cfgTexFilter, cfgFovScale, cfgAniso);
     }
 
+    videoApplyAspectFit();   /* D325: per frame (front end vs level) */
     gfx_start_frame();
 }
 

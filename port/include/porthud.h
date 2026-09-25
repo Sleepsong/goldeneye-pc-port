@@ -44,6 +44,14 @@ f32 portWatchPillarHalfWidth(void);
  * the aim direction -- stays in the stretched mapping. 1.0 when off. */
 f32 portHudSpriteWidthScale(void);
 
+/* D325: F10 overlay. portOverlayAnchor emits an aspect mode for the overlay's
+ * own display list (CENTER for the panel, RIGHT for the closed-panel FPS
+ * counter) when HOR+ or a HUD layout is on and the canvas is stretched;
+ * nothing otherwise. portOverlayWidthScale is the matching horizontal scale
+ * (1/k, or 1.0) its mouse mapping must apply about the canvas centre. */
+Gfx *portOverlayAnchor(Gfx *gdl, s32 anchor);
+f32 portOverlayWidthScale(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -129,12 +129,12 @@ filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.
   mode. Automatic FOV scaling keeps the framing comfortable and gameplay is
   completely unaffected (all game logic runs in world space), but shapes are
   subtly wider than on the N64 — most visible on round objects (barrels, the
-  radar). **New since v0.3.0, opt-in and not yet playtested** (D323/D324):
+  radar). **New since v0.3.0, opt-in and lightly playtested** (D323–D325):
   F10 → *Aspect ratio* → **4:3** (black bars at the sides) or **HOR+**
   (undistorted world, wider view), and F10 → *HUD layout* → **EDGES** or
   **16:9** (HUD unstretched, pinned to the screen edges or, for ultrawide, to
-  a centred 16:9 area). Under HOR+ the front-end menus stay stretched, and
-  split-screen gets no HUD anchoring. Note that fullscreen always uses your
+  a centred 16:9 area). Under HOR+ the front-end menus are shown 4:3 with
+  black bars, and split-screen gets no HUD anchoring. Note that fullscreen always uses your
   desktop resolution — `[Window]` Width/Height only apply in windowed mode —
   so for a 4:3 image on a wide display use *Aspect ratio* → 4:3.
 - Distant geometry can drop out on the biggest open levels (Streets,
@@ -193,8 +193,7 @@ directionally, on the way to v1.0:
 - **PAL and JP ROM support** ([issue #85](https://github.com/jkdansereau/goldeneye-pc-port/issues/85)); NTSC-U is the only supported region today.
 - **Native widescreen** — opt-in 4:3 and HOR+ modes and an edge-anchored HUD
   landed after v0.3.0 (see the widescreen known issue above); remaining:
-  playtest them on real displays, then extend them to the front-end menus
-  and split-screen.
+  finish playtesting them, and split-screen support.
 - **Controller rebinding UI**, and macOS/ARM builds.
 - **LAN multiplayer**: reviving GoldenEye's original split-screen/deathmatch
   netplay across multiple PCs on a local network. Genuinely under

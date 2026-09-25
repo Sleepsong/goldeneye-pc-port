@@ -45,6 +45,7 @@
 #include "video.h"
 #include "input.h"
 #include "optionsoverlay.h"
+#include "porthud.h"   /* D325 overlay aspect hooks */
 #include "../fast3d/gfx_api.h"
 
 /* ---- game symbols (rendering/UI only; see input.c for the same pattern) ---- */
@@ -759,6 +760,16 @@ void optionsOverlayHandleInput(void)
      * click lands on the same row it visually appears over. */
     int32_t rx = 0, ry = 0, rw = 0, rh = 0;
     gfx_get_ui_screen_rect(&rx, &ry, &rw, &rh);
+    {
+        /* D325: the panel is drawn compressed about the canvas centre by
+         * portOverlayWidthScale (1/k) when unstretched; invert that too. */
+        const double s = (double)portOverlayWidthScale();
+        if (s < 1.0 && rw > 0) {
+            const int32_t nw = (int32_t)((double)rw * s + 0.5);   /* rw > 0 */
+            rx += (rw - nw) / 2;
+            rw = nw;
+        }
+    }
     if (rw > 0 && rh > 0) {
         double ox = (double)(mx - rx) * (double)viGetX() / rw;
         double oy = (double)(my - ry) * (double)viGetY() / rh;
@@ -919,7 +930,9 @@ Gfx *optionsOverlayEmit(void)
         gDPSetTexturePersp(fgdl++, G_TP_NONE);
         gDPSetScissor(fgdl++, G_SC_NON_INTERLACE, 0, 0, fw, fh);
         fgdl = microcode_constructor(fgdl);
+        fgdl = portOverlayAnchor(fgdl, PORT_HUD_RIGHT);   /* D325 */
         fgdl = drawTextR(fgdl, fw - 6, 6, s_fpsText, 0x40ff60ff);
+        fgdl = portOverlayAnchor(fgdl, PORT_HUD_NONE);
         gDPPipeSync(fgdl++);
         gSPEndDisplayList(fgdl++);
         return s_buf;
@@ -959,6 +972,10 @@ Gfx *optionsOverlayEmit(void)
 
     /* ---- pass 1: all fills (G_CC_PRIMITIVE) ---- */
     gdl = fillRect(gdl, 0, 0, W, H, 0, 0, 0, 150);                       /* dim */
+    /* D325: the dim above stays full-width; the panel itself is drawn
+     * unstretched about the centre when HOR+ / a HUD layout is on (the
+     * mouse mapping below applies portOverlayWidthScale to match). */
+    gdl = portOverlayAnchor(gdl, PORT_HUD_CENTER);
     gdl = fillRect(gdl, OV_X0 - 8, panelTop, W - (OV_X0 - 8), panelBottom,
                    8, 10, 24, 210);                                     /* panel */
     gdl = fillRect(gdl, OV_CB_X0, OV_CB_Y0, OV_CB_X1, OV_CB_Y1,
@@ -1015,6 +1032,7 @@ Gfx *optionsOverlayEmit(void)
         }
     }
 
+    gdl = portOverlayAnchor(gdl, PORT_HUD_NONE);   /* D325 */
     gDPPipeSync(gdl++);
     gSPEndDisplayList(gdl++);
 

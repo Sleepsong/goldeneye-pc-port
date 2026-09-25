@@ -610,6 +610,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D322 | **Long-session audio degradation: full campaign on v0.3.0 — audio progressively worsens from Silo, by Caverns/Cradle the OST is inaudible and SFX "come and go"; restarting the game restores it (issue #87, user report, 2026-09-21).** — full `## D322` entry at file tail | OPEN — static triage done (teardown audit, mixer statelessness, D202-coverage check); ranked hypotheses: voice-pool exhaustion/counter drift > queue starvation > evtq saturation. `GE_D322` pool-telemetry probe shipped; needs a campaign capture with `GE_D322=1 GE_D204=1`. |
 | D323 | **Ultrawide (5120x1440, 32:9): resolution won't hold (`Fullscreen=1` ignores `[Window]` size) and the whole frame is stretched ~2.7x; asks for a 4:3 pillarbox and a world-only Hor+ fix (user report, Bazzite/KDE, 2026-09-25).** — full `## D323` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: HOR+ confirmed; 4:3 showed sky in the bars (1-unit crop overflow), fixed by clamping the scissor to the fit rect, re-test owed. New `Video.AspectMode` (F10 "Aspect ratio"): 0 STRETCH (default, unchanged), 1 4:3 pillarbox/letterbox in fast3d (`gfx_start_frame` draw-area fit), 2 HOR+ (route-(b) `#ifdef PORT` aspect hook at the `src/fr.c` projection + cull chokepoint, D211/D222 class). Window part was config semantics, not a bug: borderless fullscreen always takes the desktop size; ini rewritten on exit. HUD anchoring not done. |
 | D324 | **HUD anchoring for widescreen (D323 goal 3): in-game 2D HUD drawn unstretched and slid to the screen edge it belongs to, instead of stretched across the window (user ask, 2026-09-25).** — full `## D324` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: EDGES/16:9 HUD confirmed; the pause watch under HOR+ had hard vertical cuts and smeared sides, fixed (full scissor for the watch + sides fade to black with the zoom), re-test owed. New `Video.HudLayout` (F10 "HUD layout"): 0 STRETCH (default, unchanged), 1 EDGES, 2 16:9 (edges capped at a centred 16:9 area). Uses fast3d's dormant PD `G_EXTRAGEOMETRYMODE_EXT` aspect path, emitted from `#ifdef PORT` hooks in 4 HUD functions (route-(b), D181/D211 class); fixes two latent bugs in that PD path and makes the scissor follow the mode. Crosshair unstretched in shape only, so aim is unchanged. SP only. |
+| D325 | **Widescreen follow-ups from playtest: front-end menus still stretched under HOR+, and the F10 overlay stretched too (user report, 2026-09-25).** — full `## D325` entry at file tail | FIXED (build-verified; re-test owed) — under HOR+ the front end (LEVELID_TITLE) now uses the 4:3 fit, re-evaluated per frame; the F10 panel is drawn CENTER-unstretched (dim stays full-width) with a matching click-mapping inverse, and the FPS counter anchors RIGHT, whenever HOR+ or a HUD layout is on. Defaults unchanged. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -12355,3 +12356,27 @@ HUD anchoring: no issues reported (ammo on the right edge, crosshair round). **T
 Build-verified: warning set identical to the previous head over the same translation units. Re-test owed.
 
 **Status:** FIXED (HUD anchoring user-confirmed; the watch fix needs a re-test). Cross-ref: D323 (Hor+, 4:3 fit, `gfx_get_logical_pixel_aspect`), D246/D247 (crop), D316 (overlay mapping), D181/D211 (route-(b) policy).
+
+## D325 — Widescreen follow-ups: front-end menus pillarboxed under HOR+, F10 overlay unstretched (user playtest, 2026-09-25)
+
+**Report.** After D323/D324 were playtested at 5120x1440, HOR+ still left the main menu (file select, mission select) stretched across the window, and the F10 overlay was stretched too. The user asked for the F10 menu to follow the aspect settings like everything else.
+
+**Front end.** It was deliberately excluded from HOR+ (`portScaleAspect`/`portScaleFovY` skip `LEVELID_TITLE`). Its 2D and 3D are laid out against a fixed 4:3 canvas (440x330 in the front end; SCREEN_WIDTH/HEIGHT follow the native viewport, D103) and there is no world to widen, so the undistorted form is a pillarbox.
+- `videoApplyAspectFit()` (`port/src/video.c`) now decides the fast3d 4:3 fit every frame on the scheduler thread, before `gfx_start_frame`: on for `AspectMode=1`, and for `AspectMode=2` while `lvlGetCurrentStageToLoad() == LEVELID_TITLE`. That covers the legal screen, logos, menus, mission select and briefing.
+- `LEVELID_TITLE` (90) is a local `GE_LEVELID_TITLE` copy, following `input.c`'s `GE_MENU_RUN_STAGE` pattern, because `bondconstants.h` doesn't compile standalone in a port TU (tried: `bondtypes.h` type errors).
+- The stage read can be a frame off at a front-end ↔ level switch; that frame is a transition anyway.
+- Mouse input needs no change: the menu pointer (`videoGetGameRectInWindow`) and F10 clicks (`gfx_get_ui_screen_rect`) are already rect-aware from D323.
+
+**F10 overlay.**
+- `portOverlayAnchor` / `portOverlayWidthScale` (`port/include/porthud.h`) apply when HOR+ or a HUD layout is on and the canvas is stretched past square, i.e. k > 1.01. In the pillarboxed front end k ≈ 1.005 because of the crop trim, so the overlay is left alone there.
+- In `optionsOverlayEmit` the full-screen dim is drawn first, stretched, then the panel under CENTER, then a reset.
+- The closed-panel FPS counter (D213) anchors RIGHT, with the 16:9 cap under `HudLayout=2`.
+- Mouse mapping: the D316 rect from `gfx_get_ui_screen_rect` is narrowed about its centre by the same 1/k before the pixel → logical conversion, so clicks land on the rows they appear over. Rounding is done by hand to avoid adding another implicit `lround` in that TU.
+
+**Default is byte-identical.** With `AspectMode=0` the per-frame fit is off, as before. With both options off, the overlay hooks emit nothing and the mouse scale is exactly 1.0.
+
+**Verification.** Linux build is clean. The warning set is identical to the previous head over the same translation units. Runtime re-test owed:
+1. HOR+: logos, main menu, file select and mission select are pillarboxed 4:3 and undistorted; the menu pointer and clicks land on target; entering a level switches to full-width HOR+.
+2. HOR+ or a HUD layout: F10 panel undistorted and centred over a full-width dim; clicks on rows and on the close box land; with the panel closed, the FPS counter sits at the right edge (or the 16:9 edge).
+
+**Status:** FIXED (build-verified; re-test owed). Cross-ref: D323 (fit, `videoGetGameRectInWindow`), D324 (aspect-mode path, `portEmitAspectMode`), D316 (overlay click mapping), D213 (FPS counter), D103 (native viewport).

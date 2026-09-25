@@ -56,6 +56,9 @@
 #include "tex.h"
 #include "textrelated.h"
 #include "vtxstore.h"
+#ifdef PORT
+#include "porthud.h"   /* D324 HUD anchoring hooks */
+#endif
 
 
 #if defined(VERSION_JP) || defined(VERSION_EU)
@@ -14459,6 +14462,10 @@ Gfx *countdownTimerRender(Gfx *DL)
         ms = ((s32) floorFloat((time * 100.0f) / 60.0f) - (mins * 6000)) - (secs * 100);
 
         DL = microcode_constructor(DL);
+#ifdef PORT
+        /* D324: the countdown sits centred at the bottom. */
+        DL = portHudAnchor(DL, PORT_HUD_CENTER);
+#endif
 
         #if defined(VERSION_US) || defined(VERSION_JP)
             valign_offset = 18;
@@ -14485,6 +14492,9 @@ Gfx *countdownTimerRender(Gfx *DL)
         DL = gunDrawHudInteger(DL, ms % 10, 0xBE, HUDHALIGN_MIDDLE, (viGetViewTop() + viGetViewHeight()) - valign_offset, HUDVALIGN_MIDDLE, 1);
 
         DL = combiner_bayer_lod_perspective(DL);
+#ifdef PORT
+        DL = portHudAnchor(DL, PORT_HUD_NONE);   /* D324 */
+#endif
     }
 
     return DL;

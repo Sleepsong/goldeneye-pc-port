@@ -579,6 +579,22 @@ through a converter or a runtime bswap fixup reads scrambled.
   draw area is the window. Shrinking `gfx_current_dimensions` (pillarbox,
   D323) without also changing it stretches every vertex and rect by
   window/draw-area aspect.
+- **PD's `G_ASPECT_*_EXT` path was dead code here; don't trust it
+  untested.** GE never emitted it, so two PD bugs sat latent until D324
+  used it for HUD anchoring: the WIDE (16:9 cap) offset was scaled by
+  16:9/D, missing the 16:9 edge; and the `preserve_aspect` scissor used a
+  fixed 4:3 and an unscaled offset, clipping LEFT/RIGHT elements away. The
+  general lesson: any fast3d path inherited from PD that GE never reached
+  should be checked by hand before it is relied on.
+- **The RDP scissor is baked to pixels when `G_SETSCISSOR` runs.** Anything
+  that changes the logical→pixel map mid-list (an aspect mode) must
+  re-derive the pixel scissor from the logical rect, or later draws are
+  clipped by a rect computed for the old mapping (D324 keeps the logical
+  rect and re-derives it on every aspect-mode change).
+- **A HUD sprite whose position is an aim direction can't be anchored.**
+  The crosshair's logical position maps to world angle through `c_scalex`,
+  so moving it breaks aiming. Scale only its size (`halfedxy[0]`), the way
+  the game's own anamorphic 16:9 option does (D324).
 
 ## D. N64 hardware idioms fast3d does not emulate
 

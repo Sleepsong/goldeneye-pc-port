@@ -275,6 +275,12 @@ extern "C" void gfx_set_safe_area_crop(int on) {
  * the whole window, exactly as before. */
 static bool g_aspect_fit_enabled = false;
 
+/* D324: the last G_SETSCISSOR rect in logical units, before
+ * gfx_adjust_viewport_or_scissor, so gfx_sp_extra_geometry_mode can
+ * re-derive the pixel scissor when the aspect mode changes. */
+static struct XYWidthHeight g_scissor_logical;
+static bool g_scissor_logical_valid = false;
+
 extern "C" void gfx_set_aspect_fit(int on) {
     g_aspect_fit_enabled = !!on;
 }
@@ -2573,38 +2579,6 @@ static void gfx_sp_geometry_mode(uint32_t clear, uint32_t set) {
     rsp.geometry_mode |= set;
 }
 
-static inline void gfx_update_aspect_mode(void) {
-    const uint32_t side = rsp.aspect_mode & G_ASPECT_CENTER_EXT;
-
-    /* D323: mode 0 used gfx_current_window_dimensions here, which makes
-     * gfx_adjust_x_for_aspect_ratio scale clip X by window/draw-area aspect --
-     * 1.0 while the draw area IS the window, but 2.67x on a 32:9 window with
-     * the 4:3 fit on. The draw area's own aspect is the identity in both. */
-    rsp.aspect_scale = rsp.aspect_mode ? gfx_current_native_aspect : gfx_current_dimensions.aspect_ratio;
-
-    if (side == G_ASPECT_LEFT_EXT) {
-        rsp.aspect_ofs = 1.f - gfx_current_dimensions.aspect_ratio / gfx_current_native_aspect;
-    } else if (side == G_ASPECT_RIGHT_EXT) {
-        rsp.aspect_ofs = gfx_current_dimensions.aspect_ratio / gfx_current_native_aspect - 1.f;
-    } else {
-        rsp.aspect_ofs = 0.f;
-    }
-
-    if (side && (rsp.aspect_mode & G_ASPECT_WIDE_EXT)) {
-        constexpr float c = 16.f / 9.f;
-        if (gfx_current_dimensions.aspect_ratio > c) {
-            rsp.aspect_ofs *= c / gfx_current_dimensions.aspect_ratio;
-        }
-    }
-}
-
-static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
-    rsp.extra_geometry_mode &= ~clear;
-    rsp.extra_geometry_mode |= set;
-    rsp.aspect_mode = (rsp.extra_geometry_mode & G_ASPECT_MODE_EXT);
-    gfx_update_aspect_mode();
-}
-
 /* The logical-canvas -> draw-area mapping gfx_adjust_viewport_or_scissor
  * applies: logical (x, y) lands at ((x - left) * ratioX, (top - y) * ratioY)
  * pixels. Shared with gfx_get_logical_pixel_aspect (D323) so the Hor+
@@ -2647,6 +2621,51 @@ extern "C" float gfx_get_logical_pixel_aspect(void) {
     return (m.ratioY > 0.0f) ? m.ratioX / m.ratioY : 1.0f;
 }
 
+/* G_ASPECT_*_EXT (PD's extra-geometry aspect modes; GE emits them only via
+ * the D324 port HUD hooks, port/src/video.c portHudAnchor). With a mode set,
+ * gfx_adjust_x_for_aspect_ratio maps clip X to x * aspect_scale / D +
+ * aspect_ofs * aspect_scale / D, D = draw-area aspect:
+ *  - aspect_scale: D (identity) with no mode. With a mode, D324 uses the
+ *    logical canvas's own square-pixel aspect (safe width / safe height:
+ *    320/240 = 4:3 with the crop off, 318/220 in NTSC gameplay with it on)
+ *    instead of PD's fixed native 4:3, so anchored 2D is exactly
+ *    unstretched under the safe-area crop too.
+ *  - aspect_ofs: slides the canvas so its left (LEFT) or right (RIGHT) edge
+ *    meets the edge of the anchor region: the whole draw area, or with
+ *    G_ASPECT_WIDE_EXT a centred region capped at 16:9. PD scaled the offset
+ *    by 16:9/D instead, which lands short of the 16:9 edge (-0.69 instead of
+ *    -0.5 NDC at 32:9); the formula below puts the edge exactly at -R/D.
+ * D323: mode 0 used gfx_current_window_dimensions for aspect_scale, which
+ * scales clip X by window/draw-area aspect -- 1.0 while the draw area IS the
+ * window, but 2.67x on a 32:9 window with the 4:3 fit on. */
+static inline void gfx_update_aspect_mode(void) {
+    const uint32_t side = rsp.aspect_mode & G_ASPECT_CENTER_EXT;
+    const float d = gfx_current_dimensions.aspect_ratio;
+
+    if (!rsp.aspect_mode) {
+        rsp.aspect_scale = d;
+        rsp.aspect_ofs = 0.f;
+        return;
+    }
+
+    const float k = gfx_get_logical_pixel_aspect();
+    const float n = (k > 0.f) ? d / k : gfx_current_native_aspect;
+    float region = d;
+    if (rsp.aspect_mode & G_ASPECT_WIDE_EXT) {
+        constexpr float c = 16.f / 9.f;
+        region = std::min(d, c);
+    }
+
+    rsp.aspect_scale = n;
+    if (side == G_ASPECT_LEFT_EXT) {
+        rsp.aspect_ofs = 1.f - region / n;
+    } else if (side == G_ASPECT_RIGHT_EXT) {
+        rsp.aspect_ofs = region / n - 1.f;
+    } else {
+        rsp.aspect_ofs = 0.f;
+    }
+}
+
 static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_aspect = false) {
     // HACK: assume all target framebuffers have the same aspect
     // Use floor/ceil to ensure scissor fully contains the logical region
@@ -2664,12 +2683,16 @@ static void gfx_adjust_viewport_or_scissor(XYWidthHeight* area, bool preserve_as
     area->height = std::ceil(y2) - area->y;
     
     if (preserve_aspect) {
-        // preserve native aspect ratio
-        const float ratio = gfx_current_native_aspect / gfx_current_dimensions.aspect_ratio;
+        // Same map as gfx_adjust_x_for_aspect_ratio, in pixels: scale about
+        // the centre by aspect_scale / D, then shift by aspect_ofs in the
+        // same scaled units. D324: PD used native 4:3 and an unscaled
+        // offset (off by D/4:3 -- 2.7x at 32:9); GE never set a mode before.
+        const float ratio = rsp.aspect_scale / gfx_current_dimensions.aspect_ratio;
         const float midx = gfx_current_dimensions.width * 0.5f;
-        area->x = midx + (area->x - midx) * ratio;
-        area->x += rsp.aspect_ofs * gfx_current_dimensions.width * 0.5f;
-        area->width *= ratio;
+        const float x1 = midx + (area->x - midx) * ratio + rsp.aspect_ofs * ratio * midx;
+        const float x2 = x1 + area->width * ratio;
+        area->x = std::floor(x1);
+        area->width = std::ceil(x2) - area->x;
     }
 
     if (!game_renders_to_framebuffer ||
@@ -2702,6 +2725,34 @@ extern "C" void gfx_get_ui_screen_rect(int32_t *outX, int32_t *outY, int32_t *ou
     *outH = (int32_t)area.height;
 }
 
+static void gfx_sp_extra_geometry_mode(uint32_t clear, uint32_t set) {
+    const uint32_t prev_aspect = rsp.aspect_mode;
+    rsp.extra_geometry_mode &= ~clear;
+    rsp.extra_geometry_mode |= set;
+    rsp.aspect_mode = (rsp.extra_geometry_mode & G_ASPECT_MODE_EXT);
+    gfx_update_aspect_mode();
+    /* D324: the scissor is converted to pixels when G_SETSCISSOR runs, with
+     * whatever aspect mode was current then. Re-derive it from the logical
+     * rect on every mode change, so an anchored element is clipped by a
+     * scissor anchored the same way -- and a full-screen draw after the mode
+     * is cleared is not clipped by a scissor left over from a HUD element. */
+    if (rsp.aspect_mode != prev_aspect && g_scissor_logical_valid) {
+        rdp.scissor = g_scissor_logical;
+        gfx_adjust_viewport_or_scissor(&rdp.scissor, rsp.aspect_mode != 0);
+        rdp.viewport_or_scissor_changed = true;
+    }
+}
+
+/* D324: drop any aspect mode a display list left set, before the next
+ * frame / the F10 overlay (whose click mapping assumes the plain stretch).
+ * A no-op unless a mode is set -- GE never sets one unless Video.HudLayout
+ * or Video.AspectMode=2 asked for it. */
+static void gfx_reset_aspect_mode(void) {
+    if (rsp.extra_geometry_mode & G_ASPECT_MODE_EXT) {
+        gfx_sp_extra_geometry_mode(G_ASPECT_MODE_EXT, 0);
+    }
+}
+
 static void gfx_calc_and_set_viewport(const Vp_t* viewport) {
     // 2 bits fraction
     float width = 2.0f * viewport->vscale[0] / 4.0f;
@@ -2723,6 +2774,12 @@ static void gfx_calc_and_set_viewport(const Vp_t* viewport) {
     }
 
     gfx_adjust_viewport_or_scissor(&rdp.viewport);
+
+    /* D324: the safe-area crop bounds just cached feed the square-pixel
+     * canvas aspect an active G_ASPECT mode uses. */
+    if (rsp.aspect_mode) {
+        gfx_update_aspect_mode();
+    }
 
     rdp.viewport_or_scissor_changed = true;
 }
@@ -2793,6 +2850,8 @@ static void gfx_dp_set_scissor(uint32_t mode, uint32_t ulx, uint32_t uly, uint32
     rdp.scissor.y = y;
     rdp.scissor.width = width;
     rdp.scissor.height = height;
+    g_scissor_logical = rdp.scissor;   /* D324 */
+    g_scissor_logical_valid = true;
 
     gfx_adjust_viewport_or_scissor(&rdp.scissor, rsp.aspect_mode != 0);
 
@@ -3876,10 +3935,12 @@ extern "C" void gfx_run(Gfx* commands) {
     rdp.viewport_or_scissor_changed = true;
     rendering_state.viewport = {};
     rendering_state.scissor = {};
+    gfx_reset_aspect_mode();   /* D324 */
     gfx_run_dl(commands);
     {
         Gfx* overlay = optionsOverlayEmit();
         if (overlay != nullptr) {
+            gfx_reset_aspect_mode();   /* D324 */
             gfx_run_dl(overlay);
         }
     }

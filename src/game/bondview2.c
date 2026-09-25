@@ -161,6 +161,9 @@
 #define FLOAT_TEN_B 10.00f
 
 #include "bondview_internal.h"
+#ifdef PORT
+#include "porthud.h"   /* D324 HUD anchoring hooks */
+#endif
 
 #define a8s "%8s"
 #define aX4_0f "x %4.0f"
@@ -8723,6 +8726,12 @@ Gfx *bondviewRenderWatch(Gfx *gdl)
  
     renderdata = D_8003683C;
     watchpos = ZeroCoordWatchPos;
+#ifdef PORT
+    /* D324: the watch (arm, face, menu pages) has its own fixed 320:220
+     * projection, stretched like the 2D. CENTER restores its proportions,
+     * which under Hor+ is exactly the Hor+ projection of the same model. */
+    gdl = portWatchAspect(gdl, TRUE);
+#endif
     objheader = get_ptr_itemheader_in_hand(GUNLEFT);
     nodepos = (f32 *) objheader->Switches[3];
     rwdata = modelGetNodeRwData((Model *) (&g_CurrentPlayer->something_with_watch_object_instance), (ModelNode *) nodepos);
@@ -8853,6 +8862,9 @@ Gfx *bondviewRenderWatch(Gfx *gdl)
         bondviewTransformManyPosToViewMatrix(GE_WATCH_RENDERPOS, objheader->numMatrices);
         matrix_4x4_7F058C88();
     }
+#ifdef PORT
+    gdl = portWatchAspect(gdl, FALSE);   /* D324 */
+#endif
  
     end:
     return gdl;
@@ -8883,6 +8895,12 @@ Gfx *bondviewRenderGaugeBars(Gfx *gdl)
     lookatmtx = dynAllocateMatrix();
     orthomtx = dynAllocateMatrix();
 
+#ifdef PORT
+    /* D324: the health/armour arcs are symmetric about the screen centre;
+     * drawn through a 4:3 ortho projection, so CENTER makes them round. */
+    gdl = portHudAnchor(gdl, PORT_HUD_CENTER);
+#endif
+
     guOrtho(orthomtx, -800.0f * D_800364CC, 800.0f * D_800364CC, -600.0f * D_800364CC, 600.0f * D_800364CC, -100.0f, 1000.0f, 1.0f);
 
     gSPMatrix(gdl++, osVirtualToPhysical(orthomtx), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
@@ -8908,6 +8926,9 @@ Gfx *bondviewRenderGaugeBars(Gfx *gdl)
 
     gSPDisplayList(gdl++, OS_PHYSICAL_TO_K0(&g_CurrentPlayer->watch_body_armor_bar_gdl));
     gSPDisplayList(gdl++, OS_PHYSICAL_TO_K0(&g_CurrentPlayer->watch_health_bar_gdl));
+#ifdef PORT
+    gdl = portHudAnchor(gdl, PORT_HUD_NONE);   /* D324 */
+#endif
 
     gSPMatrix(gdl++, osVirtualToPhysical(currentPlayerGetProjectionMatrix()), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
 
@@ -10210,8 +10231,15 @@ Gfx* hudmsgBottomRender(Gfx* arg0)
             }
 
             view_vert = view_top - view_top_offset;
+#ifdef PORT
+            /* D324: bottom-left status text (and its backing box). */
+            arg0 = portHudAnchor(arg0, PORT_HUD_LEFT);
+#endif
             arg0 = draw_blackbox_to_screen(arg0, (s32) &view_left, (s32) &view_vert, (s32) &view_horiz, (s32) &view_top);
             arg0 = combiner_bayer_lod_perspective(textRenderOutlined(arg0, &view_left, &view_vert, stringbuffer_lowerleft[status_bar_text_buffer_index], BONDVIEW_2ND_FONTTABLE(status_bar_text_buffer_index), BONDVIEW_1ST_FONTTABLE(status_bar_text_buffer_index), -1, 0x646464FFU, (s16) (s32) viGetX(), (s16) viGetY(), 0, 0));
+#ifdef PORT
+            arg0 = portHudAnchor(arg0, PORT_HUD_NONE);   /* D324 */
+#endif
         }
     }
 
@@ -10361,6 +10389,12 @@ Gfx *sub_GAME_7F08AAE8(Gfx *gdl)
 
                     msg.bottom = msg.y + msg.textheight;
                     gdl = microcode_constructor_related_to_menus(gdl, 0, msg.y - 2, viGetX(), msg.bottom, 0x64);
+#ifdef PORT
+                    /* D324: the dark banner above spans the full width and
+                     * stays stretched; the left-aligned text on it anchors
+                     * left. */
+                    gdl = portHudAnchor(gdl, PORT_HUD_LEFT);
+#endif
 #ifdef VERSION_US
                     sw.screenwidth = viGetX();
                     gdl = textRender(gdl, &msg.x, &msg.y, stringbuffer_top[upper_text_buffer_index], ptrFontZurichBoldChars, ptrFontZurichBold, -1, sw.screenwidth, viGetY(), 0, 0);
@@ -10385,6 +10419,9 @@ Gfx *sub_GAME_7F08AAE8(Gfx *gdl)
                     }
 #endif
                     gdl = combiner_bayer_lod_perspective(gdl);
+#ifdef PORT
+                    gdl = portHudAnchor(gdl, PORT_HUD_NONE);   /* D324 */
+#endif
                     goto end;
                 }
             }

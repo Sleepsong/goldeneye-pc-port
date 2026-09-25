@@ -68,6 +68,7 @@ enum { ROW_TOGGLE, ROW_SLIDER, ROW_ENUM, ROW_MSAA, ROW_RES, ROW_ACTION, ROW_FPSC
 static const char *const kOnOff[]     = { "OFF", "ON", NULL };
 static const char *const kTexFilter[] = { "NEAREST", "BILINEAR", "3-POINT", NULL };
 static const char *const kAspectMode[] = { "STRETCH", "4:3", "HOR+", NULL };  /* D323 */
+static const char *const kHudLayout[]  = { "STRETCH", "EDGES", "16:9", NULL };  /* D324 */
 static const int         kMsaaSeq[]   = { 1, 2, 4, 8 };
 /* D186: the sim's own tick pacemaker is hardcoded to the console's native VI
  * rate (60Hz NTSC / 50Hz PAL, port/src/libultra.c) -- Video.FpsCap can only
@@ -137,6 +138,10 @@ static struct Row rows[] = {
      * horizontally itself), so its row hides while this is nonzero. */
     { "Video.AspectMode",         "Aspect ratio",     ROW_ENUM,   1,    kAspectMode,0, 0, 0,   0,0,0,0,0 },
     { "Video.WidescreenAuto",     "Widescreen auto FOV",ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0, "Video.AspectMode" },
+    /* D324: in-game HUD. STRETCH = stretched with the window (original);
+     * EDGES = unstretched, each element slid to its screen edge; 16:9 = the
+     * same, edges capped at a centred 16:9 area (for 21:9/32:9). Live. */
+    { "Video.HudLayout",          "HUD layout",       ROW_ENUM,   1,    kHudLayout, 0, 0, 0,   0,0,0,0,0 },
     { "Video.SafeAreaCrop",       "Crop overscan bars", ROW_TOGGLE,1,   kOnOff,     0, 0, 0,   0,0,0,0,0 },
     { "Video.DrawDistance",       "Draw distance %",  ROW_SLIDER, 25,   NULL,       0, 0, 0,   0,0,0,0,0, "Video.DrawDistanceAutoFov" },
     { "Video.DrawDistanceAutoFov","Draw dist. auto",  ROW_TOGGLE, 1,    kOnOff,     0, 0, 0,   0,0,0,0,0 },

@@ -31,9 +31,12 @@
 #include "input.h"
 #include "optionsoverlay.h"
 
+#include "porthud.h"
+
 #include "../fast3d/gfx_api.h"
 #include "../fast3d/gfx_sdl.h"
 #include "../fast3d/gfx_opengl.h"
+#include "../fast3d/gbiex.h"   /* G_EXTRAGEOMETRYMODE_EXT, G_ASPECT_*_EXT (D324) */
 
 /* GE's internal resolution: NTSC LAN1 is 640x480; PAL LAN1 shows a
  * 640x400 area. The window opens at the native size (1:1) by default. */
@@ -68,6 +71,7 @@ static int cfgLodDistanceAutoFov  = 0;   /* off by default -- unlike DrawDistanc
 static int cfgAniso         = 4;   /* D212: anisotropic filtering samples; 4 = the value fast3d already applied (no visual delta at default) */
 static int cfgSafeAreaCrop  = 1;   /* crop the N64 TV-overscan safe-area margin (visible as black top/bottom bars on PC) instead of showing it; on by default */
 static int cfgAspectMode    = 0;   /* D323: 0 = stretch to the window (original), 1 = 4:3 pillarbox/letterbox, 2 = Hor+ (undistorted wider world, HUD still stretched) */
+static int cfgHudLayout     = 0;   /* D324: 0 = HUD stretched with the window (original), 1 = unstretched + anchored to the screen edges, 2 = unstretched + anchored to a centred 16:9 area */
 static int cfgFullscreen    = 0;   /* 0 = windowed, 1 = borderless fullscreen   */
 
 /*
@@ -187,6 +191,67 @@ f32 portScaleAspect(f32 aspect, s32 isTitleScreen)
     return aspect;
 }
 
+/* D324: HUD anchoring (port/include/porthud.h). Video.HudLayout 1/2 draws
+ * the in-game 2D HUD with square logical pixels instead of stretched with
+ * the window, each element slid to the screen edge it belongs to (ammo
+ * right, dual-wield ammo + pickup text + top text left, gauges + countdown
+ * centre); 2 caps the edges at a centred 16:9 area so nothing lands in the
+ * far corners of a 21:9/32:9 display. The fast3d side (gfx_update_aspect_
+ * mode) does the geometry; these only emit the command. Nothing is emitted
+ * while the option is off, and never in split-screen (per-quadrant
+ * viewports would need their own anchors). */
+static Gfx *portEmitAspectMode(Gfx *gdl, u32 bits)
+{
+    gdl->words.w0 = ((uintptr_t)G_EXTRAGEOMETRYMODE_EXT << 24)
+                  | (~(u32)G_ASPECT_MODE_EXT & 0x00FFFFFFu);   /* clear mask, complemented */
+    gdl->words.w1 = bits;                                      /* set mask */
+    return gdl + 1;
+}
+
+static s32 portHudSinglePlayer(void)
+{
+    extern s32 getPlayerCount(void);
+    return getPlayerCount() == 1;
+}
+
+Gfx *portHudAnchor(Gfx *gdl, s32 anchor)
+{
+    u32 bits;
+
+    if (cfgHudLayout == 0 || !portHudSinglePlayer()) {
+        return gdl;
+    }
+    switch (anchor) {
+    case PORT_HUD_LEFT:   bits = G_ASPECT_LEFT_EXT;   break;
+    case PORT_HUD_RIGHT:  bits = G_ASPECT_RIGHT_EXT;  break;
+    case PORT_HUD_CENTER: bits = G_ASPECT_CENTER_EXT; break;
+    default:              return portEmitAspectMode(gdl, 0);
+    }
+    if (cfgHudLayout == 2) {
+        bits |= G_ASPECT_WIDE_EXT;
+    }
+    return portEmitAspectMode(gdl, bits);
+}
+
+Gfx *portWatchAspect(Gfx *gdl, s32 on)
+{
+    if ((cfgAspectMode != 2 && cfgHudLayout == 0) || !portHudSinglePlayer()) {
+        return gdl;
+    }
+    return portEmitAspectMode(gdl, on ? G_ASPECT_CENTER_EXT : 0);
+}
+
+f32 portHudSpriteWidthScale(void)
+{
+    f32 k;
+
+    if (cfgHudLayout == 0 || !portHudSinglePlayer()) {
+        return 1.0f;
+    }
+    k = gfx_get_logical_pixel_aspect();
+    return (k > 0.1f && k < 10.0f) ? 1.0f / k : 1.0f;
+}
+
 /* D218: Video.DrawDistance -- multiplier applied to a level's authored
  * Visibility.FarFog (src/game/bgfog.c fogLoadCurrentEnvironment), which is
  * both the far clip plane and the fog-saturation distance (levels are tuned
@@ -280,6 +345,7 @@ PD_CONSTRUCTOR static void videoConfigInit(void)
     configRegisterInt("Video.Anisotropy", &cfgAniso, 1, 16);
     configRegisterInt("Video.SafeAreaCrop", &cfgSafeAreaCrop, 0, 1);
     configRegisterInt("Video.AspectMode", &cfgAspectMode, 0, 2);
+    configRegisterInt("Video.HudLayout", &cfgHudLayout, 0, 2);
     configRegisterInt("Video.Fullscreen",    &cfgFullscreen, 0, 1);
     configRegisterInt("Window.Width",        &cfgWinW,       0, 16384);
     configRegisterInt("Window.Height",       &cfgWinH,       0, 16384);

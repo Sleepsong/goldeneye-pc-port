@@ -40,6 +40,7 @@
 #ifdef PORT
 #include <stdlib.h>
 #include <stdio.h>
+#include "porthud.h"   /* D324 HUD anchoring hooks */
 /* D102: the 1P weapon Model and its RW-data pool were punned onto
  * hand->field_B68 / hand->modeldatas; on x86-64 struct Model (0xE8) is too
  * big for that layout and modelInit() aliases objinst->datas onto the pool
@@ -6141,6 +6142,10 @@ Gfx *generate_ammo_total_microcode(Gfx *gdl)
                 rightx = 109;
             }
 
+#ifdef PORT
+            /* D324: right-hand ammo sits at the bottom-right. */
+            gdl = portHudAnchor(gdl, PORT_HUD_RIGHT);
+#endif
             if (weapon_right != ITEM_UNARMED)
             {
                 ammotype = get_ammo_type_for_weapon(weapon_right);
@@ -6207,6 +6212,10 @@ Gfx *generate_ammo_total_microcode(Gfx *gdl)
                 }
             }
 
+#ifdef PORT
+            /* D324: left-hand (dual-wield) ammo sits at the bottom-left. */
+            gdl = portHudAnchor(gdl, PORT_HUD_LEFT);
+#endif
             if (weapon_left != ITEM_UNARMED)
             {
                 ammotype = get_ammo_type_for_weapon(weapon_left);
@@ -6272,6 +6281,9 @@ Gfx *generate_ammo_total_microcode(Gfx *gdl)
                     gdl = combiner_bayer_lod_perspective(gdl);
                 }
             }
+#ifdef PORT
+            gdl = portHudAnchor(gdl, PORT_HUD_NONE);   /* D324 */
+#endif
         }
     }
 
@@ -6416,6 +6428,13 @@ void gunDrawSight(s32 *gdl) {
         }
 #ifdef VERSION_EU
         halfedxy[1] = halfedxy[1] * g_GunSightAspectRatio;
+#endif
+#ifdef PORT
+        /* D324: Video.HudLayout -- unstretch the crosshair's shape the same
+         * way the game's own anamorphic 16:9 option does just above (scale
+         * only the horizontal half-size). Its position stays in the
+         * stretched mapping, where it matches the aim direction. 1.0 off. */
+        halfedxy[0] = halfedxy[0] * portHudSpriteWidthScale();
 #endif
         display_image_at_position(&sp54, &xypos, &halfedxy, 0x20, 0x20, 0, 0, 1, 0xFF, 0xFF, 0xFF, 0x6E, (crosshairimage->level > 0), 0);
 #ifdef PORT

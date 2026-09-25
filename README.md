@@ -123,13 +123,20 @@ filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.
   white blobs and the Rareware logo's texture filtering looks wrong (D75).
 - Surface 1's 2D billboard trees render as a solid wall of tree texture
   instead of discrete sprites (D236). Under active investigation.
-- **Widescreen is stretched, not native**: on non-4:3 windows the whole
+- **Widescreen is stretched by default**: on non-4:3 windows the whole
   frame (world and HUD) is stretched horizontally to fill your display —
   about 33% wider than original at 16:9, like a 4:3 video in a TV's "stretch"
   mode. Automatic FOV scaling keeps the framing comfortable and gameplay is
   completely unaffected (all game logic runs in world space), but shapes are
   subtly wider than on the N64 — most visible on round objects (barrels, the
-  radar). A distortion-free native widescreen render is on the roadmap.
+  radar). **New since v0.3.0, opt-in and not yet playtested** (D323/D324):
+  F10 → *Aspect ratio* → **4:3** (black bars at the sides) or **HOR+**
+  (undistorted world, wider view), and F10 → *HUD layout* → **EDGES** or
+  **16:9** (HUD unstretched, pinned to the screen edges or, for ultrawide, to
+  a centred 16:9 area). Under HOR+ the front-end menus stay stretched, and
+  split-screen gets no HUD anchoring. Note that fullscreen always uses your
+  desktop resolution — `[Window]` Width/Height only apply in windowed mode —
+  so for a 4:3 image on a wide display use *Aspect ratio* → 4:3.
 - Distant geometry can drop out on the biggest open levels (Streets,
   Egyptian) at default FOV — a culling/LOD issue that sometimes
   self-corrects as you keep moving (D249).
@@ -184,9 +191,10 @@ directionally, on the way to v1.0:
 - Working through the [known issues](#status) above and the fuller list in
   [`docs/dev/findings.md`](docs/dev/findings.md).
 - **PAL and JP ROM support** ([issue #85](https://github.com/jkdansereau/goldeneye-pc-port/issues/85)); NTSC-U is the only supported region today.
-- **Native widescreen** — a distortion-free render at your display's aspect
-  (correct-aspect projection and a wide-frame HUD), replacing today's
-  stretched 4:3 frame + FOV compensation.
+- **Native widescreen** — opt-in 4:3 and HOR+ modes and an edge-anchored HUD
+  landed after v0.3.0 (see the widescreen known issue above); remaining:
+  playtest them on real displays, then extend them to the front-end menus
+  and split-screen.
 - **Controller rebinding UI**, and macOS/ARM builds.
 - **LAN multiplayer**: reviving GoldenEye's original split-screen/deathmatch
   netplay across multiple PCs on a local network. Genuinely under

@@ -17,6 +17,14 @@ Linux bundle sideloads as-is) and runs the full campaign at a steady 60 fps
 with known rough edges ([Status](#status)). Free to download, build on and
 modify (you bring the ROM).
 
+> **This fork** ([Sleepsong/goldeneye-pc-port](https://github.com/Sleepsong/goldeneye-pc-port))
+> adds opt-in widescreen / ultrawide support on top of v0.3.0: a 4:3
+> pillarbox, an undistorted HOR+ world, and an unstretched, edge-anchored HUD.
+> Its builds are on the fork's
+> [Releases page](https://github.com/Sleepsong/goldeneye-pc-port/releases)
+> as **v0.3.1-ultrawide**. See the widescreen entry under
+> [Status](#status).
+
 **This is a pre-1.0 release, not a finished product.** v1.0 is the target
 for a polished, feature-complete build; until then, expect rough edges,
 missing features, and breaking changes between versions. See
@@ -129,7 +137,7 @@ filtering, FOV, sensitivity); Windows and Linux, including Steam Deck.
   mode. Automatic FOV scaling keeps the framing comfortable and gameplay is
   completely unaffected (all game logic runs in world space), but shapes are
   subtly wider than on the N64 — most visible on round objects (barrels, the
-  radar). **New since v0.3.0, opt-in and lightly playtested** (D323–D325):
+  radar). **New in v0.3.1-ultrawide (this fork), opt-in and lightly playtested** (D323–D325):
   F10 → *Aspect ratio* → **4:3** (black bars at the sides) or **HOR+**
   (undistorted world, wider view), and F10 → *HUD layout* → **EDGES** or
   **16:9** (HUD unstretched, pinned to the screen edges or, for ultrawide, to

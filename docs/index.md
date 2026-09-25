@@ -204,7 +204,7 @@ catalogue: [Porting notes](porting-notes.md).
   instead of discrete sprites; under active investigation (D236).
 - **Widescreen is stretched by default**: 16:9 stretches the 4:3 frame to
   fill the display; automatic FOV scaling keeps the framing comfortable and
-  gameplay is unaffected. New since v0.3.0, opt-in and lightly playtested:
+  gameplay is unaffected. New in this fork's v0.3.1-ultrawide, opt-in and lightly playtested:
   F10 *Aspect ratio* (4:3 pillarbox or HOR+) and *HUD layout* (unstretched,
   edge-anchored HUD) — see the README (D323/D324). Distant geometry can also
   drop out on the biggest open levels (D249).

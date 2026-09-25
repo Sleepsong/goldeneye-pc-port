@@ -5,114 +5,61 @@
        alt="~12 s gameplay montage from live v0.3.0 play sessions (no audio track)">
 </p>
 
-> The full single-player campaign runs at a steady 60 fps with audio (music +
-> SFX) playing throughout, on Windows and Linux including Steam Deck, and it
-> is completable end to end: the whole campaign has been playtested through
-> all 20 missions (Agent difficulty). It's an early public cut: all 20 solo
-> missions load and run crash-free, but the known issues below are real;
-> feedback is very welcome. **This is a pre-1.0 release, not a finished
-> product** — expect rough edges and missing features until v1.0; see the
-> [README's Roadmap section](https://github.com/jkdansereau/goldeneye-pc-port#roadmap)
-> for where this is headed.
+> **Fork build.** This is [Sleepsong/goldeneye-pc-port](https://github.com/Sleepsong/goldeneye-pc-port),
+> a fork of [jkdansereau/goldeneye-pc-port](https://github.com/jkdansereau/goldeneye-pc-port)
+> v0.3.0 that adds **opt-in widescreen / ultrawide support**. Everything else
+> is v0.3.0: the full single-player campaign runs at a steady 60 fps with
+> audio, on Windows and Linux including Steam Deck, and is completable end to
+> end. **This is a pre-1.0 build, not a finished product**; the widescreen
+> options are new and have been playtested on one setup (Linux, 5120x1440
+> 32:9). Feedback is very welcome.
 
-### What's new since v0.2.2
+### What's new since v0.3.0: widescreen and ultrawide
 
-- **Bond is fixed in cutscenes** — the most visible remaining glitch in
-  prior releases: Bond no longer floats or glitches out during cutscenes,
-  his animation no longer breaks or repeats, and the camera correctly
-  tracks him through scripted sequences including all three Dam end-of-level
-  abseil shots (D243). Root cause: a 32-bit-era struct-size constant in the
-  cutscene body-model setup never accounted for 64-bit pointer widening,
-  corrupting the model's own animation-timing fields on creation. Fixing
-  that also fixed the associated camera shake, which had previously been
-  worked around with a camera-freeze hack that's no longer needed. **Two
-  related reports also cleared up as a side effect**: Bond's third-person
-  model floating above the ground at level start, and death animations
-  sinking him into the floor, both shared an underlying mechanism with this
-  bug — Bond now ends up in the right place the large majority of the time,
-  with only a small positional drift on the rare occasion he's off (D173/
-  D292).
-- **Particle colors mostly fixed**: bullet-impact sparks and lingering
-  smoke/explosion residue no longer cycle through a rainbow palette (D219) —
-  root cause was a hardcoded raw-memory-offset read into the spark's stored
-  color that landed on the wrong bytes once the containing struct grew from
-  64-bit pointer widening. A second, separate cause was found and fixed in
-  explosion rendering itself (an out-of-bounds vertex-buffer write
-  corrupting adjacent particle data). This fix is real and stays in, but the
-  rainbow effect can still occur intermittently on any platform, not every
-  time and not on every level — a second cause hasn't been found yet; see
-  Known Issues.
-- **Automatic widescreen FOV scaling**: the game now scales its field of
-  view to match your display's aspect ratio automatically, instead of
-  requiring the old manual FOV-scale slider. Toggle off in the F10 overlay
-  (`Widescreen Auto`) if you prefer the original 4:3 framing. The scaled
-  vertical FOV is clamped to a 20°–160° range as a guard against degenerate
-  values on unusual aspect ratios. (This is FOV scaling, not a native 16:9
-  world/HUD re-render — see Known Issues.)
-- **TV overscan artifacts removed**: the black bars top/bottom and the thin
-  pixel strips left/right of the gameplay view are gone (D247/D246) — both
-  were the original N64 TV-safe-area margin, invisible on a CRT under real
-  overscan but visible on a PC monitor. New `Video.SafeAreaCrop` toggle
-  (default on) if you want the original framing back.
-- **Two more crash fixes**: a campaign-halting crash at the end of Control
-  Center on 00 Agent difficulty, which would then crash on every subsequent
-  relaunch until the save was reset (D295); and a crash selecting most save
-  slots with `Skip Intro` enabled (D299).
-- **The elusive complete freeze is root-caused and fixed.** Players had hit
-  a total, non-self-recovering lockup (most recently when returning from
-  Caverns to the intro screen) that was real but never reproduced on demand.
-  It turned out to be a latent defect in the original game's own AI command
-  stream — a record type the engine mis-measures, which our level-teardown
-  timing can trigger and the N64 never presents. Fixed with a minimal change
-  under the project's game-code exception process (D309/D310); a second,
-  unrelated freeze mechanism found during the same playtest is now guarded
-  as well (D311).
-- **A NULL-pointer guard was added** around a save-data lookup that two
-  players hit with an identical crash address (GitHub #87, D301) — this
-  should close that crash, though we weren't able to reproduce the exact
-  trigger condition ourselves to confirm it end-to-end.
-- **Facility's execution softlock is caught and recovered from**: a rare
-  race in the original game's own AI script (present on the N64 too) could
-  leave Ourumov frozen mid-execution after Objective C, with no way out short
-  of reloading. A port-side watchdog now detects the exact unrecoverable
-  state and re-seeds the attack so the scene plays out as authored; it
-  re-arms once the scene has cleared, so replaying Facility later in the
-  same session is still covered (D318).
-- **A Steam Deck crash is fixed**: an audio-thread bug could crash the game
-  early in a level (`sndHandleEvent`'s sound-preemption scan could
-  dereference a pointer without checking it was valid first). Live-verified
-  crash-free on real Steam Deck hardware, including with `All unlocked`
-  toggled on.
-- **Mouse input and F10 controls fixed**: mouse input was reworked to
-  follow the Perfect Dark PC port's architecture — slow mouse motion is no
-  longer barely recognized and fast motion no longer saturates almost
-  immediately (D300, `Input.MouseDirectLook`, on by default). The separate
-  aim-speed and turn-speed sliders — which could be set to inconsistent
-  values against each other — are now a single `Mouse sensitivity` control
-  with a wider range. Also fixed three F10 menu bugs found along the way:
-  clicking a row could unexpectedly scroll the whole list, a click near
-  certain rows could silently activate a different option than the one you
-  clicked (most noticeably, clicking `All unlocked` could instead trigger
-  `Quit to desktop`), and the panel's bottom row no longer duplicates
-  whatever item is currently selected (D251).
-- **Random-number generation now matches the N64 original exactly** (D284) —
-  a shift-operation bug in the PRNG had desynced the PC's random stream from
-  N64's since the very first release, affecting loot placement, AI variance,
-  and other randomized elements. **This changes the random sequence from
-  every prior build**, so old input recordings/replays will diverge, but
-  your save files are unaffected: **a migration shim automatically upgrades
-  any save written by an older build the first time you load it** (D297) —
-  no manual action needed.
-- **Assorted texture/rendering fixes**: an incorrect IA4 texture-format
-  decode and an overly-tight near-plane portal-culling guard were both
-  corrected (D266/D271) — reduces some texture-edge and visibility artifacts
-  on affected levels.
+All of these are **off by default**; with default settings the game is
+unchanged from v0.3.0. Both new options are in the F10 overlay (and under
+`[Video]` in `ge007.ini`) and apply instantly.
+
+- **Aspect ratio** (`AspectMode`):
+  - **STRETCH** (default): as before, the whole picture is stretched to the
+    window.
+  - **4:3**: the original picture, centred, with black bars at the sides (or
+    top and bottom on tall windows). Works in fullscreen, so there's no need
+    to force a 4:3 window size (D323).
+  - **HOR+**: the 3D world renders undistorted at your display's shape. The
+    vertical view matches the N64 and the horizontal view widens to fill:
+    about 128° at 32:9. Culling, aiming and bullet spread follow the wider
+    view, so there's no pop-in at the screen edges and aim behaves exactly as
+    on the N64 (D323). Menus, logos and mission select are shown 4:3 with
+    bars (D325).
+- **HUD layout** (`HudLayout`):
+  - **STRETCH** (default): as before.
+  - **EDGES**: the in-game HUD is drawn unstretched, with each element pinned
+    to its screen edge. Ammo is at the bottom right (dual-wield ammo bottom
+    left), pickup and dialogue text on the left, and the health/armour bars
+    and countdown timer centred.
+  - **16:9**: the same, but pinned to a centred 16:9 area, so nothing ends up
+    in the far corners of a 21:9 or 32:9 display.
+  - In both modes the crosshair is round again, but stays exactly where your
+    aim is (D324).
+- **Pause watch** undistorted under HOR+ / a HUD layout. On wide displays
+  the sides fade to black as the watch zooms in, so the pause screen is a
+  clean pillarbox (D324).
+- **F10 overlay** panel drawn unstretched under HOR+ / a HUD layout (D325).
+- **Fixes along the way:**
+  - the FPS counter's top half was cut off by the overscan crop in every
+    mode (D325);
+  - a startup log line now explains that fullscreen always uses the desktop
+    resolution, and the F10 windowed resolutions gain 1920x1440 (D323).
+
+For everything that changed up to v0.3.0, see the
+[v0.3.0 release notes](https://github.com/jkdansereau/goldeneye-pc-port/releases/tag/v0.3.0).
 
 ### Known issues
 
 - The front-end **Nintendo logo renders as two white blobs**, and the
   Rareware logo is close but its texture filtering looks off (D75).
-- **Particle colors: a real fix landed this release, but the rainbow effect
+- **Particle colors: a real fix landed in v0.3.0, but the rainbow effect
   can still occur intermittently.** One genuine, reproducible cause (an
   out-of-bounds vertex-buffer write in explosion rendering) is fixed. A
   second, still-unidentified cause remains, on both Windows and Steam Deck —
@@ -124,10 +71,13 @@
 - **Surface 1: the 2D billboard trees near the start render as a solid wall
   of tree texture** instead of discrete sprites (D236). Under active
   investigation across ten+ passes; no fix yet.
-- **No native widescreen render**: v0.3.0's automatic FOV scaling (above)
-  expands the *field of view* for 16:9+ displays, but the world geometry and
-  HUD are still authored/laid out for 4:3 — this is not yet a true
-  edge-to-edge 16:9 render.
+- **The widescreen options are new and lightly playtested** (one setup).
+  Known limits:
+  - split-screen multiplayer gets no HUD anchoring and hasn't been tested
+    with them;
+  - HUD text keeps the N64's size relative to the screen height, so at high
+    resolutions it can look large and soft. There is no HUD scale option yet
+    (D226).
 - **No controller rebinding UI, and no macOS or ARM builds.**
 - **Distant geometry can drop out on the biggest open levels** (Streets,
   Egyptian) at default FOV — a culling/LOD issue that sometimes
@@ -140,9 +90,7 @@
   at least one save written.** Complete a level normally first (e.g. Dam on
   Agent), then turn the toggle on. Enabling it on a brand-new install with
   no prior save can still cause silent audio and odd right-mouse-aim
-  behavior (D259/D257). (The Steam Deck crash fix above addresses a
-  separate, now-fixed symptom that had also been associated with `All
-  unlocked` use; this audio/aim caveat is unrelated and still open.)
+  behavior (D281, a regression of D259/D257; not yet root-caused).
 - Water on `IsWater` levels shows a moving seam between two patterns (D245).
 - **Occasional z-fighting on some levels' geometry** (D308) — a Dam intro/
   truck-wheel instance showing odd transparent-looking areas has also been
@@ -155,12 +103,12 @@
 - **A rare, self-clearing visual quirk**: on an occasional animation
   transition, Bond's model can briefly render out of place. It has no effect
   on gameplay or your save, and it clears on its own or by re-entering the
-  level; a safeguard added this release guarantees it can never affect game
+  level; a safeguard added in v0.3.0 guarantees it can never affect game
   stability (D311).
 - **Two collision oddities found in final playtesting**: throwable items
   (mines, grenades) can occasionally clip through walls in certain spots
   (D312), and bullet impacts don't appear on some surfaces — doors and
-  windows are unaffected (D313). Both are queued for the next release; if
+  windows are unaffected (D313). Both are still open; if
   you hit either, an issue with the level and spot helps a lot.
 
 ### Downloads
@@ -209,6 +157,8 @@ sha256sum -c goldeneye-pc-port-<version>-linux-x86_64.tar.gz.sha256
 
 ### Source & docs
 
+This fork: <https://github.com/Sleepsong/goldeneye-pc-port> (widescreen work:
+findings D323–D325 in `docs/dev/findings.md`). Upstream project:
 <https://github.com/jkdansereau/goldeneye-pc-port>, built on the
 [GoldenEye 007 decompilation](https://github.com/n64decomp/007), architecture
 after the [Perfect Dark PC port](https://github.com/fgsfdsfgs/perfect_dark).
@@ -216,6 +166,7 @@ Non-commercial fan preservation/research project; not affiliated with any
 rights holder. **AI disclosure:** built through agentic AI coding (Claude
 Code + a local open-weight model), directed by one person in their spare
 time — as much a study of what agentic development gets wrong on a
-game-sized codebase as it is a port. See the README's
+game-sized codebase as it is a port. This fork's widescreen additions were
+likewise built with Claude Code. See the README's
 [Background section](https://github.com/jkdansereau/goldeneye-pc-port#background)
 for the full account.

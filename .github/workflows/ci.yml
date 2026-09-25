@@ -73,6 +73,8 @@ jobs:
       # (b) a fork PR -- untrusted PR code must never reach a box that will
       #     later hold a ROM. Same-repo (non-fork) PRs now also get routed to
       #     self-hosted per the 2026-09-12 standing preference.
+      # (c) any repo other than jkdansereau/goldeneye-pc-port (a fork): it has
+      #     no self-hosted Windows runner, so the job would queue forever.
       windows_selfhosted: ${{ steps.runner.outputs.selfhosted }}
     steps:
       - uses: actions/checkout@v7
@@ -86,6 +88,10 @@ jobs:
             echo "selfhosted=false" >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event_name }}" = "pull_request" ] && \
                [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "selfhosted=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.repository }}" != "jkdansereau/goldeneye-pc-port" ]; then
+            # (c) any fork: it has no self-hosted Windows runner, so a
+            #     self-hosted job would sit queued until GitHub times it out.
             echo "selfhosted=false" >> "$GITHUB_OUTPUT"
           else
             echo "selfhosted=true" >> "$GITHUB_OUTPUT"

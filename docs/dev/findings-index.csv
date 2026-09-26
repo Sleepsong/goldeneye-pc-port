@@ -203,4 +203,4 @@ D322,OPEN,Long-session audio degradation:,"OPEN — static triage done (teardown
 D323,FIXED,"Ultrawide (5120x1440, 32:9):",FIXED — user playtest 2026-09-25 at 5120x1440:
 D324,FIXED,HUD anchoring for widescreen (D323 goal 3):,FIXED — user playtest 2026-09-25 at 5120x1440:
 D325,FIXED,Widescreen follow-ups from playtest:,FIXED (build-verified; re-test owed) —
-D326,FIXED,"File-select folders draw as empty frames (no Bond photo or crest) after a menu round trip, e.g.",FIXED (build-verified; re-test owed) —
+D326,FIXED,"File-select folders draw as empty frames (no Bond photo or crest) after a menu round trip, e.g.","FIXED + USER-VERIFIED (2026-09-26, CI run 36206526605 build:"

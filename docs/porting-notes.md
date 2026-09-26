@@ -249,6 +249,20 @@ framing — it never looked like game logic to begin with.
   decompilation of what the write side already does, `#ifdef PORT` with the
   N64 hand-rolled offset kept verbatim under `#else`. §F **D248**.
 
+**A2. A region grown for PC inside a shared buffer silently overlaps its
+N64 neighbour.** GE carves big `mempAlloc` buffers into regions by hand-written
+offsets, often in bytes through `(s32)` casts: `(s32)base + (s32)(4096*10)`.
+When a model region is enlarged for 64-bit (D45: 16-byte `Gfx`, expanded
+texture markers), every other offset into the same buffer still assumes the
+N64 size. Nothing crashes. The neighbour's writes land on the already-loaded
+model, and parts of it stop drawing, but only on the paths where the model is
+not reloaded afterwards (a menu re-entry, not first entry). **Tell:** a model
+that renders on first visit and loses pieces after a round trip, with no
+D146 abort spam. **Fix:** grep every use of the buffer pointer and move the
+neighbour by the same growth under `#ifdef PORT`, after checking that the
+buffer's PC size still covers the shifted layout. §F **D326** (wallet vs the
+file-select background at +0xA000; D45 had assumed +0x28000).
+
 ## B. 16-byte PC `Gfx` / `Vtx` vs 8-byte N64
 
 Any buffer reservation, `memcpy` size, slot stride, or pool budget

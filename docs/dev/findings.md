@@ -611,6 +611,7 @@ covers D24–D69; the log continues in §H (D32 procedure, D70–D121).
 | D323 | **Ultrawide (5120x1440, 32:9): resolution won't hold (`Fullscreen=1` ignores `[Window]` size) and the whole frame is stretched ~2.7x; asks for a 4:3 pillarbox and a world-only Hor+ fix (user report, Bazzite/KDE, 2026-09-25).** — full `## D323` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: HOR+ confirmed; 4:3 showed sky in the bars (1-unit crop overflow), fixed by clamping the scissor to the fit rect, re-test owed. New `Video.AspectMode` (F10 "Aspect ratio"): 0 STRETCH (default, unchanged), 1 4:3 pillarbox/letterbox in fast3d (`gfx_start_frame` draw-area fit), 2 HOR+ (route-(b) `#ifdef PORT` aspect hook at the `src/fr.c` projection + cull chokepoint, D211/D222 class). Window part was config semantics, not a bug: borderless fullscreen always takes the desktop size; ini rewritten on exit. HUD anchoring not done. |
 | D324 | **HUD anchoring for widescreen (D323 goal 3): in-game 2D HUD drawn unstretched and slid to the screen edge it belongs to, instead of stretched across the window (user ask, 2026-09-25).** — full `## D324` entry at file tail | FIXED — user playtest 2026-09-25 at 5120x1440: EDGES/16:9 HUD confirmed; the pause watch under HOR+ had hard vertical cuts and smeared sides, fixed (full scissor for the watch + sides fade to black with the zoom), re-test owed. New `Video.HudLayout` (F10 "HUD layout"): 0 STRETCH (default, unchanged), 1 EDGES, 2 16:9 (edges capped at a centred 16:9 area). Uses fast3d's dormant PD `G_EXTRAGEOMETRYMODE_EXT` aspect path, emitted from `#ifdef PORT` hooks in 4 HUD functions (route-(b), D181/D211 class); fixes two latent bugs in that PD path and makes the scissor follow the mode. Crosshair unstretched in shape only, so aim is unchanged. SP only. |
 | D325 | **Widescreen follow-ups from playtest: front-end menus still stretched under HOR+, and the F10 overlay stretched too (user report, 2026-09-25).** — full `## D325` entry at file tail | FIXED (build-verified; re-test owed) — under HOR+ the front end (LEVELID_TITLE) now uses the 4:3 fit, re-evaluated per frame; the F10 panel is drawn CENTER-unstretched (dim stays full-width) with a matching click-mapping inverse, and the FPS counter anchors RIGHT, whenever HOR+ or a HUD layout is on. Defaults unchanged. |
+| D326 | **File-select folders draw as empty frames (no Bond photo or crest) after a menu round trip, e.g. back out of mode select (user report 2026-09-26; root cause of GRAPHICS-BACKLOG D182(1)).** — full `## D326` entry at file tail | FIXED (build-verified; re-test owed) — on PC the D45-grown wallet model (0x1664C) overlapped the file-select background and briefing scratch at +0xA000 (`4096*10` bytes, not the +0x28000 D45 assumed); a re-entry with the wallet still loaded overwrote its display lists. `#ifdef PORT`: the scratch moves to +0x17000 (`PORT_WALLETBOND_REGION`), ending exactly at the 0x85000 buffer end. D182(2) (background comb) still open. |
 
 Phase 2 replaced the Phase-1 demo loop with the real `mainproc()` on real OS
 threads, compiled GE's real `src/sched.c`, and brought in PD's fast3d software
@@ -1146,7 +1147,9 @@ semantics unchanged): gun.c:106 size_item_buffer 0x14820→**0x23000**
 0xE788); gun.c ITEM_SUIT_LF_HAND R 0xBD70→**0x18000** (Csuit_lf_handZ
 0x16F9C) with pool expr size−0x18000; gun.c ITEM_TRIGGER/ITEM_WATCHLASER R
 0xAFD0→**0x17000** (GtriggerZ 0x16030); front.c load_walletbond R 0xA000→
-**0x17000** (PwalletbondZ 0x1664C; stays below the +0x28000 DL region);
+**0x17000** (PwalletbondZ 0x1664C; stays below the +0x28000 DL region
+[**D326 CORRECTION:** that region is at +0xA000 (`4096*10` in bytes), so the
+grown wallet overlapped it; D326 moves it to +0x17000]);
 front.c cast screen bufferRemaining 0x18160→**0x1C000** (cast chain worst
 0x19CA0 — zbuf at 0x19000+region must not be clobbered); initmenus.c:34 logo
 buffer 0x78000→**0x7C000** (texpool 0x19000 + region 0x1C000 + zbuf
@@ -12389,3 +12392,35 @@ Build-verified: warning set identical to the previous head over the same transla
 2. HOR+ or a HUD layout: F10 panel undistorted and centred over a full-width dim; clicks on rows and on the close box land; with the panel closed, the FPS counter sits at the right edge (or the 16:9 edge).
 
 **Status:** FIXED (build-verified; re-test owed). Cross-ref: D323 (fit, `videoGetGameRectInWindow`), D324 (aspect-mode path, `portEmitAspectMode`), D316 (overlay click mapping), D213 (FPS counter), D103 (native viewport).
+
+## D326 — File-select folders lose their photo and crest after a menu round trip (D182(1) root cause)
+
+**Report.** User playtest, 2026-09-26, on v0.3.1-ultrawide: on the SELECT FILE screen the folders draw only as empty frames (border and text) after entering a menu and leaving it. On the first visit they draw complete, with the Bond photo and the crest. This is the same symptom as the parked GRAPHICS-BACKLOG **D182** (M-35 screenshot `docs/img/bugs/d182-file-select-backout-20260902.png`). The widescreen work (D323–D325) did not cause it: it was first logged on 2026-09-02.
+
+**Root cause.** Two regions of the front-end buffer `ptr_logo_and_walletbond_DL` overlap on PC:
+- `load_walletbond()` loads the wallet model (PwalletbondZ) at offset 0. On N64 the region is 0xA000. On PC the model expands to 0x1664C (16-byte `Gfx`, expanded texture markers), so D45 grew the region to 0x17000.
+- `init_menu05_fileselect()` puts its scratch area at `(s32)base + (s32)(4096*10)`, which is +0xA000 in bytes. `sub_GAME_7F008DE4` RLE-expands the 440×299 I8 gun-barrel background there, at +0xA000 … +0x2A1E8. `load_briefing_text_for_stage()` reads 0x200 bytes of briefing data to the same address.
+- D45 recorded the neighbour as "the +0x28000 DL region". The code computes +0xA000, so [0xA000, 0x1664C) is shared: about 50 KB of the wallet model. Per D46, the display lists expand in place toward the end of the model, so they are the part in the shared range.
+- **First visit:** `init_menu05` expands the background and then loads the wallet over the start of it. The wallet is intact, and the folders look right.
+- **Re-entry with the wallet still loaded** (for example, back out of mode select into file select): `load_walletbond()` returns early because `walletinst[0] != NULL`. The background expand then overwrites the wallet's display lists with pixel data. What survives is whatever lies below 0xA000. The photo and crest display lists do not, which fits the symptom. This is inferred from the layout, not captured.
+- **Briefing:** `init_menu0A_briefing()` loads the wallet and then writes the briefing data into it at +0xA000.
+- The N64 layout is the wallet at [0, 0xA000) with the scratch starting exactly at 0xA000, so the two never overlap there. This is the porting-notes §A2 pattern: a region grown for PC inside a hand-carved buffer, with a neighbour offset left at the N64 value.
+
+**Fix** (`src/game/front.c`, `#ifdef PORT` only; the N64 lines are kept verbatim under `#else`):
+- A new `PORT_WALLETBOND_REGION` (0x17000) is the wallet region size. `load_walletbond()` uses it in place of its literal 0x17000.
+- `init_menu05_fileselect()` and `load_briefing_text_for_stage()` place the scratch area at `base + PORT_WALLETBOND_REGION`.
+- This is the N64 layout shifted by the wallet's growth. The scratch keeps its N64 size (0x6E000, with the compressed background at +0x40400 inside it), so it ends at 0x17000 + 0x6E000 = 0x85000, exactly the PC buffer size (`initmenus.c`, D46).
+- Sizes checked: the compressed background (`unknown2`, 0x1A580 bytes) sits at [0x57400, 0x71980) and the expanded image at [0x17000, 0x371E8). The briefing data overlaps the start of the background as it does on N64.
+- This is ABI/layout only, the same class as D45's own size edit. No logic changes, and no other PORT code referenced +0xA000.
+
+**Verification.**
+- The Linux build is clean. The `front.c` warning set is identical to the previous head (282 = 282; the edited lines carry the same `(s32)` pointer-cast warnings as the lines they replace).
+- Runtime verification was not possible here (no ROM in the container). A human must check:
+  1. Pick a folder, back out of mode select, and see whether the folders still show photo and crest.
+  2. Repeat after mission select and after a briefing.
+  3. The briefing folder should be intact.
+- Expected side effect: on the first visit the top ~115 background rows had been overwritten by wallet bytes, so the top of the gun-barrel background may now look cleaner.
+
+**Not covered.** D182(2), the comb/line artifact across the background after a round trip, is not explained with confidence. fast3d's texture cache is keyed by address and never invalidated between screens, so each background row keeps its first import either way. Leave D182(2) open until the re-test reports what the background looks like.
+
+**Status:** FIXED (build-verified; re-test owed). Cross-ref: D45/D46 (buffer sizing), D182 (backlog row), D183 (D182(2)), porting-notes §A2.

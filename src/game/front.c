@@ -314,6 +314,15 @@ s32 is_emulating_spectrum = FALSE;
 s32 is_cheat_menu_available = FALSE;
 
 u8 * ptr_logo_and_walletbond_DL = NULL;
+#ifdef PORT
+/* D326: the wallet-model region at the start of ptr_logo_and_walletbond_DL.
+ * N64 loads PwalletbondZ into [0, 0xA000) and puts the file-select background
+ * and briefing-text scratch right after it at +4096*10 (= +0xA000). On PC the
+ * wallet expands to 0x1664C (D45), so the scratch moves up with it to keep the
+ * two disjoint; its 0x6E000 then ends exactly at the 0x85000 buffer end
+ * (initmenus.c). */
+#define PORT_WALLETBOND_REGION 0x17000
+#endif
 s32 ptr_menu_videobuffer = 0;
 struct Model *logoinst = NULL;
 struct Model * walletinst[] = { NULL, NULL, NULL, NULL};
@@ -2134,13 +2143,14 @@ void load_walletbond(void)
     if (walletinst[0] == NULL)
     {
 #if defined(PORT)
-        /* PC port (D45): PwalletbondZ expands to 0x1664C; the region ends well
-         * below the +0x28000 DL area of the same buffer. */
+        /* PC port (D45): PwalletbondZ expands to 0x1664C. The scratch area
+         * after it is at +4096*10 = +0xA000 on N64 (not +0x28000 as D45
+         * assumed); D326 moves it past this region. */
         load_object_fill_header(
             PitemZ_entries[PROP_WALLETBOND].header,
             (s8*)PitemZ_entries[PROP_WALLETBOND].filename,
             (u8*)ptr_logo_and_walletbond_DL,
-            0x17000,
+            PORT_WALLETBOND_REGION,
             0);
 #else
         load_object_fill_header(
@@ -2203,7 +2213,15 @@ void frontCleanUpWalletBond(void)
 void init_menu05_fileselect(void)
 {
     s32 size = 0x6e000;
+#ifdef PORT
+    /* D326: at +0xA000 the background RLE expand below landed inside the
+     * (D45-grown) wallet model, and on a re-entry with the wallet still loaded
+     * (e.g. back out of mode select) it overwrote the folders' display lists:
+     * the photo and crest stopped drawing. */
+    Gfx* DL = (s32)(ptr_logo_and_walletbond_DL) + (s32)(PORT_WALLETBOND_REGION);
+#else
     Gfx* DL = (s32)(ptr_logo_and_walletbond_DL) + (s32)(4096*10);
+#endif
     int i;
 
     prev_keypresses = FALSE;
@@ -6602,7 +6620,13 @@ void load_briefing_text_for_stage(void)
     s32 argg;
 
     // what is this
+#ifdef PORT
+    /* D326: same scratch area as init_menu05_fileselect; +0xA000 is inside the
+     * wallet model that init_menu0A_briefing has just loaded. */
+    temp_s0 = (s32)(ptr_logo_and_walletbond_DL) + (s32)(PORT_WALLETBOND_REGION);
+#else
     temp_s0 = (s32)(ptr_logo_and_walletbond_DL) + (s32)(4096*10);
+#endif
 
     // alright
     argg = 0x200;
